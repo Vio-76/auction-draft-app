@@ -3,7 +3,7 @@
  * (commit()). They reuse the same logic the captain flow uses (turn/sell/team), so the
  * auction behaves identically whether a step is driven by a captain or the admin.
  *
- * Covers the full admin feature set: auction control (start/pause/reset/advance/skip/sold/
+ * Covers the full admin feature set: auction control (start/pause/empty-teams/advance/skip/sold/
  * status), settings, "whose turn is it", captain CRUD, player CRUD + bulk import, and
  * manual roster editing (move a player to/from a team, edit a price).
  */
@@ -105,16 +105,15 @@ function setStatus(status) {
   return ok();
 }
 
-function resetAuction() {
-  for (const p of state.players) { p.status = PLAYER_STATUS.OPEN; p.captainId = null; p.price = 0; }
-  team.clearAuctionBlock();
-  sell.clearLastBidTime();
-  turn.clearOpeningDeadline();
-  state.clocks.lastSold = null;
-  state.clocks.pausedRemaining = null;
-  state.settings.marker = -1;
-  state.settings.turnDirection = TURN_DIR.DOWN;
-  state.settings.status = STATUS.CLOSED;
+/**
+ * Empty every team's roster: send all drafted (non-captain) players back to the open pool.
+ * Roster-only on purpose — it does NOT touch the turn/marker/status, so it pairs with
+ * startAuction(): use Start alone to (re)begin, or Empty teams + Start for a full reset.
+ */
+function emptyTeams() {
+  for (const p of state.players) {
+    if (p.status === PLAYER_STATUS.SOLD) { p.status = PLAYER_STATUS.OPEN; p.captainId = null; p.price = 0; }
+  }
   return ok();
 }
 
@@ -345,7 +344,7 @@ function setPlayerPrice(playerId, price) {
 
 module.exports = {
   startAuction, advanceTurn, skipCaptain, openBidding, closeBidding, openOpeningBid,
-  sold, setStatus, resetAuction,
+  sold, setStatus, emptyTeams,
   updateSettings, setTurnTo,
   addCaptain, updateCaptain, deleteCaptain, importCaptains,
   addPlayer, updatePlayer, deletePlayer, importPlayers, clearPool,
