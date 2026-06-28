@@ -66,6 +66,8 @@
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; align-items: end; }
 .form-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
 .self-end { align-self: end; }
+/* Save button placed in the grid's empty bottom-right cell, aligned with the field above it. */
+.form-grid .set-save { align-self: end; }
 input, select, textarea {
   font-family: var(--font-mono); font-size: 14px; padding: 9px 10px;
   background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong);
