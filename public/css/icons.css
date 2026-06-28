@@ -1,0 +1,11 @@
+/* Role icon backgrounds, served as static files (replaces the Apps Script Drive->base64
+   inlining). Put transparent PNGs named per role in public/icons/ (top.png, jungle.png,
+   mid.png, adc.png, support.png, fill.png). If a file is missing the element simply shows
+   its text fallback, so this file is harmless when icons are absent. */
+
+.role-top     { background-image: url("/static/icons/top.png"); }
+.role-jungle  { background-image: url("/static/icons/jungle.png"); }
+.role-mid     { background-image: url("/static/icons/mid.png"); }
+.role-adc     { background-image: url("/static/icons/adc.png"); }
+.role-support { background-image: url("/static/icons/support.png"); }
+.role-fill    { background-image: url("/static/icons/fill.png"); }

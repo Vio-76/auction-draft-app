@@ -1,0 +1,20 @@
+<%# Shared Rules/Links panel. Locals: infoSections [{heading, items:[html]}], links [{label,url}] %>
+<div class="info-panel">
+  <button type="button" class="info-toggle" aria-expanded="false" onclick="toggleInfo(this)">
+    <span>Auction Rules</span><span class="info-caret">▾</span>
+  </button>
+  <div class="info-body" hidden>
+    <h3>Auction Rules</h3>
+    <% infoSections.forEach(function (sec) { %>
+      <h4 class="info-section-head"><%= sec.heading %></h4>
+      <ul class="info-rules">
+        <% sec.items.forEach(function (it) { %><li><%- it %></li><% }) %>
+      </ul>
+    <% }) %>
+  </div>
+  <% if (locals.links && links.length) { %>
+  <div class="info-links">
+    <% links.forEach(function (l) { %><a class="info-link" href="<%= l.url %>" target="_blank" rel="noopener"><%= l.label %></a><% }) %>
+  </div>
+  <% } %>
+</div>

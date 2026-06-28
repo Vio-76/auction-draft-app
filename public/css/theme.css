@@ -1,0 +1,210 @@
+/* Theme tokens. Ported verbatim from the Apps Script ThemeStyles.html partial.
+   :root = draftroom defaults; each [data-theme=...] overrides the tokens. */
+
+    :root {
+      --bg:#0c0e13;
+      --bg-glow: radial-gradient(120% 80% at 50% -10%, rgba(246,181,60,.16), transparent 60%),
+                 radial-gradient(100% 60% at 50% 120%, rgba(52,226,155,.06), transparent 60%);
+      --grain-opacity:.04;
+      --surface:#15181f;
+      --surface-2:#1c2029;
+      --card: linear-gradient(180deg, var(--surface-2), var(--surface));
+      --card-border:1px solid var(--line);
+      --line:rgba(255,255,255,.07);
+      --line-strong:rgba(255,255,255,.14);
+      --ink:#f3f1ea;
+      --muted:#878c98;
+      --accent:#f6b53c;
+      --accent-strong:#ffc759;
+      --accent-ink:#1a1205;
+      --accent-soft:rgba(246,181,60,.1);
+      --accent-border:rgba(246,181,60,.3);
+      --accent-glow:0 6px 18px -6px rgba(246,181,60,.6);
+      --eyebrow:#caa044;
+      --positive:#34e29b;
+      --positive-soft:rgba(52,226,155,.08);
+      --positive-border:rgba(52,226,155,.3);
+      --danger:#ff5b54;
+      --danger-soft:rgba(255,91,84,.1);
+      --danger-border:rgba(255,91,84,.35);
+      --ring-track:rgba(255,255,255,0.12);
+      --radius:16px;
+      --control-radius:12px;
+      --shadow:0 18px 40px -12px rgba(0,0,0,.7);
+      --topbar: linear-gradient(90deg, var(--accent), rgba(246,181,60,0));
+      --sold-bg: linear-gradient(90deg, rgba(246,181,60,.18), rgba(246,181,60,.04));
+      --focus-ring:0 0 0 3px rgba(246,181,60,.18);
+      --disabled-bg:#2a2e37;
+      --disabled-ink:#6a6f7a;
+      --btn-active-shift:translateY(1px);
+      --font-display:'Oswald', sans-serif;
+      --font-body:'Outfit', sans-serif;
+      --font-mono:'JetBrains Mono', monospace;
+      --display-weight:700;
+      --display-transform:uppercase;
+      --display-spacing:.01em;
+      --player-size:40px;
+      --bid-size:42px;
+    }
+
+    /* ---- auction house (light, lot-card luxury) ---- */
+    [data-theme="auctionhouse"] {
+      --bg:#f3ede1;
+      --bg-glow: radial-gradient(120% 80% at 50% -10%, rgba(154,123,63,.16), transparent 60%),
+                 radial-gradient(100% 50% at 50% 120%, rgba(154,123,63,.06), transparent 60%);
+      --grain-opacity:.05;
+      --surface:#fbf7ef; --surface-2:#fffdf8;
+      --card: linear-gradient(180deg, #fffdf8, #f8f2e7);
+      --line:rgba(50,38,20,.12); --line-strong:rgba(50,38,20,.2);
+      --ink:#241d12; --muted:#8a7c66;
+      --accent:#9a7b3f; --accent-strong:#b5934f; --accent-ink:#fffdf8;
+      --accent-soft:rgba(154,123,63,.12); --accent-border:rgba(154,123,63,.35);
+      --accent-glow:0 8px 20px -10px rgba(154,123,63,.5); --eyebrow:#9a7b3f;
+      --positive:#3f7d52; --positive-soft:rgba(63,125,82,.1); --positive-border:rgba(63,125,82,.3);
+      --danger:#a8362b; --danger-soft:rgba(168,54,43,.08); --danger-border:rgba(168,54,43,.3);
+      --ring-track:rgba(50,38,20,.14);
+      --radius:7px; --control-radius:6px;
+      --shadow:0 14px 34px -18px rgba(50,38,20,.35);
+      --topbar: linear-gradient(90deg, var(--accent), rgba(154,123,63,0));
+      --sold-bg: linear-gradient(90deg, rgba(154,123,63,.16), rgba(154,123,63,.03));
+      --focus-ring:0 0 0 3px rgba(154,123,63,.2);
+      --disabled-bg:#e6ded0; --disabled-ink:#a99e8a;
+      --font-display:'Fraunces', Georgia, serif;
+      --font-body:'Outfit', sans-serif;
+      --font-mono:'Fraunces', Georgia, serif;
+      --display-weight:600; --display-transform:none; --display-spacing:.005em;
+      --player-size:42px; --bid-size:44px;
+    }
+
+    /* ---- terminal (green-on-black trading floor) ---- */
+    [data-theme="terminal"] {
+      --bg:#060a08;
+      --bg-glow: radial-gradient(120% 80% at 50% -10%, rgba(35,224,138,.12), transparent 60%),
+                 radial-gradient(100% 60% at 50% 120%, rgba(35,224,138,.05), transparent 60%);
+      --grain-opacity:.06;
+      --surface:#0a110d; --surface-2:#0d1712;
+      --card: linear-gradient(180deg, #0d1712, #0a110d);
+      --line:rgba(60,255,160,.12); --line-strong:rgba(60,255,160,.24);
+      --ink:#c9f7d8; --muted:#5d9173;
+      --accent:#23e08a; --accent-strong:#43ffa3; --accent-ink:#04140c;
+      --accent-soft:rgba(35,224,138,.12); --accent-border:rgba(35,224,138,.35);
+      --accent-glow:0 0 18px -2px rgba(35,224,138,.5); --eyebrow:#23e08a;
+      --positive:#23e08a; --positive-soft:rgba(35,224,138,.1); --positive-border:rgba(35,224,138,.3);
+      --danger:#ff5b54; --danger-soft:rgba(255,91,84,.1); --danger-border:rgba(255,91,84,.35);
+      --ring-track:rgba(60,255,160,.14);
+      --radius:3px; --control-radius:2px;
+      --shadow:0 0 0 1px rgba(35,224,138,.08), 0 18px 40px -20px rgba(0,0,0,.8);
+      --topbar: linear-gradient(90deg, var(--accent), rgba(35,224,138,0));
+      --sold-bg: linear-gradient(90deg, rgba(35,224,138,.16), rgba(35,224,138,.03));
+      --focus-ring:0 0 0 3px rgba(35,224,138,.2);
+      --disabled-bg:#16241c; --disabled-ink:#4a6b56;
+      --font-display:'JetBrains Mono', monospace;
+      --font-body:'JetBrains Mono', monospace;
+      --font-mono:'JetBrains Mono', monospace;
+      --display-weight:700; --display-transform:uppercase; --display-spacing:.02em;
+      --player-size:34px; --bid-size:40px;
+    }
+
+    /* ---- broadcast (draft-night TV lower-thirds) ---- */
+    [data-theme="broadcast"] {
+      --bg:#081226;
+      --bg-glow: radial-gradient(120% 80% at 50% -10%, rgba(255,59,48,.18), transparent 55%),
+                 radial-gradient(100% 60% at 50% 120%, rgba(255,210,63,.08), transparent 60%);
+      --grain-opacity:.05;
+      --surface:#0d1c3a; --surface-2:#13264c;
+      --card: linear-gradient(180deg, #13264c, #0d1c3a);
+      --line:rgba(255,255,255,.1); --line-strong:rgba(255,255,255,.2);
+      --ink:#f3f7ff; --muted:#9fb2d8;
+      --accent:#ff3b30; --accent-strong:#ff5a50; --accent-ink:#ffffff;
+      --accent-soft:rgba(255,59,48,.14); --accent-border:rgba(255,59,48,.4);
+      --accent-glow:0 8px 20px -8px rgba(255,59,48,.6); --eyebrow:#ffd23f;
+      --positive:#3ddc84; --positive-soft:rgba(61,220,132,.12); --positive-border:rgba(61,220,132,.35);
+      --danger:#ffd23f; --danger-soft:rgba(255,210,63,.12); --danger-border:rgba(255,210,63,.4);
+      --ring-track:rgba(255,255,255,.16);
+      --radius:5px; --control-radius:4px;
+      --shadow:0 16px 38px -14px rgba(0,0,0,.75);
+      --topbar: linear-gradient(90deg, var(--accent) 0, var(--accent) 60%, #ffd23f 60%, #ffd23f 100%);
+      --sold-bg: linear-gradient(90deg, rgba(255,59,48,.2), rgba(255,210,63,.06));
+      --focus-ring:0 0 0 3px rgba(255,59,48,.25);
+      --disabled-bg:#1d2c4a; --disabled-ink:#6d80a6;
+      --font-display:'Anton', sans-serif;
+      --font-body:'Archivo', sans-serif;
+      --font-mono:'Archivo', sans-serif;
+      --display-weight:400; --display-transform:uppercase; --display-spacing:.02em;
+      --player-size:46px; --bid-size:48px;
+    }
+
+    /* ---- brutalist (stark paper + alarm red) ---- */
+    [data-theme="brutalist"] {
+      --bg:#eceae3; --bg-glow:none; --grain-opacity:0;
+      --surface:#ffffff; --surface-2:#ffffff;
+      --card:#ffffff; --card-border:3px solid #111111;
+      --line:#111111; --line-strong:#111111;
+      --ink:#0a0a0a; --muted:#444444;
+      --accent:#ff2a00; --accent-strong:#ff2a00; --accent-ink:#ffffff;
+      --accent-soft:rgba(255,42,0,.1); --accent-border:#111111;
+      --accent-glow:6px 6px 0 #111111; --eyebrow:#0a0a0a;
+      --positive:#0a7d2c; --positive-soft:rgba(10,125,44,.1); --positive-border:#111111;
+      --danger:#ff2a00; --danger-soft:rgba(255,42,0,.1); --danger-border:#111111;
+      --ring-track:rgba(10,10,10,.18);
+      --radius:0px; --control-radius:0px;
+      --shadow:6px 6px 0 #111111;
+      --topbar:#111111;
+      --sold-bg:#ffffff;
+      --focus-ring:0 0 0 3px rgba(255,42,0,.3);
+      --disabled-bg:#d6d4cc; --disabled-ink:#8a887f;
+      --font-display:'Archivo', sans-serif;
+      --font-body:'Archivo', sans-serif;
+      --font-mono:'JetBrains Mono', monospace;
+      --display-weight:900; --display-transform:uppercase; --display-spacing:-.02em;
+      --player-size:46px; --bid-size:56px;
+    }
+
+    /* ---- casino (poker felt + neon + gold chips) ---- */
+    [data-theme="casino"] {
+      --bg:#0a2a1a;
+      --bg-glow: radial-gradient(110% 70% at 50% -10%, rgba(255,208,46,.18), transparent 55%),
+                 radial-gradient(90% 60% at 12% 110%, rgba(255,77,109,.18), transparent 55%),
+                 radial-gradient(90% 60% at 88% 110%, rgba(64,206,255,.14), transparent 55%);
+      --grain-opacity:.07;
+      --surface:#0e3522; --surface-2:#114229;
+      --card: linear-gradient(180deg, #124a2e, #0d3a23);
+      --line:rgba(255,255,255,.1); --line-strong:rgba(255,255,255,.2);
+      --ink:#fff6e9; --muted:#8fbfa3;
+      --accent:#ffd02e; --accent-strong:#ffe16a; --accent-ink:#3a2a00;
+      --accent-soft:rgba(255,208,46,.14); --accent-border:rgba(255,208,46,.4);
+      --accent-glow:0 0 22px -2px rgba(255,208,46,.65); --eyebrow:#ff4d6d;
+      --positive:#39e0a0; --positive-soft:rgba(57,224,160,.12); --positive-border:rgba(57,224,160,.35);
+      --danger:#ff4d6d; --danger-soft:rgba(255,77,109,.12); --danger-border:rgba(255,77,109,.4);
+      --ring-track:rgba(255,255,255,.16);
+      --radius:18px; --control-radius:999px;
+      --shadow:0 18px 40px -14px rgba(0,0,0,.7), 0 0 0 1px rgba(255,208,46,.1);
+      --topbar: linear-gradient(90deg, #ff4d6d, #ffd02e 50%, #40ceff);
+      --sold-bg: linear-gradient(90deg, rgba(255,208,46,.2), rgba(255,77,109,.06));
+      --focus-ring:0 0 0 3px rgba(255,208,46,.28);
+      --disabled-bg:#1a3a28; --disabled-ink:#5f8f73;
+      --font-display:'Bungee', sans-serif;
+      --font-body:'Outfit', sans-serif;
+      --font-mono:'JetBrains Mono', monospace;
+      --display-weight:400; --display-transform:uppercase; --display-spacing:.01em;
+      --player-size:36px; --bid-size:44px;
+    }
+
+    /* ===========================================================
+       SHARED STRUCTURAL BASE (identical on both pages)
+       =========================================================== */
+    * { box-sizing: border-box; }
+
+    body {
+      margin:0; min-height:100vh;
+      font-family:var(--font-body);
+      color:var(--ink);
+      background: var(--bg-glow), var(--bg);
+      background-attachment:fixed;
+      -webkit-font-smoothing:antialiased;
+    }
+    body::before {
+      content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      opacity:var(--grain-opacity); mix-blend-mode:overlay;
+    }

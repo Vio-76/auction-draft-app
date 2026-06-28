@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="<%= fontUrl %>">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link rel="stylesheet" href="/static/css/board.css">
+  <link rel="stylesheet" href="/static/css/icons.css">
+  <link rel="stylesheet" href="/static/css/info.css">
+  <title>Auction — Teams</title>
+</head>
+<body data-theme="<%= theme %>">
+  <div class="board-shell">
+    <div class="board-head">
+      <div>
+        <div class="board-eyebrow">Auction Draft</div>
+        <h1 class="board-title">Teams</h1>
+      </div>
+      <div class="board-sub" id="board-sub"></div>
+    </div>
+
+    <%- include('partials/info-panel', { infoSections: infoSections, links: [] }) %>
+
+    <div class="team-grid" id="board"></div>
+
+    <div class="pool-section" id="pool-section" style="display:none">
+      <div class="pool-head">
+        <h2 class="pool-title">Available Players</h2>
+        <span class="pool-count" id="pool-count"></span>
+      </div>
+      <div class="pool-grid" id="pool"></div>
+    </div>
+
+    <div class="turn-section" id="turn-section" style="display:none">
+      <div class="turn-head">
+        <h2 class="turn-title">Opening Bid Order</h2>
+        <span class="turn-badge" id="turn-badge"></span>
+      </div>
+      <div class="turn-rail" id="turn-rail"></div>
+    </div>
+  </div>
+
+  <script>const ROLES = <%- rolesJson %>;</script>
+  <script src="/static/js/shared.js"></script>
+  <script src="/static/js/board.js"></script>
+</body>
+</html>

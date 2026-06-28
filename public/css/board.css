@@ -1,0 +1,183 @@
+/* Board layout + theme flourishes. Ported from Board.html (the per-render role-icon
+   data-URI block is replaced by icons.css referencing static files). */
+
+    /* ===========================================================
+       BOARD THEME FLOURISHES (target Board-only markup)
+       =========================================================== */
+    [data-theme="terminal"] .team-card {
+      background: repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(0,30,15,.22) 4px), var(--card);
+    }
+    [data-theme="terminal"] .card-eyebrow::before { content:'> '; }
+
+    [data-theme="broadcast"] .card-eyebrow {
+      display:inline-block; background:var(--accent); color:#fff;
+      padding:4px 10px 3px; letter-spacing:.18em; transform:skewX(-9deg); border-radius:2px;
+    }
+
+    [data-theme="brutalist"] .team-card::before { height:6px; }
+
+    [data-theme="casino"] .team-maxbid { text-shadow:0 0 16px rgba(255,208,46,.5); }
+    [data-theme="casino"] .card-eyebrow { text-shadow:0 0 12px rgba(255,77,109,.6); }
+
+    /* ===========================================================
+       BOARD LAYOUT (token-driven)
+       =========================================================== */
+    .board-shell { position:relative; z-index:1; max-width:1440px; margin:0 auto; padding:30px 22px 56px; }
+
+    .board-head { margin:0 0 22px; display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;
+      padding-bottom:18px; border-bottom:1px solid var(--line); }
+    .board-eyebrow {
+      font-family:var(--font-display); font-weight:500; font-size:12px;
+      letter-spacing:.32em; text-transform:uppercase; color:var(--accent);
+    }
+    .board-title {
+      font-family:var(--font-display); font-weight:var(--display-weight); font-size:34px; line-height:1;
+      letter-spacing:var(--display-spacing); text-transform:var(--display-transform); margin:0;
+    }
+    .board-sub { font-size:13px; color:var(--muted); margin-left:auto; font-family:var(--font-mono); }
+
+    .team-grid {
+      display:grid; gap:16px;
+      grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
+    }
+
+    .team-card {
+      position:relative; overflow:hidden;
+      display:flex; flex-direction:column;
+      background:var(--card); border:var(--card-border); border-radius:var(--radius);
+      padding:18px 17px 16px; box-shadow:var(--shadow);
+      animation:cardIn .25s ease both;
+    }
+    .team-card::before {
+      content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--topbar);
+    }
+
+    /* Header is the max-bid headline stat: value centered to the card, label to its right.
+       Flex baseline-aligns the two; the label has zero layout width (text overflows to the
+       right) so the value alone determines centering. */
+    .team-head {
+      display:flex; align-items:baseline; justify-content:center;
+      margin-bottom:14px;
+    }
+    .team-maxbid-label {
+      font-family:var(--font-display); font-weight:700; font-size:14px;
+      color:var(--ink); width:0; white-space:nowrap; margin-left:8px;
+    }
+    .team-maxbid {
+      font-family:var(--font-mono); font-weight:700; font-size:20px; line-height:1.1; color:var(--accent);
+      letter-spacing:-.02em;
+    }
+    .team-maxbid.dim { color:var(--muted); opacity:.75; }
+
+    .roster { display:flex; flex-direction:column; gap:1px; margin-bottom:14px; }
+    .roster-row {
+      display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+      padding:7px 0; border-bottom:1px solid var(--line);
+    }
+    .roster-row:last-child { border-bottom:none; }
+    .slot-name { font-size:15px; font-weight:500; word-break:break-word; }
+    .roster-row.empty .slot-name { color:var(--muted); font-weight:400; }
+    .slot-price { font-family:var(--font-mono); font-size:13px; color:var(--muted); flex-shrink:0; }
+
+    /* Captain = roster slot 1: same type as the players, just a subtle accent highlight. */
+    .roster-row.captain { border-bottom:1px solid var(--line-strong); }
+    .cap-name { color:var(--accent); font-weight:700; font-size:18px; }
+
+    /* Pinned to the card bottom so role rows line up across all cards in a grid row,
+       even when a wrapped captain name makes one card taller. */
+    .roles { display:flex; gap:7px; flex-wrap:wrap; margin-top:auto; }
+    .role {
+      width:28px; height:28px; border-radius:var(--control-radius);
+      background-size:62% 62%; background-repeat:no-repeat; background-position:center;
+      background-color:var(--surface); border:1px solid var(--line);
+      display:flex; align-items:center; justify-content:center;
+      font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--muted);
+      opacity:.32; filter:grayscale(1); transition:opacity .2s, filter .2s, border-color .2s, background-color .2s;
+    }
+    .role.on {
+      opacity:1; filter:none; color:var(--accent-ink);
+      background-color:var(--positive-soft); border-color:var(--positive-border);
+    }
+    /* Fill is the flexible role — push it to the right end, apart from the five lane roles.
+       Scoped to the card role row so it doesn't also shift the Fill icon in the pool header. */
+    .roles .role-fill { margin-left:auto; }
+
+    .board-empty {
+      grid-column:1 / -1; padding:44px 22px; text-align:center; color:var(--muted);
+      background:var(--surface); border:1px dashed var(--line-strong); border-radius:var(--radius); font-size:16px;
+    }
+
+    /* ----- Available players (open pool), grouped by role, below the team cards ----- */
+    .pool-section { margin-top:40px; padding-top:24px; border-top:1px solid var(--line); }
+    .pool-head { display:flex; align-items:baseline; gap:14px; margin:0 0 18px; }
+    .pool-title {
+      font-family:var(--font-display); font-weight:var(--display-weight); font-size:24px; line-height:1;
+      letter-spacing:var(--display-spacing); text-transform:var(--display-transform); margin:0;
+    }
+    .pool-count { font-family:var(--font-mono); font-size:13px; color:var(--muted); }
+
+    .pool-grid {
+      display:grid; gap:16px;
+      grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));
+    }
+    .pool-col {
+      background:var(--card); border:var(--card-border); border-radius:var(--radius);
+      padding:14px 14px 12px; box-shadow:var(--shadow);
+    }
+    .pool-col.empty { opacity:.4; }
+    .pool-col-head {
+      display:flex; align-items:center; gap:9px; margin-bottom:10px;
+      padding-bottom:9px; border-bottom:1px solid var(--line);
+    }
+    /* Reuse the per-role .role-<key> background-image classes, but full-color (the .role base
+       class is intentionally dimmed/grayscale, so we use our own base here). */
+    .pool-icon {
+      width:26px; height:26px; flex-shrink:0; border-radius:var(--control-radius);
+      background-size:64% 64%; background-repeat:no-repeat; background-position:center;
+      background-color:var(--positive-soft); border:1px solid var(--positive-border);
+      display:flex; align-items:center; justify-content:center;
+      font-family:var(--font-mono); font-size:10px; font-weight:700; color:var(--accent-ink);
+    }
+    .pool-col-label {
+      font-family:var(--font-display); font-weight:700; font-size:13px; letter-spacing:.04em;
+      text-transform:uppercase; color:var(--ink);
+    }
+    .pool-col-count { font-family:var(--font-mono); font-size:12px; color:var(--muted); margin-left:auto; }
+    .pool-list { display:flex; flex-direction:column; gap:1px; }
+    .pool-player { font-size:14px; padding:5px 0; border-bottom:1px solid var(--line); word-break:break-word; }
+    .pool-player:last-child { border-bottom:none; }
+    .pool-list.is-empty::after { content:"—"; color:var(--muted); font-size:14px; padding:5px 0; }
+
+    /* ----- Turn-order rail, below the pool: captains in seat order, current one marked ----- */
+    .turn-section { margin-top:40px; padding-top:24px; border-top:1px solid var(--line); }
+    .turn-head { display:flex; align-items:baseline; gap:14px; margin:0 0 18px; }
+    .turn-title {
+      font-family:var(--font-display); font-weight:var(--display-weight); font-size:24px; line-height:1;
+      letter-spacing:var(--display-spacing); text-transform:var(--display-transform); margin:0;
+    }
+    .turn-badge { font-family:var(--font-mono); font-size:13px; color:var(--muted); }
+
+    /* One connected bar: captains share dividers rather than floating as separate buttons. */
+    .turn-rail {
+      display:inline-flex; flex-wrap:wrap; align-items:stretch;
+      background:var(--surface); border:1px solid var(--line); border-radius:var(--control-radius);
+      box-shadow:var(--shadow); overflow:hidden;
+    }
+    .turn-chip {
+      display:flex; align-items:baseline; gap:9px;
+      padding:10px 16px; border-right:1px solid var(--line);
+      transition:background-color .2s, opacity .2s, filter .2s;
+    }
+    .turn-chip:last-child { border-right:none; }
+    .turn-seat { font-family:var(--font-mono); font-size:12px; color:var(--muted); flex-shrink:0; }
+    .turn-name {
+      font-family:var(--font-display); font-weight:700; font-size:15px; letter-spacing:.02em;
+      text-transform:uppercase; color:var(--ink);
+    }
+    .turn-chip.current { background:var(--accent-soft); }
+    .turn-chip.current .turn-name { color:var(--accent); }
+
+    .turn-chip.full { opacity:.45; filter:grayscale(1); }
+    .turn-chip.full .turn-name { text-decoration:line-through; }
+
+    @keyframes cardIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
