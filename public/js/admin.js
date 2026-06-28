@@ -283,14 +283,10 @@ function renderCaptains(s) {
 
   const slots = s.settings.teamSlots;
   const caps = s.captains || [];
-  let html = '<tr><th>#</th><th>Order</th><th>Name</th><th>Role</th><th>Code</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Actions</th></tr>';
+  let html = '<tr><th>#</th><th>Name</th><th>Role</th><th>Code</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Order</th><th>Actions</th></tr>';
   caps.forEach(function (c, i) {
     html += '<tr>' +
       '<td class="num">' + (c.seat + 1) + '</td>' +
-      '<td class="order-cell">' +
-        '<button class="btn btn-sm" onclick="moveCaptain(' + c.id + ',\'up\')"' + (i === 0 ? ' disabled' : '') + ' title="Move up">↑</button>' +
-        '<button class="btn btn-sm" onclick="moveCaptain(' + c.id + ',\'down\')"' + (i === caps.length - 1 ? ' disabled' : '') + ' title="Move down">↓</button>' +
-      '</td>' +
       '<td>' + esc(c.name) + (c.full ? ' <span class="tag full">full</span>' : '') + '</td>' +
       '<td>' + esc(c.role || '—') + '</td>' +
       '<td><span class="code" data-code="' + esc(c.code) + '" data-shown="0" onclick="revealCode(this)" title="Click to reveal / hide">••••</span></td>' +
@@ -298,6 +294,10 @@ function renderCaptains(s) {
       '<td class="num">$' + c.price + '</td>' +
       '<td class="num">' + c.draftedCount + '/' + slots + '</td>' +
       '<td class="num">$' + c.maxBid + '</td>' +
+      '<td class="order-cell">' +
+        '<button class="btn btn-sm" onclick="moveCaptain(' + c.id + ',\'up\')"' + (i === 0 ? ' disabled' : '') + ' title="Move up">↑</button>' +
+        '<button class="btn btn-sm" onclick="moveCaptain(' + c.id + ',\'down\')"' + (i === caps.length - 1 ? ' disabled' : '') + ' title="Move down">↓</button>' +
+      '</td>' +
       '<td class="actions">' +
         '<button class="btn btn-sm" onclick="editCaptain(' + c.id + ')">Edit</button>' +
         '<button class="btn btn-sm btn-danger" onclick="deleteCaptain(' + c.id + ')">Del</button>' +
