@@ -68,8 +68,8 @@
       letter-spacing:-.02em;
     }
     .team-maxbid.dim { color:var(--muted); opacity:.75; }
-    /* Current high bidder — highlight their max bid green. */
-    .team-maxbid.leading { color:var(--positive); }
+    /* Current high bidder — highlight their max bid (matches the bidder name in the banner). */
+    .team-maxbid.leading { color:var(--leader); }
 
     .roster { display:flex; flex-direction:column; gap:1px; margin-bottom:14px; }
     .roster-row {
@@ -147,7 +147,7 @@
       font-family:var(--font-mono); font-weight:700; font-size:30px; line-height:1;
       color:var(--accent); letter-spacing:-.02em; font-variant-numeric:tabular-nums;
     }
-    .liveband-by { margin-left:4px; }
+    .liveband-by { margin-left:4px; color:var(--leader); font-weight:600; }
     .liveband-secs {
       margin-left:auto; font-family:var(--font-mono); font-weight:700; font-size:26px; line-height:1;
       color:var(--accent); font-variant-numeric:tabular-nums; min-width:3ch; text-align:right;

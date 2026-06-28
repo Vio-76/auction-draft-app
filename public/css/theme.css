@@ -22,6 +22,7 @@
       --accent-glow:0 6px 18px -6px rgba(246,181,60,.6);
       --eyebrow:#caa044;
       --positive:#34e29b;
+      --leader:#2fce50;
       --positive-soft:rgba(52,226,155,.08);
       --positive-border:rgba(52,226,155,.3);
       --danger:#ff5b54;
@@ -60,7 +61,7 @@
       --accent:#9a7b3f; --accent-strong:#b5934f; --accent-ink:#fffdf8;
       --accent-soft:rgba(154,123,63,.12); --accent-border:rgba(154,123,63,.35);
       --accent-glow:0 8px 20px -10px rgba(154,123,63,.5); --eyebrow:#9a7b3f;
-      --positive:#3f7d52; --positive-soft:rgba(63,125,82,.1); --positive-border:rgba(63,125,82,.3);
+      --positive:#3f7d52; --positive-soft:rgba(63,125,82,.1); --positive-border:rgba(63,125,82,.3); --leader:#2a8a40;
       --danger:#a8362b; --danger-soft:rgba(168,54,43,.08); --danger-border:rgba(168,54,43,.3);
       --ring-track:rgba(50,38,20,.14);
       --radius:7px; --control-radius:6px;
@@ -89,7 +90,7 @@
       --accent:#23e08a; --accent-strong:#43ffa3; --accent-ink:#04140c;
       --accent-soft:rgba(35,224,138,.12); --accent-border:rgba(35,224,138,.35);
       --accent-glow:0 0 18px -2px rgba(35,224,138,.5); --eyebrow:#23e08a;
-      --positive:#23e08a; --positive-soft:rgba(35,224,138,.1); --positive-border:rgba(35,224,138,.3);
+      --positive:#23e08a; --positive-soft:rgba(35,224,138,.1); --positive-border:rgba(35,224,138,.3); --leader:#2fe65a;
       --danger:#ff5b54; --danger-soft:rgba(255,91,84,.1); --danger-border:rgba(255,91,84,.35);
       --ring-track:rgba(60,255,160,.14);
       --radius:3px; --control-radius:2px;
@@ -118,7 +119,7 @@
       --accent:#ff3b30; --accent-strong:#ff5a50; --accent-ink:#ffffff;
       --accent-soft:rgba(255,59,48,.14); --accent-border:rgba(255,59,48,.4);
       --accent-glow:0 8px 20px -8px rgba(255,59,48,.6); --eyebrow:#ffd23f;
-      --positive:#3ddc84; --positive-soft:rgba(61,220,132,.12); --positive-border:rgba(61,220,132,.35);
+      --positive:#3ddc84; --positive-soft:rgba(61,220,132,.12); --positive-border:rgba(61,220,132,.35); --leader:#33db5c;
       --danger:#ffd23f; --danger-soft:rgba(255,210,63,.12); --danger-border:rgba(255,210,63,.4);
       --ring-track:rgba(255,255,255,.16);
       --radius:5px; --control-radius:4px;
@@ -144,7 +145,7 @@
       --accent:#ff2a00; --accent-strong:#ff2a00; --accent-ink:#ffffff;
       --accent-soft:rgba(255,42,0,.1); --accent-border:#111111;
       --accent-glow:6px 6px 0 #111111; --eyebrow:#0a0a0a;
-      --positive:#0a7d2c; --positive-soft:rgba(10,125,44,.1); --positive-border:#111111;
+      --positive:#0a7d2c; --positive-soft:rgba(10,125,44,.1); --positive-border:#111111; --leader:#0e8a2e;
       --danger:#ff2a00; --danger-soft:rgba(255,42,0,.1); --danger-border:#111111;
       --ring-track:rgba(10,10,10,.18);
       --radius:0px; --control-radius:0px;
@@ -174,7 +175,7 @@
       --accent:#ffd02e; --accent-strong:#ffe16a; --accent-ink:#3a2a00;
       --accent-soft:rgba(255,208,46,.14); --accent-border:rgba(255,208,46,.4);
       --accent-glow:0 0 22px -2px rgba(255,208,46,.65); --eyebrow:#ff4d6d;
-      --positive:#39e0a0; --positive-soft:rgba(57,224,160,.12); --positive-border:rgba(57,224,160,.35);
+      --positive:#39e0a0; --positive-soft:rgba(57,224,160,.12); --positive-border:rgba(57,224,160,.35); --leader:#57e069;
       --danger:#ff4d6d; --danger-soft:rgba(255,77,109,.12); --danger-border:rgba(255,77,109,.4);
       --ring-track:rgba(255,255,255,.16);
       --radius:18px; --control-radius:999px;
