@@ -294,10 +294,10 @@ function renderCaptains(s) {
       '<td class="num">$' + c.price + '</td>' +
       '<td class="num">' + c.draftedCount + '/' + slots + '</td>' +
       '<td class="num">$' + c.maxBid + '</td>' +
-      '<td class="order-cell">' +
+      '<td><div class="ord-btns">' +
         '<button class="btn btn-sm" onclick="moveCaptain(' + c.id + ',\'up\')"' + (i === 0 ? ' disabled' : '') + ' title="Move up">↑</button>' +
         '<button class="btn btn-sm" onclick="moveCaptain(' + c.id + ',\'down\')"' + (i === caps.length - 1 ? ' disabled' : '') + ' title="Move down">↓</button>' +
-      '</td>' +
+      '</div></td>' +
       '<td class="actions">' +
         '<button class="btn btn-sm" onclick="editCaptain(' + c.id + ')">Edit</button>' +
         '<button class="btn btn-sm btn-danger" onclick="deleteCaptain(' + c.id + ')">Del</button>' +
