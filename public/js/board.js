@@ -57,7 +57,8 @@ function renderLiveBid(lb) {
 
   setText(document.getElementById('livebid-player'), lb.player);
   setText(document.getElementById('livebid-amount'), '$' + lb.highestBid);
-  setText(document.getElementById('livebid-by'), lb.byCaptain ? 'by ' + lb.byCaptain : 'No bids yet');
+  const byEl = document.getElementById('livebid-by');
+  byEl.innerHTML = lb.byCaptain ? 'by <span class="liveband-name">' + esc(lb.byCaptain) + '</span>' : 'No bids yet';
   sec.style.display = '';
 
   const secsEl = document.getElementById('livebid-secs');
@@ -194,6 +195,7 @@ function updateCard(card, t, dim) {
   setText(card.maxBid, '$' + t.maxBid);
   card.maxBid.classList.toggle('dim', !!dim);
   card.maxBid.classList.toggle('leading', !!t.leading);   // current high bidder -> highlighted
+  card.captainName.classList.toggle('leading', !!t.leading);
 
   const players = t.players || [];
   for (let i = 0; i < card.slots.length; i++) {

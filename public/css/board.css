@@ -84,6 +84,7 @@
     /* Captain = roster slot 1: same type as the players, just a subtle accent highlight. */
     .roster-row.captain { border-bottom:1px solid var(--line-strong); }
     .cap-name { color:var(--accent); font-weight:700; font-size:18px; }
+    .cap-name.leading { color:var(--leader); }   /* current high bidder's team */
 
     /* Pinned to the card bottom so role rows line up across all cards in a grid row,
        even when a wrapped captain name makes one card taller. */
@@ -147,7 +148,8 @@
       font-family:var(--font-mono); font-weight:700; font-size:30px; line-height:1;
       color:var(--accent); letter-spacing:-.02em; font-variant-numeric:tabular-nums;
     }
-    .liveband-by { margin-left:4px; color:var(--leader); font-weight:600; }
+    .liveband-by { margin-left:4px; }                              /* "by" stays muted */
+    .liveband-name { color:var(--leader); font-weight:600; }       /* only the captain name */
     .liveband-secs {
       margin-left:auto; font-family:var(--font-mono); font-weight:700; font-size:26px; line-height:1;
       color:var(--accent); font-variant-numeric:tabular-nums; min-width:3ch; text-align:right;
