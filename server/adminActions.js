@@ -164,6 +164,16 @@ function addCaptain({ name, code, price, role, seat } = {}) {
   return ok();
 }
 
+/** Move a captain one slot earlier/later in the turn order. Nudges its seat past the
+ *  neighbour, then normalizeSeats() renumbers everyone contiguously. */
+function moveCaptain(id, dir) {
+  const c = captainById(Number(id));
+  if (!c) return err('Unknown captain.');
+  c.seat += (dir === 'up' ? -1.5 : 1.5);
+  normalizeSeats();
+  return ok();
+}
+
 function updateCaptain(id, patch = {}) {
   const c = captainById(Number(id));
   if (!c) return err('Unknown captain.');
@@ -328,7 +338,7 @@ module.exports = {
   startAuction, skipTurn, openBidding, closeBidding, openOpeningBid,
   sold, setStatus, emptyTeams,
   updateSettings,
-  addCaptain, updateCaptain, deleteCaptain, importCaptains,
+  addCaptain, updateCaptain, deleteCaptain, importCaptains, moveCaptain,
   addPlayer, updatePlayer, deletePlayer, importPlayers, clearPool,
   assignPlayerToTeam, removePlayerFromTeam, setPlayerPrice,
 };

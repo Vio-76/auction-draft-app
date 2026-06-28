@@ -98,6 +98,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .tbl td.num, .tbl th.num { font-family: var(--font-mono); text-align: right; }
 .tbl tr:hover td { background: var(--surface); }
 .tbl .actions { display: flex; gap: 6px; }
+.tbl .order-cell { display: flex; gap: 4px; }
 .tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
 .tag.open { color: var(--positive); background: var(--positive-soft); }
 .tag.sold { color: var(--accent); background: var(--accent-soft); }

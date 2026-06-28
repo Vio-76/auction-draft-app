@@ -149,6 +149,7 @@ async function deleteCaptain(id) {
   if (await confirmModal('Delete captain "' + (c ? c.name : id) + '"? Their drafted players return to the pool.', 'Delete'))
     adminAction('captain/delete', { id });
 }
+function moveCaptain(id, dir) { adminAction('captain/move', { id, dir }); }
 async function copyCaptainLink(id) {
   const c = (STATE.captains || []).find((x) => x.id === id);
   if (!c) return;
@@ -281,10 +282,15 @@ function renderCaptains(s) {
   captainsSig = sig;
 
   const slots = s.settings.teamSlots;
-  let html = '<tr><th>#</th><th>Name</th><th>Role</th><th>Code</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Actions</th></tr>';
-  for (const c of s.captains || []) {
+  const caps = s.captains || [];
+  let html = '<tr><th>#</th><th>Order</th><th>Name</th><th>Role</th><th>Code</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Actions</th></tr>';
+  caps.forEach(function (c, i) {
     html += '<tr>' +
       '<td class="num">' + (c.seat + 1) + '</td>' +
+      '<td class="order-cell">' +
+        '<button class="btn btn-sm" onclick="moveCaptain(' + c.id + ',\'up\')"' + (i === 0 ? ' disabled' : '') + ' title="Move up">↑</button>' +
+        '<button class="btn btn-sm" onclick="moveCaptain(' + c.id + ',\'down\')"' + (i === caps.length - 1 ? ' disabled' : '') + ' title="Move down">↓</button>' +
+      '</td>' +
       '<td>' + esc(c.name) + (c.full ? ' <span class="tag full">full</span>' : '') + '</td>' +
       '<td>' + esc(c.role || '—') + '</td>' +
       '<td><span class="code" data-code="' + esc(c.code) + '" data-shown="0" onclick="revealCode(this)" title="Click to reveal / hide">••••</span></td>' +
@@ -296,7 +302,7 @@ function renderCaptains(s) {
         '<button class="btn btn-sm" onclick="editCaptain(' + c.id + ')">Edit</button>' +
         '<button class="btn btn-sm btn-danger" onclick="deleteCaptain(' + c.id + ')">Del</button>' +
       '</td></tr>';
-  }
+  });
   document.getElementById('captains-tbl').innerHTML = html;
 }
 
