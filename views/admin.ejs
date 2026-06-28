@@ -77,11 +77,11 @@
       <!-- Status -->
       <section class="card">
         <h2>Status</h2>
-        <div class="btn-row">
+        <div class="btn-col">
+          <button class="btn" onclick="adminAction('close-bidding')">Pause (close)</button>
           <button class="btn" onclick="adminAction('open-opening')">Set Opening</button>
           <button class="btn" onclick="adminAction('open-bidding')">Open bidding</button>
-          <button class="btn" onclick="adminAction('close-bidding')">Pause (close)</button>
-          <button class="btn btn-danger" onclick="adminAction('status', {status:'FINISHED'}, 'Mark the auction as finished? Captains will see the completion screen.')">Finish auction</button>
+          <button class="btn" onclick="adminAction('status', {status:'FINISHED'})">Finish auction</button>
         </div>
       </section>
     </div>

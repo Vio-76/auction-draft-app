@@ -35,6 +35,7 @@
 /* ----- buttons ----- */
 .btn-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .btn-row.hint-right { justify-content: flex-end; text-align: right; }
+.btn-col { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
 .btn {
   font-family: var(--font-display); font-weight: 600; font-size: 13px; letter-spacing: .04em; text-transform: uppercase;
   padding: 9px 14px; border-radius: var(--control-radius); border: 1px solid var(--line-strong);
