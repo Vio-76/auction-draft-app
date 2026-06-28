@@ -34,9 +34,6 @@
       <div class="btn-row">
         <button class="btn" onclick="adminAction('start', {}, 'Start the auction? This clears in-flight bidding and starts from the first captain.')">Start auction</button>
         <button class="btn" onclick="adminAction('skip')">Skip Turn</button>
-        <button class="btn" onclick="adminAction('open-opening')">Set Opening</button>
-        <button class="btn" onclick="adminAction('open-bidding')">Open bidding</button>
-        <button class="btn" onclick="adminAction('close-bidding')">Pause (close)</button>
         <button class="btn btn-danger" onclick="adminAction('empty-teams', {}, 'Empty all teams? Every drafted player returns to the pool (captains stay). The turn order is not changed — use Start auction to begin again.')">Empty teams</button>
       </div>
     </section>
@@ -77,14 +74,14 @@
         </div>
       </section>
 
-      <!-- Status override -->
+      <!-- Status -->
       <section class="card">
         <h2>Status</h2>
-        <div class="form-grid">
-          <label>Force status
-            <select id="force-status"><option>OPENING</option><option>BIDDING</option><option>CLOSED</option><option>FINISHED</option></select>
-          </label>
-          <div class="self-end"><button class="btn" onclick="forceStatus()">Apply</button></div>
+        <div class="btn-row">
+          <button class="btn" onclick="adminAction('open-opening')">Set Opening</button>
+          <button class="btn" onclick="adminAction('open-bidding')">Open bidding</button>
+          <button class="btn" onclick="adminAction('close-bidding')">Pause (close)</button>
+          <button class="btn btn-danger" onclick="adminAction('status', {status:'FINISHED'}, 'Mark the auction as finished? Captains will see the completion screen.')">Finish auction</button>
         </div>
       </section>
     </div>

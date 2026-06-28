@@ -113,7 +113,6 @@ function saveSettings() {
   adminAction('settings', { patch });
 }
 
-function forceStatus() { adminAction('status', { status: val('force-status') }); }
 
 // captains
 async function addCaptain() {
