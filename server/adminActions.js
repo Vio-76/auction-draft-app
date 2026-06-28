@@ -47,15 +47,10 @@ function startAuction() {
   return ok();
 }
 
-function advanceTurn() {
-  turn.advanceTurn();
-  return ok();
-}
-
-function skipCaptain() {
-  if (state.settings.status !== STATUS.OPENING) return err('Can only skip during the opening bid phase.');
-  if (!turn.currentTurnCaptain()) return err('No current turn-holder to skip.');
-  turn.skipTurnAdvance();
+/** Skip Turn: move the marker to the next captain (snake double-turn aware), in any phase,
+ *  without changing the status or clearing the in-flight bid. */
+function skipTurn() {
+  turn.skipMarker();
   return ok();
 }
 
@@ -148,19 +143,6 @@ function updateSettings(patch) {
 
   // If we just switched MANUAL->AUTO mid-bidding, restart the window from now.
   if (!wasAuto && state.settings.sellMode === SELL_MODE.AUTO) sell.reanchorAutoWindowOnSwitchToAuto();
-  return ok();
-}
-
-// ----- whose turn is it -----
-
-function setTurnTo(captainId) {
-  const caps = captainsBySeat();
-  const idx = caps.findIndex((c) => c.id === Number(captainId));
-  if (idx === -1) return err('Unknown captain.');
-  state.settings.marker = idx;
-  state.settings.status = STATUS.OPENING;
-  turn.setOpeningDeadline();
-  team.clearAuctionBlock();
   return ok();
 }
 
@@ -343,9 +325,9 @@ function setPlayerPrice(playerId, price) {
 }
 
 module.exports = {
-  startAuction, advanceTurn, skipCaptain, openBidding, closeBidding, openOpeningBid,
+  startAuction, skipTurn, openBidding, closeBidding, openOpeningBid,
   sold, setStatus, emptyTeams,
-  updateSettings, setTurnTo,
+  updateSettings,
   addCaptain, updateCaptain, deleteCaptain, importCaptains,
   addPlayer, updatePlayer, deletePlayer, importPlayers, clearPool,
   assignPlayerToTeam, removePlayerFromTeam, setPlayerPrice,

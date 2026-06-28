@@ -33,8 +33,7 @@
       </div>
       <div class="btn-row">
         <button class="btn" onclick="adminAction('start', {}, 'Start the auction? This clears in-flight bidding and starts from the first captain.')">Start auction</button>
-        <button class="btn" onclick="adminAction('advance')">Advance turn</button>
-        <button class="btn" onclick="adminAction('skip')">Skip captain</button>
+        <button class="btn" onclick="adminAction('skip')">Skip Turn</button>
         <button class="btn" onclick="adminAction('open-opening')">Set Opening</button>
         <button class="btn" onclick="adminAction('open-bidding')">Open bidding</button>
         <button class="btn" onclick="adminAction('close-bidding')">Pause (close)</button>
@@ -78,14 +77,10 @@
         </div>
       </section>
 
-      <!-- Turn + status override -->
+      <!-- Status override -->
       <section class="card">
-        <h2>Turn &amp; status</h2>
+        <h2>Status</h2>
         <div class="form-grid">
-          <label>Set turn to
-            <select id="turn-captain"></select>
-          </label>
-          <div class="self-end"><button class="btn" onclick="setTurnTo()">Set turn</button></div>
           <label>Force status
             <select id="force-status"><option>OPENING</option><option>BIDDING</option><option>CLOSED</option><option>FINISHED</option></select>
           </label>

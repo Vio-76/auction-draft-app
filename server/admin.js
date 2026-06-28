@@ -59,8 +59,7 @@ function registerAdminRoutes(app) {
 
   // auction control
   post('start',         () => A.startAuction());
-  post('advance',       () => A.advanceTurn());
-  post('skip',          () => A.skipCaptain());
+  post('skip',          () => A.skipTurn());
   post('open-bidding',  () => A.openBidding());
   post('close-bidding', () => A.closeBidding());
   post('open-opening',  () => A.openOpeningBid());
@@ -68,9 +67,8 @@ function registerAdminRoutes(app) {
   post('empty-teams',   () => A.emptyTeams());
   post('status',        (b) => A.setStatus(b.status));
 
-  // settings + turn
+  // settings
   post('settings',      (b) => A.updateSettings(b.patch || b));
-  post('turn',          (b) => A.setTurnTo(b.captainId));
 
   // captains
   post('captain/add',    (b) => A.addCaptain(b));

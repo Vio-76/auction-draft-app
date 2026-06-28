@@ -8,7 +8,6 @@ let STATE = null;
 let settingsInitialized = false;
 let captainsSig = '';
 let playersSig = '';
-let turnDropdownSig = '';
 
 // ----- modal helpers (replace prompt/confirm/alert) -----
 
@@ -114,11 +113,6 @@ function saveSettings() {
   adminAction('settings', { patch });
 }
 
-function setTurnTo() {
-  const captainId = Number(val('turn-captain'));
-  if (!captainId) return;
-  adminAction('turn', { captainId });
-}
 function forceStatus() { adminAction('status', { status: val('force-status') }); }
 
 // captains
@@ -281,16 +275,6 @@ function fillSettingsOnce(s) {
   setVal('set-soldCooldown', s.settings.soldCooldown);
 }
 
-function renderTurnDropdown(s) {
-  const sig = (s.captains || []).map((c) => c.id + ':' + c.name).join('|');
-  if (sig === turnDropdownSig) return;
-  turnDropdownSig = sig;
-  const sel = document.getElementById('turn-captain');
-  const prev = sel.value;
-  sel.innerHTML = (s.captains || []).map((c) => '<option value="' + c.id + '">' + esc(c.name) + '</option>').join('');
-  if (prev) sel.value = prev;
-}
-
 function renderCaptains(s) {
   const sig = JSON.stringify((s.captains || []).map((c) => [c.id, c.name, c.code, c.price, c.role, c.seat, c.maxBid, c.full, c.draftedCount]));
   if (sig === captainsSig) return;
@@ -310,7 +294,6 @@ function renderCaptains(s) {
       '<td class="num">$' + c.maxBid + '</td>' +
       '<td class="actions">' +
         '<button class="btn btn-sm" onclick="editCaptain(' + c.id + ')">Edit</button>' +
-        '<button class="btn btn-sm" onclick="adminAction(\'turn\',{captainId:' + c.id + '})">Set turn</button>' +
         '<button class="btn btn-sm btn-danger" onclick="deleteCaptain(' + c.id + ')">Del</button>' +
       '</td></tr>';
   }
@@ -365,7 +348,6 @@ function onAdminState(state) {
   setConn('live', 'live');
   renderStatus(state);
   fillSettingsOnce(state);
-  renderTurnDropdown(state);
   renderCaptains(state);
   renderPlayers();
 }

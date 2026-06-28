@@ -69,7 +69,12 @@ function openingSecondsRemaining() {
 
 // ----- advance / skip (state only) -----
 
-function advanceTurn() {
+/**
+ * Move the marker to the next eligible captain (waterfall/snake order, skipping full teams),
+ * updating the snake direction. Marker ONLY — does not touch status or the opening deadline.
+ * Returns the new index (-1 if none eligible).
+ */
+function advanceMarker() {
   const caps = captainsBySeat();
   const isFull = (c) => team.isCaptainFull(c);
 
@@ -81,8 +86,14 @@ function advanceTurn() {
   } else {
     nextIdx = findNextAvailableIndex(state.settings.marker, caps, isFull);
   }
-
   state.settings.marker = nextIdx;
+  return nextIdx;
+}
+
+/** Advance the marker AND move the phase into OPENING (or FINISHED if all full). Used by the
+ *  normal flow (after a sale, on start, on opening-deadline auto-skip). */
+function advanceTurn() {
+  const nextIdx = advanceMarker();
   if (nextIdx !== -1) {
     state.settings.status = STATUS.OPENING;
     setOpeningDeadline();
@@ -93,15 +104,27 @@ function advanceTurn() {
 }
 
 /**
- * Skip the current captain. In SNAKE mode the end captain gets two back-to-back turns at
- * a turnaround — skipping the first should skip both, so if the advance lands back on the
- * same captain (the bounce), advance once more. Waterfall never bounces.
+ * Full skip: advance the turn AND the phase. In SNAKE mode the end captain gets two
+ * back-to-back turns at a turnaround — skipping the first should skip both, so if the advance
+ * lands back on the same captain (the bounce), advance once more. (Captain skip + auto-skip.)
  */
 function skipTurnAdvance() {
   const skipped = currentTurnCaptain();
   advanceTurn();
   const now = currentTurnCaptain();
   if (skipped && now && now.id === skipped.id) advanceTurn();
+}
+
+/**
+ * Marker-only skip for the admin "Skip Turn": moves the marker to the next captain (with the
+ * same SNAKE double-turn handling) but does NOT change the auction status, the opening
+ * deadline, or the in-flight bid. Usable in any phase.
+ */
+function skipMarker() {
+  const skipped = currentTurnCaptain();
+  advanceMarker();
+  const now = currentTurnCaptain();
+  if (skipped && now && now.id === skipped.id) advanceMarker();
 }
 
 /** Returns true if it auto-skipped (so the caller can persist + broadcast). */
@@ -120,7 +143,9 @@ module.exports = {
   setOpeningDeadline,
   clearOpeningDeadline,
   openingSecondsRemaining,
+  advanceMarker,
   advanceTurn,
   skipTurnAdvance,
+  skipMarker,
   autoSkipIfDeadlinePassed,
 };
