@@ -8,15 +8,31 @@
 const { WebSocketServer } = require('ws');
 const { URL } = require('node:url');
 const { bus } = require('./bus');
-const { checkCode } = require('./auth');
+const { checkCode, isValidAdminToken } = require('./auth');
 const { captainByName } = require('./state');
 const payload = require('./payload');
 
 const clients = new Set();
 
+/** Minimal cookie header parser -> { name: value }. */
+function parseCookies(header) {
+  const out = {};
+  if (!header) return out;
+  for (const part of header.split(';')) {
+    const i = part.indexOf('=');
+    if (i === -1) continue;
+    out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return out;
+}
+
 function payloadFor(ws) {
   if (ws.kind === 'board') {
     return { type: 'board', state: payload.buildBoardState() };
+  }
+  if (ws.kind === 'admin') {
+    if (!ws.authed) return { type: 'admin', state: { unauthorized: true } };
+    return { type: 'admin', state: payload.buildAdminState() };
   }
   // captain
   if (!ws.authed) return { type: 'captain', state: { unauthorized: true } };
@@ -47,8 +63,13 @@ function init(server) {
       q = new URLSearchParams();
     }
 
-    if ((q.get('view') || '') === 'board') {
+    const view = q.get('view') || '';
+    if (view === 'board') {
       ws.kind = 'board';
+    } else if (view === 'admin') {
+      ws.kind = 'admin';
+      const cookies = parseCookies(req.headers.cookie);
+      ws.authed = isValidAdminToken(cookies.admin_token);
     } else {
       const name = (q.get('captain') || '').trim();
       const code = (q.get('code') || '').trim();

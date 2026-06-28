@@ -137,4 +137,37 @@ function buildBoardState() {
   };
 }
 
-module.exports = { buildInfoSections, buildCaptainState, buildBoardState };
+// ----- admin state (full picture for the admin console) -----
+
+function buildAdminState() {
+  const s = state.settings;
+  const cur = turn.currentTurnCaptain();
+
+  const captains = captainsBySeat().map((c) => ({
+    id: c.id, name: c.name, code: c.code, price: c.price, seat: c.seat,
+    maxBid: team.captainMaxBid(c), full: team.isCaptainFull(c),
+    draftedCount: team.draftedCount(c), spent: team.spentByCaptain(c),
+  }));
+
+  const players = state.players.map((p) => ({
+    id: p.id, name: p.name, role: p.role, status: p.status,
+    captainId: p.captainId, captainName: p.captainId ? (captainById(p.captainId)?.name || '') : '',
+    price: p.price,
+  }));
+
+  return {
+    settings: { ...s, turnDirection: s.turnDirection === TURN_DIR.UP ? 'UP' : 'DOWN' },
+    phase: s.status,
+    currentTurnCaptain: cur ? cur.name : '',
+    soldArmed: s.status === STATUS.BIDDING && sell.soldButtonUsable(),
+    auction: {
+      player: state.auction.currentPlayerId ? (playerById(state.auction.currentPlayerId)?.name || '') : '',
+      highestBid: state.auction.highestBid,
+      byCaptain: state.auction.byCaptainId ? (captainById(state.auction.byCaptainId)?.name || '') : '',
+    },
+    captains,
+    players,
+  };
+}
+
+module.exports = { buildInfoSections, buildCaptainState, buildBoardState, buildAdminState };

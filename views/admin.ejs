@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="<%= fontUrl %>">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link rel="stylesheet" href="/static/css/admin.css">
+  <title>Auction Admin</title>
+</head>
+<body data-theme="<%= theme %>">
+  <div class="admin-shell">
+    <header class="admin-head">
+      <div>
+        <div class="admin-eyebrow">Auction</div>
+        <h1 class="admin-title">Admin Console</h1>
+      </div>
+      <div class="admin-head-right">
+        <span class="conn" id="conn">connecting…</span>
+        <a class="btn btn-ghost" href="/board" target="_blank" rel="noopener">Board ↗</a>
+        <form method="post" action="/admin/logout" style="display:inline"><button class="btn btn-ghost" type="submit">Log out</button></form>
+      </div>
+    </header>
+
+    <!-- Live status + auction control -->
+    <section class="card">
+      <h2>Auction control</h2>
+      <div class="status-grid" id="status-bar"></div>
+      <div class="btn-row">
+        <button class="btn" onclick="adminAction('start', {}, 'Start the auction? This clears in-flight bidding and starts from the first captain.')">Start auction</button>
+        <button class="btn" onclick="adminAction('advance')">Advance turn</button>
+        <button class="btn" onclick="adminAction('skip')">Skip captain</button>
+        <button class="btn" onclick="adminAction('open-opening')">Set Opening</button>
+        <button class="btn" onclick="adminAction('open-bidding')">Open bidding</button>
+        <button class="btn btn-accent" id="sold-btn" onclick="adminAction('sold')">Sold!</button>
+        <button class="btn" onclick="adminAction('close-bidding')">Pause (close)</button>
+        <button class="btn btn-danger" onclick="adminAction('reset', {}, 'Reset the whole auction? Every player returns to the pool and all rosters are cleared.')">Reset auction</button>
+      </div>
+    </section>
+
+    <div class="cols">
+      <!-- Settings -->
+      <section class="card">
+        <h2>Settings</h2>
+        <div class="form-grid">
+          <label>Sell mode
+            <select id="set-sellMode"><option value="MANUAL">MANUAL</option><option value="AUTO">AUTO</option></select>
+          </label>
+          <label>Turn order
+            <select id="set-turnOrder"><option value="WATERFALL">WATERFALL</option><option value="SNAKE">SNAKE</option></select>
+          </label>
+          <label>Snake direction
+            <select id="set-turnDirection"><option value="DOWN">DOWN</option><option value="UP">UP</option></select>
+          </label>
+          <label>Theme
+            <select id="set-theme">
+              <option>draftroom</option><option>auctionhouse</option><option>terminal</option>
+              <option>broadcast</option><option>brutalist</option><option>casino</option>
+            </select>
+          </label>
+          <label>Small blind <input type="number" id="set-smallBlind" min="0" step="1"></label>
+          <label>Team budget <input type="number" id="set-teamBudget" min="0" step="1"></label>
+          <label>Team slots <input type="number" id="set-teamSlots" min="1" step="1"></label>
+          <label>Opening timeout (s) <input type="number" id="set-openingTimeout" min="0" step="1"></label>
+          <label>Auto-sell window (s) <input type="number" id="set-autoWindow" min="0" step="1"></label>
+          <label>Sold cooldown (s) <input type="number" id="set-soldCooldown" min="0" step="1"></label>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-accent" onclick="saveSettings()">Save settings</button>
+          <span class="hint">Theme change applies on each viewer's next page load.</span>
+        </div>
+      </section>
+
+      <!-- Turn + status override -->
+      <section class="card">
+        <h2>Turn &amp; status</h2>
+        <div class="form-grid">
+          <label>Set turn to
+            <select id="turn-captain"></select>
+          </label>
+          <div class="self-end"><button class="btn" onclick="setTurnTo()">Set turn</button></div>
+          <label>Force status
+            <select id="force-status"><option>OPENING</option><option>BIDDING</option><option>CLOSED</option><option>FINISHED</option></select>
+          </label>
+          <div class="self-end"><button class="btn" onclick="forceStatus()">Apply</button></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Captains -->
+    <section class="card">
+      <div class="card-head">
+        <h2>Captains</h2>
+        <button class="btn" onclick="addCaptain()">+ Add captain</button>
+      </div>
+      <div class="table-wrap"><table class="tbl" id="captains-tbl"></table></div>
+    </section>
+
+    <!-- Players + import -->
+    <section class="card">
+      <div class="card-head">
+        <h2>Players</h2>
+        <div class="btn-row">
+          <button class="btn" onclick="addPlayer()">+ Add player</button>
+          <button class="btn btn-danger" onclick="adminAction('pool/clear', {}, 'Remove every OPEN (undrafted) player from the pool?')">Clear pool</button>
+        </div>
+      </div>
+
+      <details class="import-box">
+        <summary>Bulk import (paste a player list)</summary>
+        <p class="hint">One player per line: <code>Name &lt;tab/comma&gt; Role</code>. Role is optional.</p>
+        <textarea id="import-text" rows="8" placeholder="Faker	Mid&#10;Caps,Mid&#10;Zeus	Top"></textarea>
+        <div class="btn-row">
+          <label class="inline">Mode
+            <select id="import-mode"><option value="replace">Replace open pool</option><option value="append">Append</option></select>
+          </label>
+          <button class="btn btn-accent" onclick="importPlayers()">Import</button>
+        </div>
+      </details>
+
+      <div class="filter-row">
+        <label class="inline">Filter
+          <select id="player-filter" onchange="renderPlayers()"><option value="all">All</option><option value="open">Open</option><option value="sold">Drafted</option></select>
+        </label>
+        <span class="hint" id="player-count"></span>
+      </div>
+      <div class="table-wrap"><table class="tbl" id="players-tbl"></table></div>
+    </section>
+  </div>
+
+  <script src="/static/js/shared.js"></script>
+  <script src="/static/js/admin.js"></script>
+</body>
+</html>
