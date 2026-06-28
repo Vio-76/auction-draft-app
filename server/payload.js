@@ -117,6 +117,9 @@ function buildBoardState() {
     // Priced out: the live bid already meets/exceeds this captain's max so they can't outbid.
     // Gated by showBidOnBoard (it's derived from the live bid) and excludes the current leader.
     const pricedOut = s.showBidOnBoard && !full && hb > 0 && maxBid <= hb && c.id !== byId;
+    // Leading: this captain holds the current high bid (shown highlighted). Also bid-derived,
+    // so only when bids are public.
+    const leading = s.showBidOnBoard && hb > 0 && c.id === byId;
     return {
       captain:      c.name,
       captainPrice: c.price,
@@ -124,6 +127,7 @@ function buildBoardState() {
       maxBid,
       full,
       pricedOut,
+      leading,
       roles:        team.captainRoleFlags(c),
     };
   });

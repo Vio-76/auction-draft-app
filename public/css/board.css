@@ -68,6 +68,8 @@
       letter-spacing:-.02em;
     }
     .team-maxbid.dim { color:var(--muted); opacity:.75; }
+    /* Current high bidder — highlight their max bid green. */
+    .team-maxbid.leading { color:var(--positive); }
 
     .roster { display:flex; flex-direction:column; gap:1px; margin-bottom:14px; }
     .roster-row {
