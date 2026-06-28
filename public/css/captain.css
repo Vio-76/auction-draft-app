@@ -1,0 +1,192 @@
+/* Captain page layout + theme flourishes. Ported from Index.html. */
+
+    /* ===========================================================
+       CAPTAIN-PAGE THEME FLOURISHES (target Index-only markup)
+       =========================================================== */
+    [data-theme="auctionhouse"] .card-eyebrow { font-style:italic; letter-spacing:.25em; }
+    [data-theme="auctionhouse"] .bid-figure { font-variant-numeric:lining-nums; }
+
+    [data-theme="terminal"] .player-card {
+      background: repeating-linear-gradient(0deg, transparent 0, transparent 3px, rgba(0,30,15,.22) 4px), var(--card);
+    }
+    [data-theme="terminal"] .card-eyebrow::before { content:'> '; }
+    [data-theme="terminal"] .bid-figure::after {
+      content:'_'; margin-left:2px; color:var(--accent); animation:blink 1.1s steps(1,end) infinite;
+    }
+
+    [data-theme="broadcast"] .card-eyebrow {
+      display:inline-block; background:var(--accent); color:#fff;
+      padding:5px 12px 4px; letter-spacing:.18em; transform:skewX(-9deg); border-radius:2px;
+    }
+    [data-theme="broadcast"] .bid-figure { font-variant-numeric:tabular-nums; font-weight:900; }
+
+    [data-theme="brutalist"] .player-card::before { height:6px; }
+    [data-theme="brutalist"] .sold-banner { border:3px solid #111; }
+    [data-theme="brutalist"] .team-full,
+    [data-theme="brutalist"] .priced-out { border:2px solid #111; }
+    [data-theme="brutalist"] input,
+    [data-theme="brutalist"] select { border:2px solid #111; }
+    [data-theme="brutalist"] button:active { box-shadow:none; transform:translate(3px,3px); }
+
+    [data-theme="casino"] .bid-figure { text-shadow:0 0 18px rgba(255,208,46,.55); }
+    [data-theme="casino"] .card-eyebrow { text-shadow:0 0 12px rgba(255,77,109,.6); }
+    [data-theme="casino"] .player-card { border:1px solid rgba(255,208,46,.18); }
+
+    /* ===========================================================
+       LAYOUT & COMPONENTS (token-driven)
+       =========================================================== */
+    .shell { position:relative; z-index:1; max-width:480px; margin:0 auto; padding:28px 18px 48px; }
+
+    .captain-tag {
+      font-family:var(--font-display); font-weight:500; font-size:12px;
+      letter-spacing:.32em; text-transform:uppercase; color:var(--accent);
+      animation:fadeUp .4s ease both;
+    }
+    .captain-name {
+      font-family:var(--font-display); font-weight:var(--display-weight); font-size:36px; line-height:1;
+      letter-spacing:var(--display-spacing); text-transform:var(--display-transform); margin:2px 0 22px;
+      padding-bottom:18px; border-bottom:1px solid var(--line);
+      animation:fadeUp .4s ease .05s both;
+    }
+
+    .panel {
+      background:var(--card); border:var(--card-border); border-radius:var(--radius);
+      padding:22px 20px; box-shadow:var(--shadow); animation:cardIn .25s ease both;
+    }
+    .waiting {
+      padding:44px 22px; text-align:center; color:var(--muted);
+      background:var(--surface); border:1px dashed var(--line-strong);
+      border-radius:var(--radius); font-size:17px; animation:cardIn .25s ease both;
+    }
+    .waiting b { color:var(--ink); }
+    .invalid {
+      padding:44px 22px; text-align:center; color:var(--danger); font-weight:600;
+      background:var(--danger-soft); border:1px solid var(--danger-border);
+      border-radius:var(--radius); font-size:17px;
+    }
+    .finished {
+      padding:44px 22px; text-align:center; color:var(--positive);
+      background:var(--positive-soft); border:1px solid var(--positive-border);
+      border-radius:var(--radius); font-family:var(--font-display); font-weight:var(--display-weight);
+      font-size:22px; letter-spacing:.04em; text-transform:uppercase;
+      animation:cardIn .25s ease both;
+    }
+    /* Friendly secondary line under a waiting/finished message — resets the loud styling. */
+    .state-hint {
+      display:block; margin-top:12px; font-family:var(--font-body); font-weight:400;
+      font-size:14px; line-height:1.45; letter-spacing:0; text-transform:none; color:var(--muted);
+    }
+    .state-hint b { color:var(--ink); }
+
+    .player-card {
+      position:relative; overflow:hidden;
+      background:var(--card); border:var(--card-border); border-radius:var(--radius);
+      padding:24px 20px 22px; box-shadow:var(--shadow);
+    }
+    .player-card::before {
+      content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--topbar);
+    }
+    .card-eyebrow {
+      font-family:var(--font-display); font-weight:500; font-size:11px;
+      letter-spacing:.3em; text-transform:uppercase; color:var(--eyebrow);
+    }
+    .player {
+      font-family:var(--font-display); font-weight:var(--display-weight); font-size:var(--player-size); line-height:1.02;
+      text-transform:var(--display-transform); letter-spacing:var(--display-spacing);
+      margin:4px 0 18px; word-break:break-word;
+    }
+
+    .bid-stat { margin:0 0 16px; }
+    .bid-label { font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+    .bid-figure {
+      font-family:var(--font-mono); font-weight:700; font-size:var(--bid-size); line-height:1.05;
+      color:var(--accent); letter-spacing:-.02em; animation:ping .45s ease;
+    }
+    .bid-by { font-size:14px; color:var(--muted); margin-top:2px; }
+    .leading-you { color:var(--positive); font-weight:700; }
+    .bid-figure.leading-you { color:var(--positive); }
+
+    .max-line { font-family:var(--font-mono); font-size:12px; color:var(--muted); margin:14px 0; }
+    .max-line b { color:var(--ink); font-weight:700; }
+
+    .team-full {
+      font-family:var(--font-body); padding:14px 16px; border-radius:var(--control-radius); margin-top:8px;
+      background:var(--accent-soft); border:1px solid var(--accent-border); color:var(--accent); font-weight:600;
+    }
+    .priced-out {
+      padding:14px 16px; border-radius:var(--control-radius); margin-top:8px;
+      background:var(--danger-soft); border:1px solid var(--danger-border); color:var(--danger); font-weight:600;
+    }
+
+    .opening-prompt {
+      font-family:var(--font-display); font-weight:600; font-size:17px;
+      text-transform:uppercase; letter-spacing:.02em; color:var(--ink);
+    }
+    .opening-row { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+    .opening-row .opening-prompt { flex:1; }
+
+    .sell-timer-row { display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:16px; }
+    .sell-prompt {
+      font-family:var(--font-display); font-weight:600; font-size:15px;
+      text-transform:uppercase; letter-spacing:.04em; color:var(--accent);
+    }
+
+    input, select {
+      font-family:var(--font-mono); font-size:17px; padding:13px 14px;
+      background:var(--surface); color:var(--ink); border:1px solid var(--line-strong);
+      border-radius:var(--control-radius); outline:none; transition:border-color .15s, box-shadow .15s;
+    }
+    input:focus, select:focus { border-color:var(--accent); box-shadow:var(--focus-ring); }
+    select {
+      width:100%; margin-bottom:12px; font-family:var(--font-body); appearance:none; -webkit-appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999999' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right 14px center; padding-right:38px;
+    }
+    select option { background:var(--surface); color:var(--ink); }
+    input { width:150px; }
+
+    .bid-row { display:flex; align-items:center; gap:10px; margin-top:4px; }
+    .bid-row input { flex:1; width:auto; }
+    .bid-row button { margin-left:0; }
+
+    button {
+      font-family:var(--font-display); font-weight:600; font-size:16px; letter-spacing:.06em;
+      text-transform:uppercase; padding:13px 22px; background:var(--accent); color:var(--accent-ink);
+      border:none; border-radius:var(--control-radius); cursor:pointer; margin-left:8px;
+      box-shadow:var(--accent-glow);
+      transition:transform .08s, box-shadow .2s, background .2s;
+    }
+    button:hover { background:var(--accent-strong); }
+    button:active { transform:var(--btn-active-shift); }
+    button:disabled { background:var(--disabled-bg); color:var(--disabled-ink); box-shadow:none; cursor:not-allowed; }
+
+    .skip-row { margin-top:26px; text-align:right; }
+    .skip-btn {
+      font-family:var(--font-body); font-weight:500; font-size:12px; letter-spacing:.08em;
+      text-transform:uppercase; padding:8px 14px; background:transparent; color:var(--muted);
+      border:1px solid var(--line-strong); border-radius:var(--control-radius); margin-left:0; box-shadow:none;
+    }
+    .skip-btn:hover { background:var(--surface-2); color:var(--ink); }
+
+    .error { color:var(--danger); margin-top:12px; min-height:20px; font-size:14px; font-weight:500; }
+
+    .timer-svg { flex-shrink:0; }
+    .timer-svg circle { transition:stroke .3s; }
+    .timer-svg circle:first-of-type { stroke:var(--ring-track); }
+    .timer-svg text { fill:var(--ink); font-family:var(--font-mono); }
+
+    .sold-banner {
+      display:flex; align-items:center; gap:10px; padding:13px 15px; margin-bottom:18px;
+      background:var(--sold-bg); border:1px solid var(--accent-border); border-radius:var(--control-radius);
+      font-size:15px; color:var(--ink); animation:cardIn .3s ease both;
+    }
+    .sold-tag {
+      font-family:var(--font-display); font-weight:700; font-size:12px; letter-spacing:.12em;
+      text-transform:uppercase; color:var(--accent-ink); background:var(--accent);
+      padding:3px 8px; border-radius:6px; flex-shrink:0;
+    }
+
+    @keyframes cardIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+    @keyframes ping { 0% { transform:scale(1.08); } 60% { transform:scale(1); } 100% { transform:scale(1); } }
+    @keyframes blink { 50% { opacity:0; } }

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="<%= fontUrl %>">
+  <link rel="stylesheet" href="/static/css/theme.css">
+  <link rel="stylesheet" href="/static/css/captain.css">
+  <link rel="stylesheet" href="/static/css/info.css">
+  <title>Auction — <%= captain || 'no captain' %></title>
+</head>
+<body data-theme="<%= theme %>">
+<% if (!authorized) { %>
+  <div class="shell"><div class="invalid">Invalid link. Check your captain name and code.</div></div>
+<% } else { %>
+  <div class="shell">
+    <div class="captain-tag">Captain</div>
+    <div class="captain-name"><%= captain %></div>
+    <div id="sold-banner"></div>
+    <div id="content"></div>
+
+    <%- include('partials/info-panel', { infoSections: infoSections, links: [{ label: 'View Teams', url: boardUrl }].concat(extraLinks) }) %>
+  </div>
+
+  <script>
+    window.CAPTAIN = <%- JSON.stringify(captain) %>;
+    window.CODE = <%- JSON.stringify(code) %>;
+    window.OPENING_TIMEOUT = <%- openingTimeout %>;
+  </script>
+  <script src="/static/js/shared.js"></script>
+  <script src="/static/js/captain.js"></script>
+<% } %>
+</body>
+</html>
