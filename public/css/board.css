@@ -116,25 +116,58 @@
     }
     .pool-count { font-family:var(--font-mono); font-size:13px; color:var(--muted); }
 
-    /* ----- live bid panel (between teams and the pool): a compact bar, centered ----- */
-    .livebid-section { margin-top:36px; display:flex; justify-content:center; }
-    .livebid {
-      display:flex; flex-wrap:wrap; align-items:baseline; justify-content:center; gap:6px 18px;
-      background:var(--card); border:var(--card-border);
-      border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 24px;
-      max-width:100%;
+    /* ----- live bid: a bold broadcast banner at the top, with a depleting countdown bar.
+       This is the one fast-paced element, so it's deliberately louder than the calm cards. */
+    .liveband {
+      margin:0 0 24px; overflow:hidden;
+      background:var(--accent-soft); border:1px solid var(--accent-border);
+      border-radius:var(--radius); box-shadow:var(--shadow), var(--accent-glow);
+      animation:bandIn .25s ease both;
     }
-    .livebid-eyebrow {
-      font-family:var(--font-display); font-weight:var(--display-weight); font-size:26px; line-height:1;
-      letter-spacing:.12em; text-transform:uppercase; color:var(--eyebrow);
+    .liveband-row {
+      display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 20px;
+      padding:16px 24px;
     }
-    .livebid-player {
-      font-family:var(--font-display); font-weight:var(--display-weight); font-size:26px; line-height:1;
-      text-transform:var(--display-transform); letter-spacing:var(--display-spacing); word-break:break-word;
+    .liveband-tag {
+      font-family:var(--font-display); font-weight:700; font-size:13px; letter-spacing:.18em;
+      text-transform:uppercase; color:var(--accent-ink); background:var(--accent);
+      padding:6px 12px; border-radius:6px; align-self:center;
     }
-    .livebid-stat { display:inline-flex; align-items:baseline; gap:10px; }
-    .livebid-amount { font-family:var(--font-mono); font-weight:700; font-size:26px; color:var(--accent); letter-spacing:-.02em; }
-    .livebid-by { font-size:14px; color:var(--muted); }
+    .liveband-player {
+      font-family:var(--font-display); font-weight:var(--display-weight); font-size:30px; line-height:1;
+      text-transform:var(--display-transform); letter-spacing:var(--display-spacing);
+      word-break:break-word; color:var(--ink);
+    }
+    /* Bid + bidder pushed to the right; seconds sit at the far end. */
+    .liveband-bid { margin-left:auto; font-size:15px; color:var(--muted); }
+    .liveband-bid b {
+      font-family:var(--font-mono); font-weight:700; font-size:30px; line-height:1;
+      color:var(--accent); letter-spacing:-.02em; font-variant-numeric:tabular-nums;
+    }
+    .liveband-by { margin-left:4px; }
+    .liveband-secs {
+      font-family:var(--font-mono); font-weight:700; font-size:26px; line-height:1;
+      color:var(--accent); font-variant-numeric:tabular-nums; min-width:3ch; text-align:right;
+    }
+    .liveband-secs.urgent { color:var(--danger); }
+    /* Depleting countdown bar (width + color set by JS each tick). */
+    .liveband-track { height:6px; background:var(--line); }
+    .liveband-fill {
+      height:100%; width:100%; background:var(--accent);
+      transition:width .12s linear, background .2s ease;
+    }
+
+    @keyframes bandIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
+    /* A soft pulse keeps it feeling alive; calmed for reduced-motion users. */
+    .liveband { animation:bandIn .25s ease both, bandPulse 2.4s ease-in-out infinite; }
+    @keyframes bandPulse {
+      0%, 100% { box-shadow:var(--shadow), var(--accent-glow); }
+      50% { box-shadow:var(--shadow), 0 0 0 1px var(--accent-border); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .liveband { animation:bandIn .25s ease both; }
+      .liveband-fill { transition:none; }
+    }
 
     .pool-grid {
       display:grid; gap:16px;

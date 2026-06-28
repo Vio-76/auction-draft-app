@@ -125,7 +125,14 @@ function buildBoardState() {
   if (s.showBidOnBoard && state.auction.currentPlayerId) {
     const p = playerById(state.auction.currentPlayerId);
     const by = state.auction.byCaptainId ? captainById(state.auction.byCaptainId) : null;
-    if (p) liveBid = { player: p.name, highestBid: state.auction.highestBid, byCaptain: by ? by.name : '' };
+    if (p) {
+      liveBid = { player: p.name, highestBid: state.auction.highestBid, byCaptain: by ? by.name : '' };
+      // AUTO mode: also send the auto-sell countdown so the board can race a clock.
+      if (s.sellMode === SELL_MODE.AUTO) {
+        liveBid.window = s.autoWindow;
+        liveBid.secondsRemaining = sell.autoSellSecondsRemaining();
+      }
+    }
   }
 
   const fullByName = team.fullByName();

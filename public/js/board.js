@@ -9,6 +9,13 @@ let poolCols = null;     // role key -> { col, list, count }
 let poolPrefix = null;   // 3-letter role prefix -> role key
 let turnChips = null;    // [chip elements] in seat order
 
+// Live-bid countdown (AUTO mode): anchored locally and ticked smoothly, re-anchored only
+// when the bid changes — mirrors captain.js's sell-timer. Colors follow the active theme.
+let liveTimer = null, liveEndsAt = 0, liveWindow = 0, liveBidSig = '';
+const _liveCss = getComputedStyle(document.body);
+const LIVE_ACCENT = (_liveCss.getPropertyValue('--accent').trim()) || '#f6b53c';
+const LIVE_URGENT = (_liveCss.getPropertyValue('--danger').trim()) || '#ff5b54';
+
 // ----- team cards -----
 
 function render(state) {
@@ -42,11 +49,57 @@ function render(state) {
 function renderLiveBid(lb) {
   const sec = document.getElementById('livebid-section');
   if (!sec) return;
-  if (!lb || !lb.player) { sec.style.display = 'none'; return; }
+  if (!lb || !lb.player) { sec.style.display = 'none'; stopLiveTimer(); liveBidSig = ''; return; }
+
   setText(document.getElementById('livebid-player'), lb.player);
   setText(document.getElementById('livebid-amount'), '$' + lb.highestBid);
   setText(document.getElementById('livebid-by'), lb.byCaptain ? 'by ' + lb.byCaptain : 'No bids yet');
   sec.style.display = '';
+
+  const secsEl = document.getElementById('livebid-secs');
+  const track = document.getElementById('livebid-track');
+  const hasTimer = typeof lb.window === 'number' && typeof lb.secondsRemaining === 'number' && lb.window > 0;
+
+  if (!hasTimer) {                      // MANUAL mode: no clock, just the bold bid line
+    stopLiveTimer();
+    liveBidSig = '';
+    if (secsEl) secsEl.style.display = 'none';
+    if (track) track.style.display = 'none';
+    return;
+  }
+
+  if (secsEl) secsEl.style.display = '';
+  if (track) track.style.display = '';
+
+  // Re-anchor only when the bid changes (or first show) so each new bid snaps the bar back
+  // to full; otherwise let the local ticker keep counting down smoothly between pushes.
+  const sig = lb.highestBid + '|' + lb.byCaptain;
+  if (sig !== liveBidSig) {
+    liveBidSig = sig;
+    liveWindow = lb.window;
+    liveEndsAt = Date.now() + lb.secondsRemaining * 1000;
+  }
+  if (!liveTimer) liveTimer = setInterval(tickLive, 100);
+  tickLive();
+}
+
+function tickLive() {
+  const fill = document.getElementById('livebid-fill');
+  const secsEl = document.getElementById('livebid-secs');
+  if (!fill || !liveWindow) return;
+  const remaining = Math.max(0, (liveEndsAt - Date.now()) / 1000);
+  const frac = Math.max(0, Math.min(1, remaining / liveWindow));
+  const urgent = remaining <= 5;
+  fill.style.width = (frac * 100) + '%';
+  fill.style.background = urgent ? LIVE_URGENT : LIVE_ACCENT;
+  if (secsEl) {
+    secsEl.textContent = Math.ceil(remaining) + 's';
+    secsEl.classList.toggle('urgent', urgent);
+  }
+}
+
+function stopLiveTimer() {
+  if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
 }
 
 function showMessage(root, msg) {

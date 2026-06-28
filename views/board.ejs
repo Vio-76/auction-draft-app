@@ -24,18 +24,17 @@
 
     <%- include('partials/info-panel', { infoSections: infoSections, links: [] }) %>
 
-    <div class="team-grid" id="board"></div>
-
-    <div class="livebid-section" id="livebid-section" style="display:none">
-      <div class="livebid">
-        <span class="livebid-eyebrow">On the block</span>
-        <span class="livebid-player" id="livebid-player"></span>
-        <div class="livebid-stat">
-          <span class="livebid-amount" id="livebid-amount"></span>
-          <span class="livebid-by" id="livebid-by"></span>
-        </div>
+    <div class="liveband" id="livebid-section" style="display:none">
+      <div class="liveband-row">
+        <span class="liveband-tag">On the block</span>
+        <span class="liveband-player" id="livebid-player"></span>
+        <span class="liveband-bid"><b id="livebid-amount"></b> <span class="liveband-by" id="livebid-by"></span></span>
+        <span class="liveband-secs" id="livebid-secs"></span>
       </div>
+      <div class="liveband-track" id="livebid-track"><div class="liveband-fill" id="livebid-fill"></div></div>
     </div>
+
+    <div class="team-grid" id="board"></div>
 
     <div class="pool-section" id="pool-section" style="display:none">
       <div class="pool-head">
