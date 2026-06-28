@@ -194,8 +194,7 @@ function updateCard(card, t, dim) {
   setText(card.captainPrice, '$' + t.captainPrice);
   setText(card.maxBid, '$' + t.maxBid);
   card.maxBid.classList.toggle('dim', !!dim);
-  card.maxBid.classList.toggle('leading', !!t.leading);   // current high bidder -> highlighted
-  card.captainName.classList.toggle('leading', !!t.leading);
+  card.captainName.classList.toggle('leading', !!t.leading);   // current high bidder -> green name
 
   const players = t.players || [];
   for (let i = 0; i < card.slots.length; i++) {
