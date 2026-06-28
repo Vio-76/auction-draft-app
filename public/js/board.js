@@ -237,17 +237,20 @@ function renderTurn(turn) {
   if (!names.length) { hideTurn(); return; }
   if (!turnChips || turnChips.length !== names.length) buildTurnRail(names);
 
-  const finished = turn.phase === 'FINISHED' || turn.currentIndex < 0;
+  const finished = turn.phase === 'FINISHED';
+  const paused = turn.phase === 'CLOSED';
+  const active = !finished && !paused;   // only OPENING/BIDDING have a live "current" captain
   for (let i = 0; i < turnChips.length; i++) {
     const chip = turnChips[i];
     chip.querySelector('.turn-name').textContent = names[i];
-    chip.classList.toggle('current', !finished && i === turn.currentIndex);
+    chip.classList.toggle('current', active && i === turn.currentIndex);
     chip.classList.toggle('full', turn.full && turn.full[names[i]] === true);
   }
 
   const badge = document.getElementById('turn-badge');
   if (badge) {
     if (finished) badge.textContent = 'Complete';
+    else if (paused) badge.textContent = 'Paused';
     else if (turn.mode === 'SNAKE') badge.textContent = 'Snake ' + (turn.direction === 'UP' ? '←' : '→');
     else badge.textContent = 'Waterfall →';
   }
