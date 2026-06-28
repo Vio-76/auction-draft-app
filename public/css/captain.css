@@ -77,6 +77,8 @@
       font-size:14px; line-height:1.45; letter-spacing:0; text-transform:none; color:var(--muted);
     }
     .state-hint b { color:var(--ink); }
+    /* Sign-off on its own line under the message. */
+    .state-hint .signoff { display:block; margin-top:8px; }
 
     .player-card {
       position:relative; overflow:hidden;

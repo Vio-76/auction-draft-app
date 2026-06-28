@@ -79,7 +79,7 @@ function render(state) {
 
   if (state.phase === STATUSES.FINISHED) {
     root.innerHTML = '<div class="finished">Auction complete!' +
-      '<span class="state-hint">Thanks for drafting, <b>' + esc(captain) + '</b>, good luck in the tournament! — VioSolip</span></div>';
+      '<span class="state-hint">Thanks for drafting, <b>' + esc(captain) + '</b>, good luck in the tournament!<span class="signoff">— VioSolip</span></span></div>';
     return;
   }
 
