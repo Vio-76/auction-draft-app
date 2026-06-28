@@ -13,6 +13,9 @@ auction.db-shm
 .env.*
 !.env.example
 
+# Claude working notes (kept out of the public repo, like the sibling project)
+CLAUDE.md
+
 # logs
 *.log
 npm-debug.log*
