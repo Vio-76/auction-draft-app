@@ -4,7 +4,7 @@
  * routing + auth.
  */
 
-const { fontUrlForTheme, STATUS } = require('./config');
+const { fontUrlForTheme, ROLE_LABELS } = require('./config');
 const { state } = require('./state');
 const { checkAdminPassword, makeAdminToken, isValidAdminToken } = require('./auth');
 const payload = require('./payload');
@@ -29,6 +29,7 @@ function registerAdminRoutes(app) {
     res.render(view, {
       theme: state.settings.theme,
       fontUrl: fontUrlForTheme(state.settings.theme),
+      roleLabels: ROLE_LABELS,
       error: null,
     });
   });

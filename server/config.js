@@ -17,14 +17,14 @@ const PLAYER_STATUS = { OPEN: 'open', SOLD: 'sold' };
 // ----- Default settings used to seed an empty database -----
 const DEFAULT_SETTINGS = {
   status:             STATUS.CLOSED,
-  sellMode:           SELL_MODE.MANUAL,
+  sellMode:           SELL_MODE.AUTO,
   turnOrder:          TURN_ORDER.WATERFALL,
   turnDirection:      TURN_DIR.DOWN,
-  smallBlind:         1,
+  smallBlind:         5,
   teamBudget:         100,
   teamSlots:          4,           // drafted players per team, excluding the captain
   openingTimeout:     30,          // seconds for the turn-holder to open
-  autoWindow:         15,          // AUTO mode: seconds with no new bid before auto-sell
+  autoWindow:         20,          // AUTO mode: seconds with no new bid before auto-sell
   soldCooldown:       3,           // seconds the Sold action is blocked after each bid
   soldMessageSeconds: 6,           // how long the "sold" banner shows
   marker:             -1,          // current turn index into captains (seat order); -1 = none

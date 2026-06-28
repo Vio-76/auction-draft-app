@@ -93,3 +93,21 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .tag.open { color: var(--positive); background: var(--positive-soft); }
 .tag.sold { color: var(--accent); background: var(--accent-soft); }
 .tag.full { color: var(--danger); background: var(--danger-soft); }
+
+/* ----- masked captain code (safe to stream; click to reveal/hide) ----- */
+.code { cursor: pointer; font-family: var(--font-mono); letter-spacing: 2px; user-select: none; padding: 1px 6px; border-radius: 6px; background: var(--surface-2); }
+.code:hover { color: var(--accent); }
+.code[data-shown="1"] { letter-spacing: normal; }
+
+/* ----- modals (native <dialog>; work in every browser incl. embedded webviews) ----- */
+dialog.modal {
+  border: none; border-radius: var(--radius); padding: 22px;
+  background: var(--card); color: var(--ink); box-shadow: var(--shadow);
+  width: min(440px, calc(100vw - 32px));
+}
+dialog.modal::backdrop { background: rgba(0, 0, 0, .55); }
+.modal-title { font-family: var(--font-display); font-size: 16px; letter-spacing: .06em; text-transform: uppercase; margin: 0 0 16px; }
+.modal-fields { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.modal-fields label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.modal-msg { font-size: 15px; line-height: 1.5; margin-bottom: 20px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; }

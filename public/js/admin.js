@@ -1,6 +1,8 @@
 /* Admin console client. Live state arrives over the WS admin channel; actions are fetch
-   POSTs to /api/admin/*. Edits use prompt()/confirm() so the 1s live re-push never
-   clobbers a half-typed inline field. esc()/connectState()/postJson() come from shared.js. */
+   POSTs to /api/admin/*. Edits use in-page <dialog> modals (not native prompt/confirm,
+   which are blocked in embedded browsers like VS Code's Simple Browser or when streamed
+   in some webviews). esc()/connectState()/postJson() come from shared.js;
+   window.ROLE_LABELS is injected by admin.ejs. */
 
 let STATE = null;
 let settingsInitialized = false;
@@ -8,27 +10,105 @@ let captainsSig = '';
 let playersSig = '';
 let turnDropdownSig = '';
 
+// ----- modal helpers (replace prompt/confirm/alert) -----
+
+/** Opens a form modal. `fields`: [{name,label,type:'text'|'number'|'select',value,options}].
+ *  Resolves to { name: value, ... } on submit, or null on cancel. */
+function openModal(opts) {
+  const fields = opts.fields || [];
+  return new Promise((resolve) => {
+    const dlg = document.createElement('dialog');
+    dlg.className = 'modal';
+    let html = '<form class="modal-form"><h3 class="modal-title">' + esc(opts.title || '') + '</h3><div class="modal-fields">';
+    for (const f of fields) {
+      const id = 'm_' + f.name;
+      html += '<label>' + esc(f.label);
+      if (f.type === 'select') {
+        html += '<select id="' + id + '">' + (f.options || []).map(function (o) {
+          const sel = String(o.value) === String(f.value != null ? f.value : '') ? ' selected' : '';
+          return '<option value="' + esc(String(o.value)) + '"' + sel + '>' + esc(o.label) + '</option>';
+        }).join('') + '</select>';
+      } else {
+        const step = f.type === 'number' ? ' step="1"' : '';
+        html += '<input id="' + id + '" type="' + (f.type || 'text') + '" value="' + esc(f.value != null ? String(f.value) : '') + '"' + step + '>';
+      }
+      html += '</label>';
+    }
+    html += '</div><div class="modal-actions"><button type="button" class="btn btn-ghost" data-cancel>Cancel</button>' +
+      '<button type="submit" class="btn btn-accent">' + esc(opts.submitLabel || 'Save') + '</button></div></form>';
+    dlg.innerHTML = html;
+    document.body.appendChild(dlg);
+
+    function done(result) { try { dlg.close(); } catch (e) {} dlg.remove(); resolve(result); }
+    dlg.querySelector('[data-cancel]').onclick = function () { done(null); };
+    dlg.querySelector('form').onsubmit = function (e) {
+      e.preventDefault();
+      const values = {};
+      for (const f of fields) { const el = document.getElementById('m_' + f.name); values[f.name] = el ? el.value : ''; }
+      done(values);
+    };
+    dlg.addEventListener('cancel', function (e) { e.preventDefault(); done(null); }); // ESC key
+    dlg.showModal();
+    const first = dlg.querySelector('input, select');
+    if (first) first.focus();
+  });
+}
+
+function confirmModal(message, confirmLabel, danger) {
+  return new Promise((resolve) => {
+    const dlg = document.createElement('dialog');
+    dlg.className = 'modal';
+    dlg.innerHTML = '<div class="modal-msg">' + esc(message) + '</div><div class="modal-actions">' +
+      '<button class="btn btn-ghost" data-cancel>Cancel</button>' +
+      '<button class="btn ' + (danger === false ? 'btn-accent' : 'btn-danger') + '" data-ok>' + esc(confirmLabel || 'Confirm') + '</button></div>';
+    document.body.appendChild(dlg);
+    function done(v) { try { dlg.close(); } catch (e) {} dlg.remove(); resolve(v); }
+    dlg.querySelector('[data-cancel]').onclick = function () { done(false); };
+    dlg.querySelector('[data-ok]').onclick = function () { done(true); };
+    dlg.addEventListener('cancel', function (e) { e.preventDefault(); done(false); });
+    dlg.showModal();
+  });
+}
+
+function alertModal(message) {
+  return new Promise((resolve) => {
+    const dlg = document.createElement('dialog');
+    dlg.className = 'modal';
+    dlg.innerHTML = '<div class="modal-msg">' + esc(message) + '</div><div class="modal-actions"><button class="btn btn-accent" data-ok>OK</button></div>';
+    document.body.appendChild(dlg);
+    function done() { try { dlg.close(); } catch (e) {} dlg.remove(); resolve(); }
+    dlg.querySelector('[data-ok]').onclick = done;
+    dlg.addEventListener('cancel', function (e) { e.preventDefault(); done(); });
+    dlg.showModal();
+  });
+}
+
+function roleOptions(current) {
+  const labels = window.ROLE_LABELS || [];
+  const opts = [{ value: '', label: '—' }].concat(labels.map((r) => ({ value: r, label: r })));
+  if (current && labels.indexOf(current) === -1) opts.push({ value: current, label: current });
+  return opts;
+}
+function teamOptions() {
+  return [{ value: '', label: '— choose team —' }].concat((STATE.captains || []).map((c) => ({ value: c.id, label: c.name })));
+}
+
 // ----- actions -----
 
 async function adminAction(path, body, confirmMsg) {
-  if (confirmMsg && !confirm(confirmMsg)) return;
+  if (confirmMsg && !(await confirmModal(confirmMsg, 'Confirm', false))) return;
   const res = await postJson('/api/admin/' + path, body || {});
-  if (!res || !res.ok) alert((res && res.error) || 'Action failed.');
+  if (!res || !res.ok) await alertModal((res && res.error) || 'Action failed.');
   return res;
 }
 
 function saveSettings() {
   const patch = {
-    sellMode: val('set-sellMode'),
-    turnOrder: val('set-turnOrder'),
-    turnDirection: val('set-turnDirection'),
-    theme: val('set-theme'),
-    smallBlind: numVal('set-smallBlind'),
-    teamBudget: numVal('set-teamBudget'),
-    teamSlots: numVal('set-teamSlots'),
-    openingTimeout: numVal('set-openingTimeout'),
-    autoWindow: numVal('set-autoWindow'),
-    soldCooldown: numVal('set-soldCooldown'),
+    sellMode: val('set-sellMode'), turnOrder: val('set-turnOrder'),
+    turnDirection: val('set-turnDirection'), theme: val('set-theme'),
+    smallBlind: numVal('set-smallBlind'), teamBudget: numVal('set-teamBudget'),
+    teamSlots: numVal('set-teamSlots'), openingTimeout: numVal('set-openingTimeout'),
+    autoWindow: numVal('set-autoWindow'), soldCooldown: numVal('set-soldCooldown'),
   };
   adminAction('settings', { patch });
 }
@@ -38,77 +118,93 @@ function setTurnTo() {
   if (!captainId) return;
   adminAction('turn', { captainId });
 }
-
-function forceStatus() {
-  adminAction('status', { status: val('force-status') });
-}
+function forceStatus() { adminAction('status', { status: val('force-status') }); }
 
 // captains
-function addCaptain() {
-  const name = prompt('Captain name:');
-  if (!name) return;
-  const code = prompt('Access code (captains use this to log in):', '') || '';
-  const price = Number(prompt('Captain price:', '0')) || 0;
-  adminAction('captain/add', { name, code, price });
+async function addCaptain() {
+  const v = await openModal({ title: 'Add captain', submitLabel: 'Add', fields: [
+    { name: 'name', label: 'Name', type: 'text', value: '' },
+    { name: 'code', label: 'Access code', type: 'text', value: '' },
+    { name: 'price', label: 'Price', type: 'number', value: 0 },
+  ] });
+  if (!v || !v.name.trim()) return;
+  adminAction('captain/add', { name: v.name, code: v.code, price: Number(v.price) || 0 });
 }
-function editCaptain(id) {
+async function editCaptain(id) {
   const c = (STATE.captains || []).find((x) => x.id === id);
   if (!c) return;
-  const name = prompt('Name:', c.name); if (name === null) return;
-  const code = prompt('Code:', c.code); if (code === null) return;
-  const price = prompt('Price:', c.price); if (price === null) return;
-  adminAction('captain/update', { id, patch: { name, code, price: Number(price) || 0 } });
+  const v = await openModal({ title: 'Edit captain', fields: [
+    { name: 'name', label: 'Name', type: 'text', value: c.name },
+    { name: 'code', label: 'Access code', type: 'text', value: c.code },
+    { name: 'price', label: 'Price', type: 'number', value: c.price },
+  ] });
+  if (!v || !v.name.trim()) return;
+  adminAction('captain/update', { id, patch: { name: v.name, code: v.code, price: Number(v.price) || 0 } });
 }
-function deleteCaptain(id) {
+async function deleteCaptain(id) {
   const c = (STATE.captains || []).find((x) => x.id === id);
-  adminAction('captain/delete', { id }, 'Delete captain "' + (c ? c.name : id) + '"? Their drafted players return to the pool.');
+  if (await confirmModal('Delete captain "' + (c ? c.name : id) + '"? Their drafted players return to the pool.', 'Delete'))
+    adminAction('captain/delete', { id });
 }
 
 // players
-function addPlayer() {
-  const name = prompt('Player name:');
-  if (!name) return;
-  const role = prompt('Role (e.g. Top, Jungle, Mid, ADC, Support, Fill):', '') || '';
-  adminAction('player/add', { name, role });
+async function addPlayer() {
+  const v = await openModal({ title: 'Add player', submitLabel: 'Add', fields: [
+    { name: 'name', label: 'Name', type: 'text', value: '' },
+    { name: 'role', label: 'Role', type: 'select', value: '', options: roleOptions('') },
+  ] });
+  if (!v || !v.name.trim()) return;
+  adminAction('player/add', { name: v.name, role: v.role });
 }
-function editPlayer(id) {
+async function editPlayer(id) {
   const p = (STATE.players || []).find((x) => x.id === id);
   if (!p) return;
-  const name = prompt('Name:', p.name); if (name === null) return;
-  const role = prompt('Role:', p.role); if (role === null) return;
-  adminAction('player/update', { id, patch: { name, role } });
+  const v = await openModal({ title: 'Edit player', fields: [
+    { name: 'name', label: 'Name', type: 'text', value: p.name },
+    { name: 'role', label: 'Role', type: 'select', value: p.role, options: roleOptions(p.role) },
+  ] });
+  if (!v || !v.name.trim()) return;
+  adminAction('player/update', { id, patch: { name: v.name, role: v.role } });
 }
-function deletePlayer(id) {
+async function deletePlayer(id) {
   const p = (STATE.players || []).find((x) => x.id === id);
-  adminAction('player/delete', { id }, 'Delete player "' + (p ? p.name : id) + '"?');
+  if (await confirmModal('Delete player "' + (p ? p.name : id) + '"?', 'Delete'))
+    adminAction('player/delete', { id });
 }
 async function importPlayers() {
   const text = val('import-text');
-  if (!text.trim()) { alert('Paste a player list first.'); return; }
-  const mode = val('import-mode');
-  const res = await adminAction('import', { text, mode });
-  if (res && res.ok) { document.getElementById('import-text').value = ''; alert('Imported ' + res.added + ' players.'); }
+  if (!text.trim()) { await alertModal('Paste a player list first.'); return; }
+  const res = await adminAction('import', { text, mode: val('import-mode') });
+  if (res && res.ok) { document.getElementById('import-text').value = ''; await alertModal('Imported ' + res.added + ' players.'); }
 }
 
 // roster editing
-function assignPlayer(id) {
-  const caps = STATE.captains || [];
-  const names = caps.map((c) => c.name).join(', ');
-  const who = prompt('Assign to which captain?\n(' + names + ')');
-  if (!who) return;
-  const cap = caps.find((c) => c.name.toLowerCase() === who.trim().toLowerCase());
-  if (!cap) { alert('No captain named "' + who + '".'); return; }
-  const price = Number(prompt('Price:', '0')) || 0;
-  adminAction('roster/assign', { playerId: id, captainId: cap.id, price });
-}
-function removeFromTeam(id) {
-  adminAction('roster/remove', { playerId: id });
-}
-function editPrice(id) {
+async function assignPlayer(id) {
   const p = (STATE.players || []).find((x) => x.id === id);
-  const price = prompt('New price:', p ? p.price : '0');
-  if (price === null) return;
-  adminAction('roster/price', { playerId: id, price: Number(price) || 0 });
+  if (!p) return;
+  const v = await openModal({ title: 'Assign ' + p.name + ' to a team', submitLabel: 'Assign', fields: [
+    { name: 'captainId', label: 'Team', type: 'select', value: '', options: teamOptions() },
+    { name: 'price', label: 'Price', type: 'number', value: 0 },
+  ] });
+  if (!v || !v.captainId) return;
+  adminAction('roster/assign', { playerId: id, captainId: Number(v.captainId), price: Number(v.price) || 0 });
+}
+async function reassign(id) {
+  const p = (STATE.players || []).find((x) => x.id === id);
+  if (!p) return;
+  const v = await openModal({ title: 'Edit ' + p.name + ' — team & price', fields: [
+    { name: 'captainId', label: 'Team', type: 'select', value: String(p.captainId), options: teamOptions() },
+    { name: 'price', label: 'Price', type: 'number', value: p.price },
+  ] });
+  if (!v || !v.captainId) return;
+  adminAction('roster/assign', { playerId: id, captainId: Number(v.captainId), price: Number(v.price) || 0 });
+}
+function removeFromTeam(id) { adminAction('roster/remove', { playerId: id }); }
+
+// captain code reveal (masked by default so the page is safe to stream)
+function revealCode(el) {
+  if (el.dataset.shown === '1') { el.textContent = '••••'; el.dataset.shown = '0'; }
+  else { el.textContent = el.dataset.code || '(none)'; el.dataset.shown = '1'; }
 }
 
 // ----- rendering -----
@@ -130,7 +226,6 @@ function renderStatus(s) {
   document.getElementById('status-bar').innerHTML = cells.map(function (c) {
     return '<div class="stat"><span class="k">' + c[0] + '</span><span class="v">' + c[1] + '</span></div>';
   }).join('');
-
   const soldBtn = document.getElementById('sold-btn');
   if (soldBtn) soldBtn.disabled = !s.soldArmed;
 }
@@ -171,7 +266,7 @@ function renderCaptains(s) {
     html += '<tr>' +
       '<td class="num">' + (c.seat + 1) + '</td>' +
       '<td>' + esc(c.name) + (c.full ? ' <span class="tag full">full</span>' : '') + '</td>' +
-      '<td>' + esc(c.code) + '</td>' +
+      '<td><span class="code" data-code="' + esc(c.code) + '" data-shown="0" onclick="revealCode(this)" title="Click to reveal / hide">••••</span></td>' +
       '<td class="num">$' + c.price + '</td>' +
       '<td class="num">' + c.draftedCount + '/' + slots + '</td>' +
       '<td class="num">$' + c.maxBid + '</td>' +
@@ -211,7 +306,7 @@ function renderPlayers() {
       '<td class="actions">' +
         '<button class="btn btn-sm" onclick="editPlayer(' + p.id + ')">Edit</button>' +
         (isSold
-          ? '<button class="btn btn-sm" onclick="editPrice(' + p.id + ')">Price</button>' +
+          ? '<button class="btn btn-sm" onclick="reassign(' + p.id + ')">Team/price</button>' +
             '<button class="btn btn-sm" onclick="removeFromTeam(' + p.id + ')">Unassign</button>'
           : '<button class="btn btn-sm" onclick="assignPlayer(' + p.id + ')">Assign</button>') +
         '<button class="btn btn-sm btn-danger" onclick="deletePlayer(' + p.id + ')">Del</button>' +
