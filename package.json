@@ -1,0 +1,22 @@
+{
+  "name": "auction-draft-app",
+  "version": "0.1.0",
+  "description": "Live, real-time auction draft web app: captains bid on players, with an admin console and a public spectator board.",
+  "type": "commonjs",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "ws": "^8.18.0"
+  },
+  "license": "MIT"
+}

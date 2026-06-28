@@ -1,0 +1,24 @@
+# dependencies
+node_modules/
+
+# database (runtime state — never commit live auction data)
+auction.db
+auction.db-journal
+auction.db-wal
+auction.db-shm
+*.db
+
+# secrets / local config
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+
+# editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
