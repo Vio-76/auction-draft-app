@@ -76,6 +76,7 @@ function registerAdminRoutes(app) {
   post('captain/add',    (b) => A.addCaptain(b));
   post('captain/update', (b) => A.updateCaptain(b.id, b.patch || {}));
   post('captain/delete', (b) => A.deleteCaptain(b.id));
+  post('captain/import', (b) => A.importCaptains(b.text, b.mode));
 
   // players
   post('player/add',    (b) => A.addPlayer(b));

@@ -95,6 +95,19 @@
         <h2>Captains</h2>
         <button class="btn" onclick="addCaptain()">+ Add captain</button>
       </div>
+
+      <details class="import-box">
+        <summary>Bulk import (paste a captain list)</summary>
+        <p class="hint">One captain per line: <code>Name &lt;tab/comma&gt; Code, Price, Role</code>. Only the name is required.</p>
+        <textarea id="captain-import-text" rows="6" placeholder="Monarch	mon	5	Mid&#10;Tomi, tom, 4, Top"></textarea>
+        <div class="btn-row">
+          <label class="inline">Mode
+            <select id="captain-import-mode"><option value="replace">Replace all captains</option><option value="append">Append</option></select>
+          </label>
+          <button class="btn btn-accent" onclick="importCaptains()">Import</button>
+        </div>
+      </details>
+
       <div class="table-wrap"><table class="tbl" id="captains-tbl"></table></div>
     </section>
 

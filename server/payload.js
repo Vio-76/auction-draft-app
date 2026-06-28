@@ -112,6 +112,7 @@ function buildBoardState() {
     return {
       captain:      c.name,
       captainPrice: c.price,
+      captainRole:  c.role || '',
       players,
       maxBid:       team.captainMaxBid(c),
       full:         team.isCaptainFull(c),
@@ -144,7 +145,7 @@ function buildAdminState() {
   const cur = turn.currentTurnCaptain();
 
   const captains = captainsBySeat().map((c) => ({
-    id: c.id, name: c.name, code: c.code, price: c.price, seat: c.seat,
+    id: c.id, name: c.name, code: c.code, price: c.price, role: c.role || '', seat: c.seat,
     maxBid: team.captainMaxBid(c), full: team.isCaptainFull(c),
     draftedCount: team.draftedCount(c), spent: team.spentByCaptain(c),
   }));

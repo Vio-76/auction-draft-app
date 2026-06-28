@@ -9,10 +9,10 @@ const { PLAYER_STATUS } = require('../server/config');
 load();
 
 const captains = [
-  { name: 'Monarch', code: 'mon', price: 5 },
-  { name: 'Tomi', code: 'tom', price: 4 },
-  { name: 'Vex', code: 'vex', price: 6 },
-  { name: 'Luna', code: 'lun', price: 3 },
+  { name: 'Monarch', code: 'mon', price: 5, role: 'Top' },
+  { name: 'Tomi', code: 'tom', price: 4, role: 'Jungle' },
+  { name: 'Vex', code: 'vex', price: 6, role: 'ADC' },
+  { name: 'Luna', code: 'lun', price: 3, role: 'Support' },
 ];
 
 const players = [
@@ -24,7 +24,7 @@ const players = [
   ['Flex', 'Fill'],
 ];
 
-state.captains = captains.map((c, i) => ({ id: i + 1, name: c.name, code: c.code, price: c.price, seat: i }));
+state.captains = captains.map((c, i) => ({ id: i + 1, name: c.name, code: c.code, price: c.price, role: c.role || '', seat: i }));
 state.players = players.map(([name, role], i) => ({
   id: i + 1, name, role, status: PLAYER_STATUS.OPEN, captainId: null, price: 0,
 }));

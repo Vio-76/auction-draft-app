@@ -58,10 +58,12 @@ function roleMatches(playerRole, label) {
   return String(playerRole || '').toLowerCase().slice(0, 3) === label.toLowerCase().slice(0, 3);
 }
 
-/** [true,false,...] in ROLE_LABELS order: whether the team has a player in each role. */
+/** [true,false,...] in ROLE_LABELS order: whether the team covers each role. The captain's
+ *  own role counts toward coverage, alongside their drafted players. */
 function captainRoleFlags(captain) {
   const drafted = draftedPlayers(captain.id);
-  return ROLE_LABELS.map((label) => drafted.some((p) => roleMatches(p.role, label)));
+  return ROLE_LABELS.map((label) =>
+    roleMatches(captain.role, label) || drafted.some((p) => roleMatches(p.role, label)));
 }
 
 // ----- open-player pool -----

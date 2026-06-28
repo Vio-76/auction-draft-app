@@ -149,7 +149,7 @@ function setTurnTo(captainId) {
 
 // ----- captains CRUD -----
 
-function addCaptain({ name, code, price, seat } = {}) {
+function addCaptain({ name, code, price, role, seat } = {}) {
   const nm = String(name || '').trim();
   if (!nm) return err('Captain name is required.');
   const maxSeat = state.captains.reduce((m, c) => Math.max(m, c.seat), -1);
@@ -158,6 +158,7 @@ function addCaptain({ name, code, price, seat } = {}) {
     name: nm,
     code: String(code || '').trim(),
     price: Math.max(0, Math.floor(Number(price) || 0)),
+    role: String(role || '').trim(),
     seat: Number.isFinite(Number(seat)) ? Number(seat) : maxSeat + 1,
   });
   normalizeSeats();
@@ -170,9 +171,51 @@ function updateCaptain(id, patch = {}) {
   if ('name' in patch) { const nm = String(patch.name).trim(); if (!nm) return err('Name cannot be empty.'); c.name = nm; }
   if ('code' in patch) c.code = String(patch.code).trim();
   if ('price' in patch) c.price = Math.max(0, Math.floor(Number(patch.price) || 0));
+  if ('role' in patch) c.role = String(patch.role).trim();
   if ('seat' in patch) c.seat = Number(patch.seat);
   normalizeSeats();
   return ok();
+}
+
+/** Parse pasted captains: one per line, "name <tab|comma|2+ spaces> code, price, role"
+ *  (only name required; the rest optional, in that order). */
+function parseCaptainList(text) {
+  const out = [];
+  for (const line of String(text || '').split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const parts = trimmed.split(/\t|,|\s{2,}/).map((s) => s.trim());
+    const name = parts[0];
+    if (name) out.push({ name, code: parts[1] || '', price: Number(parts[2]) || 0, role: parts[3] || '' });
+  }
+  return out;
+}
+
+/** Bulk import captains. 'replace' clears all captains first (their drafted players return
+ *  to the pool); 'append' adds after the existing ones. Returns { ok, added }. */
+function importCaptains(text, mode = 'replace') {
+  const parsed = parseCaptainList(text);
+  if (!parsed.length) return err('No captains found in the pasted text.');
+
+  if (mode === 'replace') {
+    for (const p of state.players) {
+      if (p.captainId != null) { p.status = PLAYER_STATUS.OPEN; p.captainId = null; p.price = 0; }
+    }
+    state.captains = [];
+    state.settings.marker = -1;
+    team.clearAuctionBlock();
+  }
+  let id = nextCaptainId();
+  let seat = state.captains.reduce((m, c) => Math.max(m, c.seat), -1) + 1;
+  for (const c of parsed) {
+    state.captains.push({
+      id: id++, name: c.name, code: c.code,
+      price: Math.max(0, Math.floor(c.price)), role: c.role, seat: seat++,
+    });
+  }
+  normalizeSeats();
+  commit();
+  return { ok: true, added: parsed.length };
 }
 
 function deleteCaptain(id) {
@@ -286,7 +329,7 @@ module.exports = {
   startAuction, advanceTurn, skipCaptain, openBidding, closeBidding, openOpeningBid,
   sold, setStatus, resetAuction,
   updateSettings, setTurnTo,
-  addCaptain, updateCaptain, deleteCaptain,
+  addCaptain, updateCaptain, deleteCaptain, importCaptains,
   addPlayer, updatePlayer, deletePlayer, importPlayers, clearPool,
   assignPlayerToTeam, removePlayerFromTeam, setPlayerPrice,
 };
