@@ -116,23 +116,24 @@
     }
     .pool-count { font-family:var(--font-mono); font-size:13px; color:var(--muted); }
 
-    /* ----- live bid panel (between teams and the pool) ----- */
-    .livebid-section { margin-top:36px; }
+    /* ----- live bid panel (between teams and the pool): a compact bar, centered ----- */
+    .livebid-section { margin-top:36px; display:flex; justify-content:center; }
     .livebid {
-      display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px;
+      display:flex; flex-wrap:wrap; align-items:baseline; justify-content:center; gap:6px 18px;
       background:var(--card); border:var(--card-border);
-      border-radius:var(--radius); box-shadow:var(--shadow); padding:20px 24px;
+      border-radius:var(--radius); box-shadow:var(--shadow); padding:14px 24px;
+      max-width:100%;
     }
     .livebid-eyebrow {
       font-family:var(--font-display); font-weight:500; font-size:11px; letter-spacing:.3em;
       text-transform:uppercase; color:var(--eyebrow);
     }
     .livebid-player {
-      font-family:var(--font-display); font-weight:var(--display-weight); font-size:30px; line-height:1;
+      font-family:var(--font-display); font-weight:var(--display-weight); font-size:26px; line-height:1;
       text-transform:var(--display-transform); letter-spacing:var(--display-spacing); word-break:break-word;
     }
-    .livebid-stat { display:flex; align-items:baseline; justify-content:center; gap:10px; }
-    .livebid-amount { font-family:var(--font-mono); font-weight:700; font-size:30px; color:var(--accent); letter-spacing:-.02em; }
+    .livebid-stat { display:inline-flex; align-items:baseline; gap:10px; }
+    .livebid-amount { font-family:var(--font-mono); font-weight:700; font-size:26px; color:var(--accent); letter-spacing:-.02em; }
     .livebid-by { font-size:14px; color:var(--muted); }
 
     .pool-grid {
