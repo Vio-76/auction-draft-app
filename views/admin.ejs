@@ -45,15 +45,21 @@
       <section class="card">
         <h2>Settings</h2>
         <div class="form-grid">
-          <label>Sell mode
-            <select id="set-sellMode"><option value="MANUAL">MANUAL</option><option value="AUTO">AUTO</option></select>
-          </label>
           <label>Turn order
             <select id="set-turnOrder"><option value="WATERFALL">WATERFALL</option><option value="SNAKE">SNAKE</option></select>
           </label>
           <label>Snake direction
             <select id="set-turnDirection"><option value="DOWN">DOWN</option><option value="UP">UP</option></select>
           </label>
+          <label>Sell mode
+            <select id="set-sellMode"><option value="MANUAL">MANUAL</option><option value="AUTO">AUTO</option></select>
+          </label>
+          <label>Auto-sell window (s) <input type="number" id="set-autoWindow" min="0" step="1"></label>
+          <label>Small blind <input type="number" id="set-smallBlind" min="0" step="1"></label>
+          <label>Team budget <input type="number" id="set-teamBudget" min="0" step="1"></label>
+          <label>Team slots <input type="number" id="set-teamSlots" min="1" step="1"></label>
+          <label>Opening timeout (s) <input type="number" id="set-openingTimeout" min="0" step="1"></label>
+          <label>Sold cooldown (s) <input type="number" id="set-soldCooldown" min="0" step="1"></label>
           <label>Theme
             <select id="set-theme">
               <option>draftroom</option><option>auctionhouse</option><option>terminal</option>
@@ -63,12 +69,6 @@
           <label>Show bids on board
             <select id="set-showBidOnBoard"><option value="true">Show (public)</option><option value="false">Hide (captains only)</option></select>
           </label>
-          <label>Small blind <input type="number" id="set-smallBlind" min="0" step="1"></label>
-          <label>Team budget <input type="number" id="set-teamBudget" min="0" step="1"></label>
-          <label>Team slots <input type="number" id="set-teamSlots" min="1" step="1"></label>
-          <label>Opening timeout (s) <input type="number" id="set-openingTimeout" min="0" step="1"></label>
-          <label>Auto-sell window (s) <input type="number" id="set-autoWindow" min="0" step="1"></label>
-          <label>Sold cooldown (s) <input type="number" id="set-soldCooldown" min="0" step="1"></label>
         </div>
         <div class="btn-row">
           <button class="btn btn-accent" onclick="saveSettings()">Save settings</button>
