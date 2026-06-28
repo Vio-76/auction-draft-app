@@ -102,6 +102,9 @@ function buildBoardState() {
   const s = state.settings;
   const caps = captainsBySeat();
 
+  const hb = state.auction.highestBid;
+  const byId = state.auction.byCaptainId;
+
   const teams = caps.map((c) => {
     const drafted = require('./state').draftedPlayers(c.id);
     const players = [];
@@ -109,12 +112,18 @@ function buildBoardState() {
       const p = drafted[i];
       players.push({ name: p ? p.name : '', price: p ? p.price : 0 });
     }
+    const maxBid = team.captainMaxBid(c);
+    const full = team.isCaptainFull(c);
+    // Priced out: the live bid already meets/exceeds this captain's max so they can't outbid.
+    // Gated by showBidOnBoard (it's derived from the live bid) and excludes the current leader.
+    const pricedOut = s.showBidOnBoard && !full && hb > 0 && maxBid <= hb && c.id !== byId;
     return {
       captain:      c.name,
       captainPrice: c.price,
       players,
-      maxBid:       team.captainMaxBid(c),
-      full:         team.isCaptainFull(c),
+      maxBid,
+      full,
+      pricedOut,
       roles:        team.captainRoleFlags(c),
     };
   });

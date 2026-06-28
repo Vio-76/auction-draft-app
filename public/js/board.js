@@ -34,7 +34,7 @@ function render(state) {
     seen[t.captain] = true;
     let card = cardEls[t.captain];
     if (!card) card = cardEls[t.captain] = buildCard(t);
-    updateCard(card, t, t.full);
+    updateCard(card, t, t.full || t.pricedOut);   // dim max bid when full or priced out
     if (root.children[i] !== card.el) root.insertBefore(card.el, root.children[i] || null);
   }
   for (const cap in cardEls) {
