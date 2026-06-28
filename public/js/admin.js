@@ -244,15 +244,19 @@ function renderStatus(s) {
     return '<div class="stat"><span class="k">' + c[0] + '</span><span class="v">' + c[1] + '</span></div>';
   }).join('');
 
-  // Live countdown, pinned to the right: opening-turn timer, or the AUTO auto-sell timer.
+  // Live countdown next to the order info: opening-turn timer, the AUTO auto-sell timer, or
+  // — while paused — the snapshot of how much was left when the admin hit Pause.
   let cdLabel = '', cdVal = '', urgent = false;
   if (s.openingSecondsRemaining != null) {
     cdLabel = 'Opening turn'; cdVal = s.openingSecondsRemaining + 's'; urgent = s.openingSecondsRemaining <= 10;
   } else if (s.autoSellSecondsRemaining != null) {
     cdLabel = 'Auto-sell in'; cdVal = s.autoSellSecondsRemaining + 's'; urgent = s.autoSellSecondsRemaining <= 5;
+  } else if (s.pausedRemaining) {
+    cdLabel = s.pausedRemaining.kind === 'opening' ? 'Paused — opening left' : 'Paused — auto-sell left';
+    cdVal = s.pausedRemaining.seconds + 's';
   }
   if (cdVal) {
-    html += '<div class="stat cd-stat"><span class="k">' + cdLabel + '</span>' +
+    html += '<div class="stat"><span class="k">' + cdLabel + '</span>' +
       '<span class="countdown' + (urgent ? ' urgent' : '') + '">' + cdVal + '</span></div>';
   }
   document.getElementById('status-bar').innerHTML = html;

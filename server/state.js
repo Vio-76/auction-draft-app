@@ -18,7 +18,8 @@ const state = {
   players: [],    // { id, name, role, status, captainId, price }
   auction: { currentPlayerId: null, highestBid: 0, byCaptainId: null },
   // Ephemeral clocks (were Apps Script script properties) — never persisted.
-  clocks: { openingDeadline: 0, lastBidTime: 0, lastSold: null, previousSellMode: null },
+  // pausedRemaining: snapshot of the countdown when the admin pauses (display only).
+  clocks: { openingDeadline: 0, lastBidTime: 0, lastSold: null, previousSellMode: null, pausedRemaining: null },
 };
 
 // ----- load -----

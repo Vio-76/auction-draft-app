@@ -18,7 +18,12 @@ const team = require('./logic/team');
 const turn = require('./logic/turn');
 const sell = require('./logic/sell');
 
-function commit() { persistAll(); markChanged(); }
+function commit() {
+  // The paused-countdown snapshot is only meaningful while CLOSED; clear it on resume.
+  if (state.settings.status !== STATUS.CLOSED) state.clocks.pausedRemaining = null;
+  persistAll();
+  markChanged();
+}
 function ok() { commit(); return { ok: true }; }
 function err(msg) { return { ok: false, error: msg }; }
 
@@ -61,6 +66,15 @@ function openBidding() {
 }
 
 function closeBidding() {        // pause
+  // Snapshot how much of the live countdown was left, so the admin can see it while paused.
+  // (Logic is unchanged: the deadline is still cleared and restarts fresh on resume.)
+  let pr = null;
+  if (state.settings.status === STATUS.OPENING) {
+    pr = { kind: 'opening', seconds: turn.openingSecondsRemaining() };
+  } else if (state.settings.status === STATUS.BIDDING && state.settings.sellMode === SELL_MODE.AUTO) {
+    pr = { kind: 'autosell', seconds: sell.autoSellSecondsRemaining() };
+  }
+  state.clocks.pausedRemaining = pr;
   state.settings.status = STATUS.CLOSED;
   sell.clearLastBidTime();
   turn.clearOpeningDeadline();
@@ -84,6 +98,7 @@ function sold() {
 function setStatus(status) {
   const allowed = [STATUS.OPENING, STATUS.BIDDING, STATUS.CLOSED, STATUS.FINISHED];
   if (!allowed.includes(status)) return err('Invalid status.');
+  state.clocks.pausedRemaining = null;   // manual override isn't a timed pause
   state.settings.status = status;
   if (status === STATUS.OPENING) turn.setOpeningDeadline();
   if (status === STATUS.BIDDING) sell.setLastBidTime();
@@ -96,6 +111,7 @@ function resetAuction() {
   sell.clearLastBidTime();
   turn.clearOpeningDeadline();
   state.clocks.lastSold = null;
+  state.clocks.pausedRemaining = null;
   state.settings.marker = -1;
   state.settings.turnDirection = TURN_DIR.DOWN;
   state.settings.status = STATUS.CLOSED;

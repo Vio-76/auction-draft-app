@@ -119,9 +119,9 @@
     /* ----- live bid panel (between teams and the pool) ----- */
     .livebid-section { margin-top:36px; }
     .livebid {
-      display:flex; flex-wrap:wrap; align-items:center; gap:8px 22px;
-      background:var(--card); border:var(--card-border); border-left:4px solid var(--accent);
-      border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 24px;
+      display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px;
+      background:var(--card); border:var(--card-border);
+      border-radius:var(--radius); box-shadow:var(--shadow); padding:20px 24px;
     }
     .livebid-eyebrow {
       font-family:var(--font-display); font-weight:500; font-size:11px; letter-spacing:.3em;
@@ -131,7 +131,7 @@
       font-family:var(--font-display); font-weight:var(--display-weight); font-size:30px; line-height:1;
       text-transform:var(--display-transform); letter-spacing:var(--display-spacing); word-break:break-word;
     }
-    .livebid-stat { display:flex; align-items:baseline; gap:10px; margin-left:auto; }
+    .livebid-stat { display:flex; align-items:baseline; justify-content:center; gap:10px; }
     .livebid-amount { font-family:var(--font-mono); font-weight:700; font-size:30px; color:var(--accent); letter-spacing:-.02em; }
     .livebid-by { font-size:14px; color:var(--muted); }
 

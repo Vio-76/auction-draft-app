@@ -168,6 +168,7 @@ function buildAdminState() {
   const openingSecondsRemaining = s.status === STATUS.OPENING ? turn.openingSecondsRemaining() : null;
   const autoSellSecondsRemaining = (s.status === STATUS.BIDDING && s.sellMode === SELL_MODE.AUTO)
     ? sell.autoSellSecondsRemaining() : null;
+  const pausedRemaining = s.status === STATUS.CLOSED ? (state.clocks.pausedRemaining || null) : null;
 
   return {
     settings: { ...s, turnDirection: s.turnDirection === TURN_DIR.UP ? 'UP' : 'DOWN' },
@@ -176,6 +177,7 @@ function buildAdminState() {
     soldArmed: s.status === STATUS.BIDDING && sell.soldButtonUsable(),
     openingSecondsRemaining,
     autoSellSecondsRemaining,
+    pausedRemaining,
     auction: {
       player: state.auction.currentPlayerId ? (playerById(state.auction.currentPlayerId)?.name || '') : '',
       highestBid: state.auction.highestBid,
