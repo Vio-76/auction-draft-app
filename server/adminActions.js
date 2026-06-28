@@ -48,9 +48,11 @@ function startAuction() {
 }
 
 /** Skip Turn: move the marker to the next captain (snake double-turn aware), in any phase,
- *  without changing the status or clearing the in-flight bid. */
+ *  without changing the status or clearing the in-flight bid. Resets the opening-bid countdown
+ *  to the full timeout so the new turn-holder gets a fresh clock. */
 function skipTurn() {
   turn.skipMarker();
+  turn.setOpeningDeadline();
   return ok();
 }
 
