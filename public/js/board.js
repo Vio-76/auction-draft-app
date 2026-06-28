@@ -34,14 +34,26 @@ function render(state) {
   }
 
   updateSub(teams.length);
+  renderLiveBid(state.liveBid);
   renderPool(state.openPlayers || []);
   renderTurn(state.turn);
+}
+
+function renderLiveBid(lb) {
+  const sec = document.getElementById('livebid-section');
+  if (!sec) return;
+  if (!lb || !lb.player) { sec.style.display = 'none'; return; }
+  setText(document.getElementById('livebid-player'), lb.player);
+  setText(document.getElementById('livebid-amount'), '$' + lb.highestBid);
+  setText(document.getElementById('livebid-by'), lb.byCaptain ? 'by ' + lb.byCaptain : 'No bids yet');
+  sec.style.display = '';
 }
 
 function showMessage(root, msg) {
   root.innerHTML = '<div class="board-empty">' + msg + '</div>';
   cardEls = {};
   messageShown = true;
+  renderLiveBid(null);
   hidePool();
   hideTurn();
 }

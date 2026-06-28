@@ -29,6 +29,7 @@ const DEFAULT_SETTINGS = {
   soldMessageSeconds: 6,           // how long the "sold" banner shows
   marker:             -1,          // current turn index into captains (seat order); -1 = none
   theme:              'draftroom',
+  showBidOnBoard:     true,        // show the live bid (player/amount/bidder) on the public board
 };
 
 // ----- Roles (board grouping + per-team role flags) -----

@@ -116,6 +116,25 @@
     }
     .pool-count { font-family:var(--font-mono); font-size:13px; color:var(--muted); }
 
+    /* ----- live bid panel (between teams and the pool) ----- */
+    .livebid-section { margin-top:36px; }
+    .livebid {
+      display:flex; flex-wrap:wrap; align-items:center; gap:8px 22px;
+      background:var(--card); border:var(--card-border); border-left:4px solid var(--accent);
+      border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 24px;
+    }
+    .livebid-eyebrow {
+      font-family:var(--font-display); font-weight:500; font-size:11px; letter-spacing:.3em;
+      text-transform:uppercase; color:var(--eyebrow);
+    }
+    .livebid-player {
+      font-family:var(--font-display); font-weight:var(--display-weight); font-size:30px; line-height:1;
+      text-transform:var(--display-transform); letter-spacing:var(--display-spacing); word-break:break-word;
+    }
+    .livebid-stat { display:flex; align-items:baseline; gap:10px; margin-left:auto; }
+    .livebid-amount { font-family:var(--font-mono); font-weight:700; font-size:30px; color:var(--accent); letter-spacing:-.02em; }
+    .livebid-by { font-size:14px; color:var(--muted); }
+
     .pool-grid {
       display:grid; gap:16px;
       grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));

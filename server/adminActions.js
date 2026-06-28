@@ -125,6 +125,8 @@ function updateSettings(patch) {
       state.settings.turnDirection = (raw === 'UP' || raw === -1) ? TURN_DIR.UP : TURN_DIR.DOWN;
     } else if (key === 'theme') {
       state.settings.theme = THEME_FONT_URLS[raw] ? raw : 'draftroom';
+    } else if (key === 'showBidOnBoard') {
+      state.settings.showBidOnBoard = (raw === true || raw === 'true' || raw === 1 || raw === '1' || raw === 'on');
     }
     // unknown keys ignored
   }

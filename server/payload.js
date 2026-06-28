@@ -119,6 +119,15 @@ function buildBoardState() {
     };
   });
 
+  // Live bid panel — only sent when enabled (so it stays private from spectators when off)
+  // and only while a player is actually on the block.
+  let liveBid = null;
+  if (s.showBidOnBoard && state.auction.currentPlayerId) {
+    const p = playerById(state.auction.currentPlayerId);
+    const by = state.auction.byCaptainId ? captainById(state.auction.byCaptainId) : null;
+    if (p) liveBid = { player: p.name, highestBid: state.auction.highestBid, byCaptain: by ? by.name : '' };
+  }
+
   const fullByName = team.fullByName();
   const turnInfo = {
     order:        caps.map((c) => c.name),
@@ -134,6 +143,7 @@ function buildBoardState() {
     highestBid:  state.auction.highestBid,
     openPlayers: team.openPlayersWithRoles(),
     turn:        turnInfo,
+    liveBid,
   };
 }
 
@@ -155,11 +165,17 @@ function buildAdminState() {
     price: p.price,
   }));
 
+  const openingSecondsRemaining = s.status === STATUS.OPENING ? turn.openingSecondsRemaining() : null;
+  const autoSellSecondsRemaining = (s.status === STATUS.BIDDING && s.sellMode === SELL_MODE.AUTO)
+    ? sell.autoSellSecondsRemaining() : null;
+
   return {
     settings: { ...s, turnDirection: s.turnDirection === TURN_DIR.UP ? 'UP' : 'DOWN' },
     phase: s.status,
     currentTurnCaptain: cur ? cur.name : '',
     soldArmed: s.status === STATUS.BIDDING && sell.soldButtonUsable(),
+    openingSecondsRemaining,
+    autoSellSecondsRemaining,
     auction: {
       player: state.auction.currentPlayerId ? (playerById(state.auction.currentPlayerId)?.name || '') : '',
       highestBid: state.auction.highestBid,

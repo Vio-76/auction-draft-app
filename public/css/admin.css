@@ -54,6 +54,9 @@
 .stat .k { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .stat .v { font-family: var(--font-mono); font-weight: 700; font-size: 16px; color: var(--ink); }
 .stat .v.accent { color: var(--accent); }
+.cd-stat { margin-left: auto; text-align: right; }
+.countdown { font-family: var(--font-mono); font-weight: 700; font-size: 22px; line-height: 1; color: var(--accent); }
+.countdown.urgent { color: var(--danger); }
 .pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-family: var(--font-display); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
 .pill.OPENING { background: var(--accent-soft); color: var(--accent); }
 .pill.BIDDING { background: var(--positive-soft); color: var(--positive); }

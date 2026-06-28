@@ -106,6 +106,7 @@ function saveSettings() {
   const patch = {
     sellMode: val('set-sellMode'), turnOrder: val('set-turnOrder'),
     turnDirection: val('set-turnDirection'), theme: val('set-theme'),
+    showBidOnBoard: val('set-showBidOnBoard') === 'true',
     smallBlind: numVal('set-smallBlind'), teamBudget: numVal('set-teamBudget'),
     teamSlots: numVal('set-teamSlots'), openingTimeout: numVal('set-openingTimeout'),
     autoWindow: numVal('set-autoWindow'), soldCooldown: numVal('set-soldCooldown'),
@@ -239,9 +240,23 @@ function renderStatus(s) {
     ['Sell mode', s.settings.sellMode],
     ['Order', s.settings.turnOrder + (s.settings.turnOrder === 'SNAKE' ? ' ' + s.settings.turnDirection : '')],
   ];
-  document.getElementById('status-bar').innerHTML = cells.map(function (c) {
+  let html = cells.map(function (c) {
     return '<div class="stat"><span class="k">' + c[0] + '</span><span class="v">' + c[1] + '</span></div>';
   }).join('');
+
+  // Live countdown, pinned to the right: opening-turn timer, or the AUTO auto-sell timer.
+  let cdLabel = '', cdVal = '', urgent = false;
+  if (s.openingSecondsRemaining != null) {
+    cdLabel = 'Opening turn'; cdVal = s.openingSecondsRemaining + 's'; urgent = s.openingSecondsRemaining <= 10;
+  } else if (s.autoSellSecondsRemaining != null) {
+    cdLabel = 'Auto-sell in'; cdVal = s.autoSellSecondsRemaining + 's'; urgent = s.autoSellSecondsRemaining <= 5;
+  }
+  if (cdVal) {
+    html += '<div class="stat cd-stat"><span class="k">' + cdLabel + '</span>' +
+      '<span class="countdown' + (urgent ? ' urgent' : '') + '">' + cdVal + '</span></div>';
+  }
+  document.getElementById('status-bar').innerHTML = html;
+
   const soldBtn = document.getElementById('sold-btn');
   if (soldBtn) soldBtn.disabled = !s.soldArmed;
 }
@@ -253,6 +268,7 @@ function fillSettingsOnce(s) {
   setVal('set-turnOrder', s.settings.turnOrder);
   setVal('set-turnDirection', s.settings.turnDirection);
   setVal('set-theme', s.settings.theme);
+  setVal('set-showBidOnBoard', String(s.settings.showBidOnBoard));
   setVal('set-smallBlind', s.settings.smallBlind);
   setVal('set-teamBudget', s.settings.teamBudget);
   setVal('set-teamSlots', s.settings.teamSlots);
