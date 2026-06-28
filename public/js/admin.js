@@ -154,6 +154,14 @@ async function deleteCaptain(id) {
   if (await confirmModal('Delete captain "' + (c ? c.name : id) + '"? Their drafted players return to the pool.', 'Delete'))
     adminAction('captain/delete', { id });
 }
+async function copyCaptainLink(id) {
+  const c = (STATE.captains || []).find((x) => x.id === id);
+  if (!c) return;
+  const url = location.origin + '/?captain=' + encodeURIComponent(c.name) + '&code=' + encodeURIComponent(c.code);
+  const okCopy = await copyText(url);
+  if (okCopy) await alertModal('Copied ' + c.name + "'s invite link to the clipboard.");
+  else await alertModal('Could not copy automatically. Full link:\n' + url);
+}
 
 // players
 async function addPlayer() {
@@ -269,13 +277,14 @@ function renderCaptains(s) {
   captainsSig = sig;
 
   const slots = s.settings.teamSlots;
-  let html = '<tr><th>#</th><th>Name</th><th>Role</th><th>Code</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Actions</th></tr>';
+  let html = '<tr><th>#</th><th>Name</th><th>Role</th><th>Code</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Actions</th></tr>';
   for (const c of s.captains || []) {
     html += '<tr>' +
       '<td class="num">' + (c.seat + 1) + '</td>' +
       '<td>' + esc(c.name) + (c.full ? ' <span class="tag full">full</span>' : '') + '</td>' +
       '<td>' + esc(c.role || '—') + '</td>' +
       '<td><span class="code" data-code="' + esc(c.code) + '" data-shown="0" onclick="revealCode(this)" title="Click to reveal / hide">••••</span></td>' +
+      '<td><span class="copylink" onclick="copyCaptainLink(' + c.id + ')" title="Click to copy the full invite link (code stays hidden on screen)">?captain=' + esc(c.name) + ' 🔗</span></td>' +
       '<td class="num">$' + c.price + '</td>' +
       '<td class="num">' + c.draftedCount + '/' + slots + '</td>' +
       '<td class="num">$' + c.maxBid + '</td>' +
@@ -292,9 +301,10 @@ function renderPlayers() {
   const s = STATE;
   if (!s) return;
   const filter = val('player-filter') || 'all';
-  let players = s.players || [];
+  let players = (s.players || []).slice();   // copy so the sort doesn't mutate STATE
   if (filter === 'open') players = players.filter((p) => p.status === 'open');
   if (filter === 'sold') players = players.filter((p) => p.status === 'sold');
+  players.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
   const sig = filter + '|' + JSON.stringify((s.players || []).map((p) => [p.id, p.name, p.role, p.status, p.captainName, p.price]));
   if (sig === playersSig) return;

@@ -52,6 +52,28 @@ function connectState(query, onState) {
   open();
 }
 
+/** Copies text to the clipboard; returns true on success. Falls back to a hidden textarea
+ *  + execCommand for non-secure contexts where navigator.clipboard is unavailable. */
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (e) { /* fall through */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
 /** POSTs JSON and resolves to the parsed { ok, error, ... } response. */
 async function postJson(url, body) {
   try {

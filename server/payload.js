@@ -112,7 +112,6 @@ function buildBoardState() {
     return {
       captain:      c.name,
       captainPrice: c.price,
-      captainRole:  c.role || '',
       players,
       maxBid:       team.captainMaxBid(c),
       full:         team.isCaptainFull(c),

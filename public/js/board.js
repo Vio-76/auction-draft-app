@@ -73,9 +73,7 @@ function buildCard(t) {
   const capRow = el('div', 'roster-row captain');
   const capName = el('span', 'slot-name');
   card.captainName = el('span', 'cap-name');
-  card.captainRole = el('span', 'cap-role');
   capName.appendChild(card.captainName);
-  capName.appendChild(card.captainRole);
   capRow.appendChild(capName);
   card.captainPrice = el('span', 'slot-price');
   capRow.appendChild(card.captainPrice);
@@ -110,7 +108,6 @@ function buildCard(t) {
 
 function updateCard(card, t, dim) {
   setText(card.captainName, t.captain);
-  setText(card.captainRole, t.captainRole || '');
   setText(card.captainPrice, '$' + t.captainPrice);
   setText(card.maxBid, '$' + t.maxBid);
   card.maxBid.classList.toggle('dim', !!dim);

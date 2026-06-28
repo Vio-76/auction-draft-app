@@ -99,6 +99,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .code:hover { color: var(--accent); }
 .code[data-shown="1"] { letter-spacing: normal; }
 
+/* Copy-invite-link chip: shows only the captain part; click copies the full link (with code). */
+.copylink { cursor: pointer; font-family: var(--font-mono); font-size: 12px; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.copylink:hover { color: var(--accent); }
+
 /* ----- modals (native <dialog>; work in every browser incl. embedded webviews) ----- */
 dialog.modal {
   border: none; border-radius: var(--radius); padding: 22px;

@@ -82,9 +82,6 @@
     /* Captain = roster slot 1: same type as the players, just a subtle accent highlight. */
     .roster-row.captain { border-bottom:1px solid var(--line-strong); }
     .cap-name { color:var(--accent); font-weight:700; font-size:18px; }
-    .cap-role { margin-left:8px; font-family:var(--font-mono); font-size:11px; font-weight:500;
-      letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
-    .cap-role:empty { display:none; }
 
     /* Pinned to the card bottom so role rows line up across all cards in a grid row,
        even when a wrapped captain name makes one card taller. */
