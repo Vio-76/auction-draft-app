@@ -9,9 +9,10 @@ let poolCols = null;     // role key -> { col, list, count }
 let poolPrefix = null;   // 3-letter role prefix -> role key
 let turnChips = null;    // [chip elements] in seat order
 
-// Live-bid countdown (AUTO mode): anchored locally and ticked smoothly, re-anchored only
-// when the bid changes — mirrors captain.js's sell-timer. Colors follow the active theme.
-let liveTimer = null, liveEndsAt = 0, liveWindow = 0, liveBidSig = '';
+// Live-bid countdown (AUTO mode): anchored locally and animated every frame for a fluid bar,
+// re-anchored only when the bid changes; frozen while the admin has paused. Colors follow the
+// active theme.
+let liveRAF = null, liveEndsAt = 0, liveWindow = 0, liveBidSig = '', livePaused = false;
 const _liveCss = getComputedStyle(document.body);
 const LIVE_ACCENT = (_liveCss.getPropertyValue('--accent').trim()) || '#f6b53c';
 const LIVE_URGENT = (_liveCss.getPropertyValue('--danger').trim()) || '#ff5b54';
@@ -49,7 +50,10 @@ function render(state) {
 function renderLiveBid(lb) {
   const sec = document.getElementById('livebid-section');
   if (!sec) return;
-  if (!lb || !lb.player) { sec.style.display = 'none'; stopLiveTimer(); liveBidSig = ''; return; }
+  if (!lb || !lb.player) {
+    sec.style.display = 'none'; sec.classList.remove('paused');
+    stopLiveLoop(); liveBidSig = ''; livePaused = false; return;
+  }
 
   setText(document.getElementById('livebid-player'), lb.player);
   setText(document.getElementById('livebid-amount'), '$' + lb.highestBid);
@@ -61,45 +65,58 @@ function renderLiveBid(lb) {
   const hasTimer = typeof lb.window === 'number' && typeof lb.secondsRemaining === 'number' && lb.window > 0;
 
   if (!hasTimer) {                      // MANUAL mode: no clock, just the bold bid line
-    stopLiveTimer();
-    liveBidSig = '';
+    stopLiveLoop(); liveBidSig = ''; livePaused = false;
+    sec.classList.remove('paused');
     if (secsEl) secsEl.style.display = 'none';
     if (track) track.style.display = 'none';
     return;
   }
-
   if (secsEl) secsEl.style.display = '';
   if (track) track.style.display = '';
 
-  // Re-anchor only when the bid changes (or first show) so each new bid snaps the bar back
-  // to full; otherwise let the local ticker keep counting down smoothly between pushes.
+  if (lb.paused) {                      // frozen while paused — hold the bar where it stopped
+    stopLiveLoop();
+    livePaused = true;
+    liveWindow = lb.window;
+    liveBidSig = lb.highestBid + '|' + lb.byCaptain;   // so resume re-anchors
+    sec.classList.add('paused');
+    paintLive(lb.secondsRemaining);
+    return;
+  }
+
+  sec.classList.remove('paused');
+  // Re-anchor on a new bid (snap back to full) or right after resuming; otherwise keep ticking.
   const sig = lb.highestBid + '|' + lb.byCaptain;
-  if (sig !== liveBidSig) {
+  if (sig !== liveBidSig || livePaused) {
+    livePaused = false;
     liveBidSig = sig;
     liveWindow = lb.window;
     liveEndsAt = Date.now() + lb.secondsRemaining * 1000;
   }
-  if (!liveTimer) liveTimer = setInterval(tickLive, 100);
-  tickLive();
+  startLiveLoop();
 }
 
-function tickLive() {
+/** Paint the bar + seconds for a given remaining time (shared by the live loop and pause). */
+function paintLive(remaining) {
   const fill = document.getElementById('livebid-fill');
   const secsEl = document.getElementById('livebid-secs');
-  if (!fill || !liveWindow) return;
-  const remaining = Math.max(0, (liveEndsAt - Date.now()) / 1000);
+  if (!liveWindow) return;
   const frac = Math.max(0, Math.min(1, remaining / liveWindow));
   const urgent = remaining <= 5;
-  fill.style.width = (frac * 100) + '%';
-  fill.style.background = urgent ? LIVE_URGENT : LIVE_ACCENT;
-  if (secsEl) {
-    secsEl.textContent = Math.ceil(remaining) + 's';
-    secsEl.classList.toggle('urgent', urgent);
-  }
+  if (fill) { fill.style.width = (frac * 100) + '%'; fill.style.background = urgent ? LIVE_URGENT : LIVE_ACCENT; }
+  if (secsEl) { secsEl.textContent = Math.ceil(remaining) + 's'; secsEl.classList.toggle('urgent', urgent); }
 }
 
-function stopLiveTimer() {
-  if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+function tickLive() { paintLive(Math.max(0, (liveEndsAt - Date.now()) / 1000)); }
+
+// Animate per frame (rAF) for a fluid bar instead of chunky 100ms steps.
+function startLiveLoop() {
+  if (liveRAF) return;
+  const step = function () { tickLive(); liveRAF = requestAnimationFrame(step); };
+  liveRAF = requestAnimationFrame(step);
+}
+function stopLiveLoop() {
+  if (liveRAF) { cancelAnimationFrame(liveRAF); liveRAF = null; }
 }
 
 function showMessage(root, msg) {

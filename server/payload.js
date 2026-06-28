@@ -127,10 +127,18 @@ function buildBoardState() {
     const by = state.auction.byCaptainId ? captainById(state.auction.byCaptainId) : null;
     if (p) {
       liveBid = { player: p.name, highestBid: state.auction.highestBid, byCaptain: by ? by.name : '' };
-      // AUTO mode: also send the auto-sell countdown so the board can race a clock.
+      // AUTO mode: also send the auto-sell countdown so the board can race a clock. When the
+      // auction isn't actively bidding (e.g. admin paused) freeze it at the snapshot remaining.
       if (s.sellMode === SELL_MODE.AUTO) {
         liveBid.window = s.autoWindow;
-        liveBid.secondsRemaining = sell.autoSellSecondsRemaining();
+        if (s.status === STATUS.BIDDING) {
+          liveBid.secondsRemaining = sell.autoSellSecondsRemaining();
+        } else {
+          liveBid.paused = true;
+          liveBid.secondsRemaining = (state.clocks.pausedRemaining && state.clocks.pausedRemaining.kind === 'autosell')
+            ? state.clocks.pausedRemaining.seconds
+            : s.autoWindow;
+        }
       }
     }
   }

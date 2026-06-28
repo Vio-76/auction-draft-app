@@ -138,24 +138,25 @@
       text-transform:var(--display-transform); letter-spacing:var(--display-spacing);
       word-break:break-word; color:var(--ink);
     }
-    /* Bid + bidder pushed to the right; seconds sit at the far end. */
-    .liveband-bid { margin-left:auto; font-size:15px; color:var(--muted); }
+    /* Bid + bidder sit right next to the player; only the seconds are pushed to the far end
+       (where they line up over the countdown bar). */
+    .liveband-bid { font-size:15px; color:var(--muted); }
     .liveband-bid b {
       font-family:var(--font-mono); font-weight:700; font-size:30px; line-height:1;
       color:var(--accent); letter-spacing:-.02em; font-variant-numeric:tabular-nums;
     }
     .liveband-by { margin-left:4px; }
     .liveband-secs {
-      font-family:var(--font-mono); font-weight:700; font-size:26px; line-height:1;
+      margin-left:auto; font-family:var(--font-mono); font-weight:700; font-size:26px; line-height:1;
       color:var(--accent); font-variant-numeric:tabular-nums; min-width:3ch; text-align:right;
     }
     .liveband-secs.urgent { color:var(--danger); }
-    /* Depleting countdown bar (width + color set by JS each tick). */
+    /* Depleting countdown bar (width set per animation frame by JS, so no width transition). */
     .liveband-track { height:6px; background:var(--line); }
-    .liveband-fill {
-      height:100%; width:100%; background:var(--accent);
-      transition:width .12s linear, background .2s ease;
-    }
+    .liveband-fill { height:100%; width:100%; background:var(--accent); transition:background .2s ease; }
+    /* Paused: hold the bar still and stop the pulse so it clearly reads as frozen. */
+    .liveband.paused { animation:bandIn .25s ease both; }
+    .liveband.paused .liveband-fill { opacity:.55; }
 
     @keyframes bandIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
     /* A soft pulse keeps it feeling alive; calmed for reduced-motion users. */
