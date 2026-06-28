@@ -27,14 +27,16 @@
     <!-- Live status + auction control -->
     <section class="card">
       <h2>Auction control</h2>
-      <div class="status-grid" id="status-bar"></div>
+      <div class="status-line">
+        <div class="status-grid" id="status-bar"></div>
+        <button class="btn btn-accent sell-btn" id="sold-btn" onclick="adminAction('sold')">Sell player</button>
+      </div>
       <div class="btn-row">
         <button class="btn" onclick="adminAction('start', {}, 'Start the auction? This clears in-flight bidding and starts from the first captain.')">Start auction</button>
         <button class="btn" onclick="adminAction('advance')">Advance turn</button>
         <button class="btn" onclick="adminAction('skip')">Skip captain</button>
         <button class="btn" onclick="adminAction('open-opening')">Set Opening</button>
         <button class="btn" onclick="adminAction('open-bidding')">Open bidding</button>
-        <button class="btn btn-accent" id="sold-btn" onclick="adminAction('sold')">Sold!</button>
         <button class="btn" onclick="adminAction('close-bidding')">Pause (close)</button>
         <button class="btn btn-danger" onclick="adminAction('reset', {}, 'Reset the whole auction? Every player returns to the pool and all rosters are cleared.')">Reset auction</button>
       </div>

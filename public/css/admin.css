@@ -50,6 +50,10 @@
 .btn-sm { padding: 5px 9px; font-size: 11px; }
 
 /* ----- status ----- */
+/* Status row: stats (incl. countdown) on the left, the Sell-player action on the right. */
+.status-line { display: flex; align-items: center; gap: 16px 22px; flex-wrap: wrap; margin-bottom: 16px; }
+.status-line .status-grid { margin-bottom: 0; flex: 1 1 auto; }
+.sell-btn { margin-left: auto; font-size: 15px; padding: 11px 20px; }
 .status-grid { display: flex; flex-wrap: wrap; gap: 10px 22px; margin-bottom: 14px; }
 .stat { display: flex; flex-direction: column; gap: 2px; }
 .stat .k { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
