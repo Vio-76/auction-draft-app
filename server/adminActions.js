@@ -9,7 +9,7 @@
  */
 
 const {
-  state, persistAll, nextCaptainId, nextPlayerId,
+  state, persistAll, nextCaptainId, nextPlayerId, nextSoldSeq,
   captainById, playerById, captainsBySeat,
 } = require('./state');
 const { STATUS, SELL_MODE, TURN_ORDER, TURN_DIR, PLAYER_STATUS, THEME_FONT_URLS } = require('./config');
@@ -150,7 +150,7 @@ function updateSettings(patch) {
 
 // ----- captains CRUD -----
 
-function addCaptain({ name, code, price, role, seat } = {}) {
+function addCaptain({ name, code, price, role, seat, discord } = {}) {
   const nm = String(name || '').trim();
   if (!nm) return err('Captain name is required.');
   const maxSeat = state.captains.reduce((m, c) => Math.max(m, c.seat), -1);
@@ -161,6 +161,7 @@ function addCaptain({ name, code, price, role, seat } = {}) {
     price: Math.max(0, Math.floor(Number(price) || 0)),
     role: String(role || '').trim(),
     seat: Number.isFinite(Number(seat)) ? Number(seat) : maxSeat + 1,
+    discord: String(discord || '').trim(),
   });
   normalizeSeats();
   return ok();
@@ -183,13 +184,14 @@ function updateCaptain(id, patch = {}) {
   if ('code' in patch) c.code = String(patch.code).trim();
   if ('price' in patch) c.price = Math.max(0, Math.floor(Number(patch.price) || 0));
   if ('role' in patch) c.role = String(patch.role).trim();
+  if ('discord' in patch) c.discord = String(patch.discord).trim();
   if ('seat' in patch) c.seat = Number(patch.seat);
   normalizeSeats();
   return ok();
 }
 
-/** Parse pasted captains: one per line, "name <tab|comma|2+ spaces> code, price, role"
- *  (only name required; the rest optional, in that order). */
+/** Parse pasted captains: one per line, "name <tab|comma|2+ spaces> role, discord, code, price"
+ *  — field order matches the captains table columns (only name required; the rest optional). */
 function parseCaptainList(text) {
   const out = [];
   for (const line of String(text || '').split(/\r?\n/)) {
@@ -197,7 +199,7 @@ function parseCaptainList(text) {
     if (!trimmed) continue;
     const parts = trimmed.split(/\t|,|\s{2,}/).map((s) => s.trim());
     const name = parts[0];
-    if (name) out.push({ name, code: parts[1] || '', price: Number(parts[2]) || 0, role: parts[3] || '' });
+    if (name) out.push({ name, role: parts[1] || '', discord: parts[2] || '', code: parts[3] || '', price: Number(parts[4]) || 0 });
   }
   return out;
 }
@@ -221,7 +223,7 @@ function importCaptains(text, mode = 'replace') {
   for (const c of parsed) {
     state.captains.push({
       id: id++, name: c.name, code: c.code,
-      price: Math.max(0, Math.floor(c.price)), role: c.role, seat: seat++,
+      price: Math.max(0, Math.floor(c.price)), role: c.role, seat: seat++, discord: c.discord || '',
     });
   }
   normalizeSeats();
@@ -244,12 +246,12 @@ function deleteCaptain(id) {
 
 // ----- players CRUD + import -----
 
-function addPlayer({ name, role } = {}) {
+function addPlayer({ name, role, discord } = {}) {
   const nm = String(name || '').trim();
   if (!nm) return err('Player name is required.');
   state.players.push({
     id: nextPlayerId(), name: nm, role: String(role || '').trim(),
-    status: PLAYER_STATUS.OPEN, captainId: null, price: 0,
+    status: PLAYER_STATUS.OPEN, captainId: null, price: 0, discord: String(discord || '').trim(),
   });
   return ok();
 }
@@ -259,6 +261,7 @@ function updatePlayer(id, patch = {}) {
   if (!p) return err('Unknown player.');
   if ('name' in patch) { const nm = String(patch.name).trim(); if (!nm) return err('Name cannot be empty.'); p.name = nm; }
   if ('role' in patch) p.role = String(patch.role).trim();
+  if ('discord' in patch) p.discord = String(patch.discord).trim();
   return ok();
 }
 
@@ -270,16 +273,16 @@ function deletePlayer(id) {
   return ok();
 }
 
-/** Parse pasted text: one player per line, "name <tab|comma|2+ spaces> role" (role optional). */
+/** Parse pasted text: one player per line, "name <tab|comma|2+ spaces> role, discord"
+ *  — field order matches the players table columns (role + discord optional). */
 function parsePlayerList(text) {
   const out = [];
   for (const line of String(text || '').split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-    const parts = trimmed.split(/\t|,|\s{2,}/).map((s) => s.trim()).filter(Boolean);
+    const parts = trimmed.split(/\t|,|\s{2,}/).map((s) => s.trim());
     const name = parts[0];
-    const role = parts[1] || '';
-    if (name) out.push({ name, role });
+    if (name) out.push({ name, role: parts[1] || '', discord: parts[2] || '' });
   }
   return out;
 }
@@ -295,8 +298,8 @@ function importPlayers(text, mode = 'replace') {
     if (state.auction.currentPlayerId && !playerById(state.auction.currentPlayerId)) team.clearAuctionBlock();
   }
   let id = nextPlayerId();
-  for (const { name, role } of parsed) {
-    state.players.push({ id: id++, name, role, status: PLAYER_STATUS.OPEN, captainId: null, price: 0 });
+  for (const { name, role, discord } of parsed) {
+    state.players.push({ id: id++, name, role, status: PLAYER_STATUS.OPEN, captainId: null, price: 0, discord: discord || '' });
   }
   commit();
   return { ok: true, added: parsed.length };
@@ -314,9 +317,13 @@ function assignPlayerToTeam(playerId, captainId, price) {
   if (!p) return err('Unknown player.');
   const c = captainById(Number(captainId));
   if (!c) return err('Unknown captain.');
+  const wasSold = p.status === PLAYER_STATUS.SOLD;
   p.status = PLAYER_STATUS.SOLD;
   p.captainId = c.id;
   p.price = Math.max(0, Math.floor(Number(price) || 0));
+  // Fresh assignment from the pool appends to the end; editing an existing pick's team/price
+  // keeps its current slot.
+  if (!wasSold) p.soldSeq = nextSoldSeq();
   return ok();
 }
 
@@ -326,6 +333,7 @@ function removePlayerFromTeam(playerId) {
   p.status = PLAYER_STATUS.OPEN;
   p.captainId = null;
   p.price = 0;
+  p.soldSeq = 0;
   return ok();
 }
 

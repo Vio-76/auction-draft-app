@@ -21,12 +21,13 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 
 CREATE TABLE IF NOT EXISTS captains (
-  id    INTEGER PRIMARY KEY,
-  name  TEXT NOT NULL,
-  code  TEXT NOT NULL DEFAULT '',
-  price INTEGER NOT NULL DEFAULT 0,
-  role  TEXT NOT NULL DEFAULT '',
-  seat  INTEGER NOT NULL DEFAULT 0
+  id      INTEGER PRIMARY KEY,
+  name    TEXT NOT NULL,
+  code    TEXT NOT NULL DEFAULT '',
+  price   INTEGER NOT NULL DEFAULT 0,
+  role    TEXT NOT NULL DEFAULT '',
+  seat    INTEGER NOT NULL DEFAULT 0,
+  discord TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS players (
@@ -35,7 +36,9 @@ CREATE TABLE IF NOT EXISTS players (
   role       TEXT NOT NULL DEFAULT '',
   status     TEXT NOT NULL DEFAULT 'open',   -- 'open' | 'sold'
   captain_id INTEGER,                        -- NULL while open
-  price      INTEGER NOT NULL DEFAULT 0
+  price      INTEGER NOT NULL DEFAULT 0,
+  discord    TEXT NOT NULL DEFAULT '',
+  sold_seq   INTEGER NOT NULL DEFAULT 0      -- acquisition order within a team (0 = unsold)
 );
 
 CREATE TABLE IF NOT EXISTS auction (
@@ -57,6 +60,9 @@ function ensureColumn(table, column, definition) {
 function migrate() {
   db.exec(SCHEMA);
   ensureColumn('captains', 'role', "TEXT NOT NULL DEFAULT ''"); // added after first release
+  ensureColumn('captains', 'discord', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn('players',  'discord', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn('players',  'sold_seq', 'INTEGER NOT NULL DEFAULT 0');
   // Ensure the single auction row exists.
   db.prepare('INSERT OR IGNORE INTO auction (id, current_player_id, highest_bid, by_captain_id) VALUES (1, NULL, 0, NULL)').run();
 }

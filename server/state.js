@@ -41,9 +41,9 @@ function load() {
     }
   }
 
-  state.captains = db.prepare('SELECT id, name, code, price, role, seat FROM captains ORDER BY seat, id').all();
+  state.captains = db.prepare('SELECT id, name, code, price, role, seat, discord FROM captains ORDER BY seat, id').all();
 
-  state.players = db.prepare('SELECT id, name, role, status, captain_id AS captainId, price FROM players ORDER BY id').all();
+  state.players = db.prepare('SELECT id, name, role, status, captain_id AS captainId, price, discord, sold_seq AS soldSeq FROM players ORDER BY id').all();
 
   const a = db.prepare('SELECT current_player_id AS currentPlayerId, highest_bid AS highestBid, by_captain_id AS byCaptainId FROM auction WHERE id = 1').get();
   state.auction = a || { currentPlayerId: null, highestBid: 0, byCaptainId: null };
@@ -65,16 +65,16 @@ function persistSettings() {
 function persistCaptains() {
   transaction(() => {
     db.prepare('DELETE FROM captains').run();
-    const stmt = db.prepare('INSERT INTO captains (id, name, code, price, role, seat) VALUES (?, ?, ?, ?, ?, ?)');
-    for (const c of state.captains) stmt.run(c.id, c.name, c.code, c.price, c.role || '', c.seat);
+    const stmt = db.prepare('INSERT INTO captains (id, name, code, price, role, seat, discord) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    for (const c of state.captains) stmt.run(c.id, c.name, c.code, c.price, c.role || '', c.seat, c.discord || '');
   });
 }
 
 function persistPlayers() {
   transaction(() => {
     db.prepare('DELETE FROM players').run();
-    const stmt = db.prepare('INSERT INTO players (id, name, role, status, captain_id, price) VALUES (?, ?, ?, ?, ?, ?)');
-    for (const p of state.players) stmt.run(p.id, p.name, p.role, p.status, p.captainId ?? null, p.price);
+    const stmt = db.prepare('INSERT INTO players (id, name, role, status, captain_id, price, discord, sold_seq) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const p of state.players) stmt.run(p.id, p.name, p.role, p.status, p.captainId ?? null, p.price, p.discord || '', p.soldSeq || 0);
   });
 }
 
@@ -101,6 +101,14 @@ function nextId(rows) {
 const nextCaptainId = () => nextId(state.captains);
 const nextPlayerId = () => nextId(state.players);
 
+/** Next acquisition sequence: one past the highest soldSeq currently on any player.
+ *  Monotonic, so a freshly-sold player always sorts after every earlier purchase. */
+const nextSoldSeq = () => {
+  let max = 0;
+  for (const p of state.players) if ((p.soldSeq || 0) > max) max = p.soldSeq;
+  return max + 1;
+};
+
 // ----- selectors -----
 
 const captainById = (id) => state.captains.find((c) => c.id === id) || null;
@@ -110,7 +118,9 @@ const playerByName = (name) => state.players.find((p) => p.name === String(name)
 
 const captainsBySeat = () => [...state.captains].sort((a, b) => a.seat - b.seat || a.id - b.id);
 const openPlayers = () => state.players.filter((p) => p.status === 'open');
-const draftedPlayers = (captainId) => state.players.filter((p) => p.captainId === captainId && p.status === 'sold');
+const draftedPlayers = (captainId) => state.players
+  .filter((p) => p.captainId === captainId && p.status === 'sold')
+  .sort((a, b) => (a.soldSeq || 0) - (b.soldSeq || 0) || a.id - b.id);   // acquisition order, so new buys append
 
 module.exports = {
   state,
@@ -122,6 +132,7 @@ module.exports = {
   persistAll,
   nextCaptainId,
   nextPlayerId,
+  nextSoldSeq,
   captainById,
   captainByName,
   playerById,

@@ -186,6 +186,13 @@ function buildCard(t) {
   }
   card.el.appendChild(rolesWrap);
 
+  // Multi-op.gg link for the finished roster — hidden until the auction is FINISHED.
+  card.oppg = el('a', 'team-oppg', 'Team op.gg ↗');
+  card.oppg.target = '_blank';
+  card.oppg.rel = 'noopener';
+  card.oppg.style.display = 'none';
+  card.el.appendChild(card.oppg);
+
   return card;
 }
 
@@ -214,6 +221,14 @@ function updateCard(card, t, dim) {
   const flags = t.roles || [];
   for (let i = 0; i < card.roles.length; i++) {
     card.roles[i].classList.toggle('on', !!flags[i]);
+  }
+
+  if (t.oppgUrl) {
+    card.oppg.href = t.oppgUrl;
+    card.oppg.style.display = '';
+  } else {
+    card.oppg.removeAttribute('href');
+    card.oppg.style.display = 'none';
   }
 }
 

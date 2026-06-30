@@ -39,6 +39,11 @@ const ROLE_LABELS = ['Top', 'Jungle', 'Mid', 'ADC', 'Support', 'Fill'];
 // Spectator-board pool ordering: deterministic shuffle seed (looks random, stable per name).
 const PLAYER_SHUFFLE_SEED = 'neme-2026';
 
+// ----- op.gg multi-search (shown per team on the board once the auction is FINISHED) -----
+// Region is fixed here rather than a live setting; change it once if you run a non-EUW draft.
+const OPGG_REGION = 'euw';
+const OPGG_MULTISEARCH_BASE = 'https://op.gg/lol/multisearch';
+
 // ----- Captain page theme -----
 // "draftroom" | "auctionhouse" | "terminal" | "broadcast" | "brutalist" | "casino"
 // (Stored per-auction in settings.theme; this is just the seed default.)
@@ -109,6 +114,8 @@ module.exports = {
   DEFAULT_SETTINGS,
   ROLE_LABELS,
   PLAYER_SHUFFLE_SEED,
+  OPGG_REGION,
+  OPGG_MULTISEARCH_BASE,
   THEME_FONT_URLS,
   fontUrlForTheme,
   AUCTION_INFO_SECTIONS,

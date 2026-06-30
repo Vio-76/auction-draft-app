@@ -5,10 +5,11 @@
  * buildInfoSections).
  */
 
-const { state, captainById, playerById, captainsBySeat } = require('./state');
+const { state, captainById, playerById, captainsBySeat, draftedPlayers } = require('./state');
 const {
   STATUS, SELL_MODE, TURN_ORDER, TURN_DIR, ROLE_LABELS,
   AUCTION_INFO_SECTIONS, AUCTION_INFO_VARIANTS,
+  OPGG_REGION, OPGG_MULTISEARCH_BASE,
 } = require('./config');
 const team = require('./logic/team');
 const turn = require('./logic/turn');
@@ -98,6 +99,16 @@ function buildCaptainState(captain) {
 
 // ----- spectator board state -----
 
+/** op.gg multi-search URL for a list of summoner names (captain + drafted players).
+ *  Each name is URL-encoded (so '#' in a Riot ID becomes %23) and joined with %2C.
+ *  Returns null if there are no usable names. */
+function multiSearchUrl(names) {
+  const valid = names.filter((n) => n && n.trim());
+  if (!valid.length) return null;
+  const q = valid.map((n) => encodeURIComponent(n.trim())).join('%2C');
+  return `${OPGG_MULTISEARCH_BASE}/${OPGG_REGION}?summoners=${q}`;
+}
+
 function buildBoardState() {
   const s = state.settings;
   const caps = captainsBySeat();
@@ -129,6 +140,11 @@ function buildBoardState() {
       pricedOut,
       leading,
       roles:        team.captainRoleFlags(c),
+      // Once the auction is over, expose a multi-op.gg link for the whole roster
+      // (captain first, then drafted players). Works for partial teams too.
+      oppgUrl:      s.status === STATUS.FINISHED
+        ? multiSearchUrl([c.name, ...drafted.map((p) => p.name)])
+        : null,
     };
   });
 
@@ -175,6 +191,20 @@ function buildBoardState() {
   };
 }
 
+// ----- discord team string (admin-only; consumed by an external role-assign bot) -----
+
+/** "Team 1: <captainDiscord>; <player discords…> | Team 2: …" in board (seat) order.
+ *  Captain first, then their drafted players; blank discord names are skipped. Ported
+ *  from the spreadsheet TEXTJOIN formulas. */
+function buildTeamString() {
+  return captainsBySeat().map((c, i) => {
+    const discords = [c.discord, ...draftedPlayers(c.id).map((p) => p.discord)]
+      .map((d) => (d || '').trim())
+      .filter(Boolean);
+    return `Team ${i + 1}: ${discords.join('; ')}`;
+  }).join(' | ');
+}
+
 // ----- admin state (full picture for the admin console) -----
 
 function buildAdminState() {
@@ -183,6 +213,7 @@ function buildAdminState() {
 
   const captains = captainsBySeat().map((c) => ({
     id: c.id, name: c.name, code: c.code, price: c.price, role: c.role || '', seat: c.seat,
+    discord: c.discord || '',
     maxBid: team.captainMaxBid(c), full: team.isCaptainFull(c),
     draftedCount: team.draftedCount(c), spent: team.spentByCaptain(c),
   }));
@@ -190,7 +221,7 @@ function buildAdminState() {
   const players = state.players.map((p) => ({
     id: p.id, name: p.name, role: p.role, status: p.status,
     captainId: p.captainId, captainName: p.captainId ? (captainById(p.captainId)?.name || '') : '',
-    price: p.price,
+    price: p.price, discord: p.discord || '',
   }));
 
   const openingSecondsRemaining = s.status === STATUS.OPENING ? turn.openingSecondsRemaining() : null;
@@ -213,6 +244,7 @@ function buildAdminState() {
     },
     captains,
     players,
+    teamString: buildTeamString(),
   };
 }
 

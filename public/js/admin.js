@@ -121,9 +121,10 @@ async function addCaptain() {
     { name: 'code', label: 'Access code', type: 'text', value: '' },
     { name: 'price', label: 'Price', type: 'number', value: 0 },
     { name: 'role', label: 'Role', type: 'select', value: '', options: roleOptions('') },
+    { name: 'discord', label: 'Discord name', type: 'text', value: '' },
   ] });
   if (!v || !v.name.trim()) return;
-  adminAction('captain/add', { name: v.name, code: v.code, price: Number(v.price) || 0, role: v.role });
+  adminAction('captain/add', { name: v.name, code: v.code, price: Number(v.price) || 0, role: v.role, discord: v.discord });
 }
 async function editCaptain(id) {
   const c = (STATE.captains || []).find((x) => x.id === id);
@@ -133,14 +134,18 @@ async function editCaptain(id) {
     { name: 'code', label: 'Access code', type: 'text', value: c.code },
     { name: 'price', label: 'Price', type: 'number', value: c.price },
     { name: 'role', label: 'Role', type: 'select', value: c.role, options: roleOptions(c.role) },
+    { name: 'discord', label: 'Discord name', type: 'text', value: c.discord || '' },
   ] });
   if (!v || !v.name.trim()) return;
-  adminAction('captain/update', { id, patch: { name: v.name, code: v.code, price: Number(v.price) || 0, role: v.role } });
+  adminAction('captain/update', { id, patch: { name: v.name, code: v.code, price: Number(v.price) || 0, role: v.role, discord: v.discord } });
 }
 async function importCaptains() {
   const text = val('captain-import-text');
   if (!text.trim()) { await alertModal('Paste a captain list first.'); return; }
-  const res = await adminAction('captain/import', { text, mode: val('captain-import-mode') });
+  const mode = val('captain-import-mode');
+  if (mode === 'replace' &&
+      !(await confirmModal('Replace ALL captains? Every existing captain is deleted and their drafted players return to the pool.', 'Replace all'))) return;
+  const res = await adminAction('captain/import', { text, mode });
   if (res && res.ok) { document.getElementById('captain-import-text').value = ''; await alertModal('Imported ' + res.added + ' captains.'); }
 }
 async function deleteCaptain(id) {
@@ -163,9 +168,10 @@ async function addPlayer() {
   const v = await openModal({ title: 'Add player', submitLabel: 'Add', fields: [
     { name: 'name', label: 'Name', type: 'text', value: '' },
     { name: 'role', label: 'Role', type: 'select', value: '', options: roleOptions('') },
+    { name: 'discord', label: 'Discord name', type: 'text', value: '' },
   ] });
   if (!v || !v.name.trim()) return;
-  adminAction('player/add', { name: v.name, role: v.role });
+  adminAction('player/add', { name: v.name, role: v.role, discord: v.discord });
 }
 async function editPlayer(id) {
   const p = (STATE.players || []).find((x) => x.id === id);
@@ -173,9 +179,10 @@ async function editPlayer(id) {
   const v = await openModal({ title: 'Edit player', fields: [
     { name: 'name', label: 'Name', type: 'text', value: p.name },
     { name: 'role', label: 'Role', type: 'select', value: p.role, options: roleOptions(p.role) },
+    { name: 'discord', label: 'Discord name', type: 'text', value: p.discord || '' },
   ] });
   if (!v || !v.name.trim()) return;
-  adminAction('player/update', { id, patch: { name: v.name, role: v.role } });
+  adminAction('player/update', { id, patch: { name: v.name, role: v.role, discord: v.discord } });
 }
 async function deletePlayer(id) {
   const p = (STATE.players || []).find((x) => x.id === id);
@@ -185,8 +192,19 @@ async function deletePlayer(id) {
 async function importPlayers() {
   const text = val('import-text');
   if (!text.trim()) { await alertModal('Paste a player list first.'); return; }
-  const res = await adminAction('import', { text, mode: val('import-mode') });
+  const mode = val('import-mode');
+  if (mode === 'replace' &&
+      !(await confirmModal('Replace the open player pool? Every undrafted player is removed before importing (drafted players are kept).', 'Replace pool'))) return;
+  const res = await adminAction('import', { text, mode });
   if (res && res.ok) { document.getElementById('import-text').value = ''; await alertModal('Imported ' + res.added + ' players.'); }
+}
+
+// team export string
+async function copyTeamString() {
+  const text = val('team-string');
+  if (!text) { await alertModal('No teams yet.'); return; }
+  if (await copyText(text)) await alertModal('Copied the team string to the clipboard.');
+  else await alertModal('Could not copy automatically. Team string:\n' + text);
 }
 
 // roster editing
@@ -276,18 +294,19 @@ function fillSettingsOnce(s) {
 }
 
 function renderCaptains(s) {
-  const sig = JSON.stringify((s.captains || []).map((c) => [c.id, c.name, c.code, c.price, c.role, c.seat, c.maxBid, c.full, c.draftedCount]));
+  const sig = JSON.stringify((s.captains || []).map((c) => [c.id, c.name, c.code, c.price, c.role, c.seat, c.discord, c.maxBid, c.full, c.draftedCount]));
   if (sig === captainsSig) return;
   captainsSig = sig;
 
   const slots = s.settings.teamSlots;
   const caps = s.captains || [];
-  let html = '<tr><th>#</th><th>Name</th><th>Role</th><th>Code</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Order</th><th>Actions</th></tr>';
+  let html = '<tr><th>#</th><th>Name</th><th>Role</th><th>Discord</th><th>Code</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Order</th><th>Actions</th></tr>';
   caps.forEach(function (c, i) {
     html += '<tr>' +
       '<td class="num">' + (c.seat + 1) + '</td>' +
       '<td>' + esc(c.name) + (c.full ? ' <span class="tag full">full</span>' : '') + '</td>' +
       '<td>' + esc(c.role || '—') + '</td>' +
+      '<td>' + esc(c.discord || '—') + '</td>' +
       '<td><span class="code" data-code="' + esc(c.code) + '" data-shown="0" onclick="revealCode(this)" title="Click to reveal / hide">••••</span></td>' +
       '<td><span class="copylink" onclick="copyCaptainLink(' + c.id + ')" title="Click to copy the full invite link (code stays hidden on screen)">?captain=' + esc(c.name) + ' 🔗</span></td>' +
       '<td class="num">$' + c.price + '</td>' +
@@ -314,19 +333,20 @@ function renderPlayers() {
   if (filter === 'sold') players = players.filter((p) => p.status === 'sold');
   players.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
-  const sig = filter + '|' + JSON.stringify((s.players || []).map((p) => [p.id, p.name, p.role, p.status, p.captainName, p.price]));
+  const sig = filter + '|' + JSON.stringify((s.players || []).map((p) => [p.id, p.name, p.role, p.status, p.captainName, p.price, p.discord]));
   if (sig === playersSig) return;
   playersSig = sig;
 
   document.getElementById('player-count').textContent =
     (s.players || []).length + ' total · ' + (s.players || []).filter((p) => p.status === 'open').length + ' open';
 
-  let html = '<tr><th>Name</th><th>Role</th><th>Status</th><th>Team</th><th class="num">Price</th><th>Actions</th></tr>';
+  let html = '<tr><th>Name</th><th>Role</th><th>Discord</th><th>Status</th><th>Team</th><th class="num">Price</th><th>Actions</th></tr>';
   for (const p of players) {
     const isSold = p.status === 'sold';
     html += '<tr>' +
       '<td>' + esc(p.name) + '</td>' +
       '<td>' + esc(p.role || '—') + '</td>' +
+      '<td>' + esc(p.discord || '—') + '</td>' +
       '<td><span class="tag ' + p.status + '">' + p.status + '</span></td>' +
       '<td>' + esc(p.captainName || '—') + '</td>' +
       '<td class="num">' + (isSold ? '$' + p.price : '—') + '</td>' +
@@ -347,6 +367,13 @@ function setConn(cls, text) {
   if (el) { el.className = 'conn ' + cls; el.textContent = text; }
 }
 
+function renderTeamString(s) {
+  const el = document.getElementById('team-string');
+  if (!el) return;
+  const v = s.teamString || '';
+  if (el.value !== v) el.value = v;   // only rewrite on change (don't clobber a selection)
+}
+
 function onAdminState(state) {
   if (state && state.unauthorized) { location.href = '/admin'; return; }
   STATE = state;
@@ -355,6 +382,7 @@ function onAdminState(state) {
   fillSettingsOnce(state);
   renderCaptains(state);
   renderPlayers();
+  renderTeamString(state);
 }
 
 connectState('?view=admin', onAdminState);

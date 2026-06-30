@@ -7,7 +7,7 @@
  * Ported from TeamHelpers.js (plus the max-bid/full/role-flag formulas the sheet owned).
  */
 
-const { state, draftedPlayers, openPlayers } = require('../state');
+const { state, draftedPlayers, openPlayers, nextSoldSeq } = require('../state');
 const { ROLE_LABELS, PLAYER_SHUFFLE_SEED, PLAYER_STATUS } = require('../config');
 
 // ----- derived team values -----
@@ -104,6 +104,7 @@ function placePlayerInTeam(captain, player, price) {
   player.status = PLAYER_STATUS.SOLD;
   player.captainId = captain.id;
   player.price = price;
+  player.soldSeq = nextSoldSeq();          // record acquisition order for stable slot display
   return true;
 }
 

@@ -24,9 +24,11 @@ const players = [
   ['Flex', 'Fill'],
 ];
 
-state.captains = captains.map((c, i) => ({ id: i + 1, name: c.name, code: c.code, price: c.price, role: c.role || '', seat: i }));
+// Append a Riot tag so the seed data exercises the multi-op.gg links on the board;
+// the bare name (without #EUW) doubles as the discord name for the team string.
+state.captains = captains.map((c, i) => ({ id: i + 1, name: c.name + '#EUW', code: c.code, price: c.price, role: c.role || '', seat: i, discord: c.name }));
 state.players = players.map(([name, role], i) => ({
-  id: i + 1, name, role, status: PLAYER_STATUS.OPEN, captainId: null, price: 0,
+  id: i + 1, name: name + '#EUW', role, status: PLAYER_STATUS.OPEN, captainId: null, price: 0, discord: name,
 }));
 state.auction = { currentPlayerId: null, highestBid: 0, byCaptainId: null };
 

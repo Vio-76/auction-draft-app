@@ -95,8 +95,8 @@
 
       <details class="import-box">
         <summary>Bulk import (paste a captain list)</summary>
-        <p class="hint">One captain per line: <code>Name &lt;tab/comma&gt; Code, Price, Role</code>. Only the name is required.</p>
-        <textarea id="captain-import-text" rows="6" placeholder="Monarch	mon	5	Mid&#10;Tomi, tom, 4, Top"></textarea>
+        <p class="hint">One captain per line, in the table's column order: <code>Name &lt;tab/comma&gt; Role, Discord, Code, Price</code>. Only the name is required.</p>
+        <textarea id="captain-import-text" rows="6" placeholder="Monarch	Top	cap_monarch	mon	5&#10;Tomi, Jungle, tomi_dc, tom, 4"></textarea>
         <div class="btn-row">
           <label class="inline">Mode
             <select id="captain-import-mode"><option value="replace">Replace all captains</option><option value="append">Append</option></select>
@@ -120,8 +120,8 @@
 
       <details class="import-box">
         <summary>Bulk import (paste a player list)</summary>
-        <p class="hint">One player per line: <code>Name &lt;tab/comma&gt; Role</code>. Role is optional.</p>
-        <textarea id="import-text" rows="8" placeholder="Faker	Mid&#10;Caps,Mid&#10;Zeus	Top"></textarea>
+        <p class="hint">One player per line, in the table's column order: <code>Name &lt;tab/comma&gt; Role, Discord</code>. Role and Discord are optional.</p>
+        <textarea id="import-text" rows="8" placeholder="Faker	Mid	faker_gg&#10;Caps,Mid,caps_dc&#10;Zeus	Top"></textarea>
         <div class="btn-row">
           <label class="inline">Mode
             <select id="import-mode"><option value="replace">Replace open pool</option><option value="append">Append</option></select>
@@ -137,6 +137,17 @@
         <span class="hint" id="player-count"></span>
       </div>
       <div class="table-wrap"><table class="tbl" id="players-tbl"></table></div>
+    </section>
+
+    <!-- Team export string for discord -->
+    <section class="card">
+      <div class="card-head">
+        <h2>Team export string for discord</h2>
+        <button class="btn" onclick="copyTeamString()">Copy team string</button>
+      </div>
+
+      <p class="hint">Team string (captain first, then drafted players; Team N order matches the board):</p>
+      <textarea id="team-string" rows="4" readonly></textarea>
     </section>
   </div>
 
