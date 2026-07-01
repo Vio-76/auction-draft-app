@@ -13,7 +13,7 @@
 </head>
 <body data-theme="<%= theme %>">
 <% if (!authorized) { %>
-  <div class="shell"><div class="invalid">Invalid link. Check your captain name and code.</div></div>
+  <div class="shell"><div class="invalid">Invalid or expired link. Please ask the admin for a new invite link.</div></div>
 <% } else { %>
   <div class="shell">
     <div class="captain-tag">Captain</div>
@@ -26,7 +26,6 @@
 
   <script>
     window.CAPTAIN = <%- JSON.stringify(captain) %>;
-    window.CODE = <%- JSON.stringify(code) %>;
     window.OPENING_TIMEOUT = <%- openingTimeout %>;
   </script>
   <script src="/static/js/shared.js"></script>

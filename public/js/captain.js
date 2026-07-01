@@ -2,10 +2,10 @@
    (connectState) instead of 1s polling of getState; actions go over fetch POST
    (postJson) instead of google.script.run, but return the same { ok, error } shape so
    the rest of the logic is unchanged. esc()/toggleInfo()/connectState()/postJson() come
-   from shared.js. captain/code/OPENING_TIMEOUT are injected by captain.ejs. */
+   from shared.js. captain/OPENING_TIMEOUT are injected by captain.ejs. Auth is a session
+   cookie set when the invite link was opened, so no secret travels in the URL or requests. */
 
 const captain = window.CAPTAIN;
-const code = window.CODE;
 const OPENING_TIMEOUT = window.OPENING_TIMEOUT;
 
 const STATUSES = { OPENING: 'OPENING', BIDDING: 'BIDDING', CLOSED: 'CLOSED', FINISHED: 'FINISHED' };
@@ -169,7 +169,7 @@ function tickTimer() {
 
   if (remainingSec <= 0 && !autoSkipFired) {
     autoSkipFired = true;
-    postJson('/api/skip', { captain: captain, code: code });
+    postJson('/api/skip', { captain: captain });
     // server broadcasts the advance; no manual refresh needed
   }
 }
@@ -265,7 +265,7 @@ async function submitOpeningBid() {
   if (!Number.isInteger(amount)) { showError('Bid must be a whole number.'); return; }
   setSubmitting(true);
   showError('');
-  const res = await postJson('/api/opening-bid', { captain: captain, code: code, player: player, amount: amount });
+  const res = await postJson('/api/opening-bid', { captain: captain, player: player, amount: amount });
   setSubmitting(false);
   if (res && res.ok) { lastKey = ''; } else { showError(res ? res.error : 'Something went wrong.'); }
 }
@@ -274,7 +274,7 @@ async function submitSkip() {
   if (submitting) return;
   setSubmitting(true);
   showError('');
-  const res = await postJson('/api/skip', { captain: captain, code: code });
+  const res = await postJson('/api/skip', { captain: captain });
   setSubmitting(false);
   if (res && res.ok) { lastKey = ''; } else { showError(res ? res.error : 'Something went wrong.'); }
 }
@@ -286,7 +286,7 @@ async function submitRegularBid() {
   if (!Number.isInteger(amount)) { showError('Bid must be a whole number.'); return; }
   setSubmitting(true);
   showError('');
-  const res = await postJson('/api/bid', { captain: captain, code: code, amount: amount });
+  const res = await postJson('/api/bid', { captain: captain, amount: amount });
   setSubmitting(false);
   if (res && res.ok) {
     const amt = document.getElementById('amount');
@@ -319,4 +319,4 @@ function onState(state) {
   updateSoldBanner(state);
 }
 
-connectState('?captain=' + encodeURIComponent(captain) + '&code=' + encodeURIComponent(code), onState);
+connectState('?captain=' + encodeURIComponent(captain), onState);

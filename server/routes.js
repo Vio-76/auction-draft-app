@@ -8,9 +8,14 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { state, captainByName } = require('./state');
 const { CAPTAIN_LINKS, ROLE_LABELS, fontUrlForTheme } = require('./config');
-const { checkCode } = require('./auth');
+const { checkCode, makeCaptainToken, isValidCaptainToken } = require('./auth');
 const payload = require('./payload');
 const bids = require('./logic/bids');
+
+// Captain session cookie (mirrors the admin cookie in admin.js). Keyed per-captain-id so
+// several captains can be signed in from one browser (e.g. during a dry run).
+const capCookie = (id) => 'captain_token_' + id;
+const CAP_COOKIE_OPTS = { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 7 * 24 * 60 * 60 * 1000 };
 
 function iconExists(key) {
   return fs.existsSync(path.join(__dirname, '..', 'public', 'icons', key + '.png'));
@@ -37,10 +42,19 @@ function registerRoutes(app) {
     const captain = (req.query.captain || '').trim();
     const code = (req.query.code || '').trim();
     const boardUrl = '/board';
+    const cap = captainByName(captain);
+
+    // Invite link: validate the code once, set the session cookie, then redirect to a clean
+    // URL so the secret never lingers in the address bar (the captain page is safe to stream).
+    if (code && cap && checkCode(captain, code)) {
+      res.cookie(capCookie(cap.id), makeCaptainToken(cap), CAP_COOKIE_OPTS);
+      return res.redirect('/?captain=' + encodeURIComponent(captain));
+    }
+
+    const token = cap && req.cookies ? req.cookies[capCookie(cap.id)] : '';
     res.render('captain', {
       captain,
-      code,
-      authorized: checkCode(captain, code),
+      authorized: isValidCaptainToken(captain, token),
       theme: state.settings.theme,
       fontUrl: fontUrlForTheme(state.settings.theme),
       infoSections: payload.buildInfoSections(),
@@ -51,12 +65,13 @@ function registerRoutes(app) {
   });
 
   // ----- captain actions -----
-  // Resolve + auth the captain, then delegate to the synchronous bids logic.
+  // Resolve + auth the captain (via the session cookie), then delegate to the bids logic.
   function withCaptain(req, res, fn) {
-    const { captain, code } = req.body || {};
-    if (!checkCode(captain, code)) return res.json({ ok: false, error: 'Unauthorized.' });
+    const { captain } = req.body || {};
     const cap = captainByName(captain);
     if (!cap) return res.json({ ok: false, error: 'Unknown captain.' });
+    const token = req.cookies ? req.cookies[capCookie(cap.id)] : '';
+    if (!isValidCaptainToken(cap.name, token)) return res.json({ ok: false, error: 'Unauthorized.' });
     return res.json(fn(cap));
   }
 

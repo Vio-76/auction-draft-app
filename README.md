@@ -13,12 +13,15 @@ sheet is replaced by a Node backend with a SQLite database and a real admin cons
 - **Realtime:** WebSockets (`ws`) — server pushes state; no polling
 - **Storage:** SQLite via Node's built-in `node:sqlite` (synchronous, no native build)
 - **Frontend:** plain HTML/CSS/vanilla JS, server-rendered with EJS
-- **Auth:** captains use a per-name code; the admin console uses a single password
+- **Auth:** captains sign in via a one-time invite link that sets a session cookie — no
+  secret stays in the URL, so the captain page is safe to screen-share; the admin console
+  uses a single password
 
 ## Surfaces
 
-- **Captain page** — `/?captain=NAME&code=CODE`: pick a player and place an opening
-  bid on your turn, then bid against everyone until the player is sold.
+- **Captain page** — open your invite link once (`/?captain=NAME&code=CODE`); it sets a
+  session cookie and redirects to a clean `/?captain=NAME` with no secret in the URL. Pick a
+  player and place an opening bid on your turn, then bid against everyone until the player is sold.
 - **Spectator board** — `/board`: read-only grid of every team, a live "on the block"
   bid banner (with an AUTO-mode countdown), the player pool, and the opening-bid turn order.
 - **Admin console** — `/admin`: manage players/captains (incl. bulk paste-import and
@@ -34,7 +37,23 @@ cp .env.example .env   # then edit ADMIN_PASSWORD and SESSION_SECRET
 npm start              # http://localhost:3000
 ```
 
-Requires Node 22.5+ (for built-in `node:sqlite`).
+Requires Node 22.5+ (for built-in `node:sqlite`). `DB_PATH` optionally overrides where the
+SQLite file lives (defaults to `./auction.db`); leave it unset for local development.
+
+## Deployment
+
+The app runs as a **single** long-lived Node process — the in-memory state is the source of
+truth, so it must **not** be horizontally scaled — with the SQLite file on persistent storage.
+It's hosted on **[Render](https://render.com)** as one web-service instance with a persistent
+disk, and `DB_PATH` points the database at that disk. Any host works that provides Node 22.5+,
+a persistent filesystem, WebSockets, HTTPS, and a single instance.
+
+Environment variables:
+
+- `PORT` — listen port (provided automatically by most hosts).
+- `ADMIN_PASSWORD` — password for the admin console.
+- `SESSION_SECRET` — long random string; signs the admin and captain session cookies.
+- `DB_PATH` — path to the SQLite file on the persistent disk (e.g. a mounted volume).
 
 ## Auction flow
 

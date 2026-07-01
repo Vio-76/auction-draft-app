@@ -15,6 +15,24 @@ function checkCode(name, code) {
   return !!c && String(c.code).trim() === String(code).trim();
 }
 
+/**
+ * Captain session token = HMAC(SESSION_SECRET, "captain:<id>:<name>:<code>"). Set as an
+ * httpOnly cookie once the invite-link code is validated, so the captain's secret never has
+ * to travel in the URL again (safe to stream). Binding to id+name+code means renaming a
+ * captain, changing their password, or rotating SESSION_SECRET invalidates the cookie.
+ */
+function makeCaptainToken(captain) {
+  return crypto.createHmac('sha256', SESSION_SECRET)
+    .update('captain:' + captain.id + ':' + captain.name + ':' + captain.code)
+    .digest('hex');
+}
+
+function isValidCaptainToken(name, token) {
+  const c = captainByName(name);
+  if (!c) return false;
+  return timingSafeEqualStr(token || '', makeCaptainToken(c));
+}
+
 // ----- admin auth -----
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'change-me';
@@ -41,4 +59,7 @@ function isValidAdminToken(token) {
   return timingSafeEqualStr(token, makeAdminToken());
 }
 
-module.exports = { checkCode, checkAdminPassword, makeAdminToken, isValidAdminToken };
+module.exports = {
+  checkCode, makeCaptainToken, isValidCaptainToken,
+  checkAdminPassword, makeAdminToken, isValidAdminToken,
+};

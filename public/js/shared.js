@@ -18,7 +18,8 @@ function toggleInfo(btn) {
 
 /**
  * Opens a reconnecting WebSocket to /ws with the given query string (e.g. "?view=board"
- * or "?captain=Foo&code=bar"). Calls onState(state) for every pushed payload. Auto-
+ * or "?captain=Foo"; the captain session rides along in a cookie). Calls onState(state)
+ * for every pushed payload. Auto-
  * reconnects with backoff; resubscribes on focus. Returns nothing — fire and forget.
  */
 function connectState(query, onState) {

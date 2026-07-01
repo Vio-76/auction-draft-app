@@ -1,6 +1,7 @@
 /**
  * WebSocket hub. Replaces the old 1s/3s polling of getState/getBoardState. On connect a
- * client declares itself a captain (?captain=NAME&code=CODE) or the board (?view=board);
+ * client declares itself a captain (?captain=NAME, authed via session cookie) or the board
+ * (?view=board);
  * we send the initial payload, then re-push to everyone whenever state changes (bus
  * 'changed'). Changes within the same tick are coalesced into one broadcast.
  */
@@ -8,7 +9,7 @@
 const { WebSocketServer } = require('ws');
 const { URL } = require('node:url');
 const { bus } = require('./bus');
-const { checkCode, isValidAdminToken } = require('./auth');
+const { isValidCaptainToken, isValidAdminToken } = require('./auth');
 const { captainByName } = require('./state');
 const payload = require('./payload');
 
@@ -102,10 +103,12 @@ function init(server) {
       ws.authed = isValidAdminToken(cookies.admin_token);
     } else {
       const name = (q.get('captain') || '').trim();
-      const code = (q.get('code') || '').trim();
+      const cookies = parseCookies(req.headers.cookie);
+      const cap = captainByName(name);
+      const token = cap ? cookies['captain_token_' + cap.id] : '';
       ws.kind = 'captain';
       ws.captainName = name;
-      ws.authed = checkCode(name, code);
+      ws.authed = isValidCaptainToken(name, token);
     }
 
     clients.add(ws);

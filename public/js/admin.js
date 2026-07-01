@@ -118,7 +118,7 @@ function saveSettings() {
 async function addCaptain() {
   const v = await openModal({ title: 'Add captain', submitLabel: 'Add', fields: [
     { name: 'name', label: 'Name', type: 'text', value: '' },
-    { name: 'code', label: 'Access code', type: 'text', value: '' },
+    { name: 'code', label: 'Password', type: 'text', value: '' },
     { name: 'price', label: 'Price', type: 'number', value: 0 },
     { name: 'role', label: 'Role', type: 'select', value: '', options: roleOptions('') },
     { name: 'discord', label: 'Discord name', type: 'text', value: '' },
@@ -131,7 +131,7 @@ async function editCaptain(id) {
   if (!c) return;
   const v = await openModal({ title: 'Edit captain', fields: [
     { name: 'name', label: 'Name', type: 'text', value: c.name },
-    { name: 'code', label: 'Access code', type: 'text', value: c.code },
+    { name: 'code', label: 'Password', type: 'text', value: c.code },
     { name: 'price', label: 'Price', type: 'number', value: c.price },
     { name: 'role', label: 'Role', type: 'select', value: c.role, options: roleOptions(c.role) },
     { name: 'discord', label: 'Discord name', type: 'text', value: c.discord || '' },
@@ -230,7 +230,7 @@ async function reassign(id) {
 }
 function removeFromTeam(id) { adminAction('roster/remove', { playerId: id }); }
 
-// captain code reveal (masked by default so the page is safe to stream)
+// captain password reveal (masked by default so the page is safe to stream)
 function revealCode(el) {
   if (el.dataset.shown === '1') { el.textContent = '••••'; el.dataset.shown = '0'; }
   else { el.textContent = el.dataset.code || '(none)'; el.dataset.shown = '1'; }
@@ -300,7 +300,7 @@ function renderCaptains(s) {
 
   const slots = s.settings.teamSlots;
   const caps = s.captains || [];
-  let html = '<tr><th>#</th><th>Name</th><th>Role</th><th>Discord</th><th>Code</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Order</th><th>Actions</th></tr>';
+  let html = '<tr><th>#</th><th>Name</th><th>Role</th><th>Discord</th><th>Password</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Order</th><th>Actions</th></tr>';
   caps.forEach(function (c, i) {
     html += '<tr>' +
       '<td class="num">' + (c.seat + 1) + '</td>' +
@@ -308,7 +308,7 @@ function renderCaptains(s) {
       '<td>' + esc(c.role || '—') + '</td>' +
       '<td>' + esc(c.discord || '—') + '</td>' +
       '<td><span class="code" data-code="' + esc(c.code) + '" data-shown="0" onclick="revealCode(this)" title="Click to reveal / hide">••••</span></td>' +
-      '<td><span class="copylink" onclick="copyCaptainLink(' + c.id + ')" title="Click to copy the full invite link (code stays hidden on screen)">?captain=' + esc(c.name) + ' 🔗</span></td>' +
+      '<td><span class="copylink" onclick="copyCaptainLink(' + c.id + ')" title="Click to copy the full invite link (password stays hidden on screen)">?captain=' + esc(c.name) + ' 🔗</span></td>' +
       '<td class="num">$' + c.price + '</td>' +
       '<td class="num">' + c.draftedCount + '/' + slots + '</td>' +
       '<td class="num">$' + c.maxBid + '</td>' +
