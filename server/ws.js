@@ -48,8 +48,38 @@ function send(ws) {
   } catch { /* client went away mid-send */ }
 }
 
+/**
+ * Broadcast fresh state to every client. The board payload is identical for all board
+ * clients, and the admin payload for all authed admins, so each is built + serialized
+ * ONCE per broadcast and the string reused — the alternative (per-client rebuild) is the
+ * one real hotspot when hundreds of spectators are watching. Captain payloads differ per
+ * captain, so those (and the unauthorized shapes) still go through payloadFor per client.
+ * Both shared payloads are built lazily, so no work happens if nobody is on that view.
+ */
 function broadcast() {
-  for (const ws of clients) send(ws);
+  let boardJSON;   // undefined until first board client
+  let adminJSON;   // undefined until first authed admin client
+
+  for (const ws of clients) {
+    if (ws.readyState !== ws.OPEN) continue;
+    let data;
+    if (ws.kind === 'board') {
+      if (boardJSON === undefined) {
+        boardJSON = JSON.stringify({ type: 'board', state: payload.buildBoardState() });
+      }
+      data = boardJSON;
+    } else if (ws.kind === 'admin' && ws.authed) {
+      if (adminJSON === undefined) {
+        adminJSON = JSON.stringify({ type: 'admin', state: payload.buildAdminState() });
+      }
+      data = adminJSON;
+    } else {
+      data = JSON.stringify(payloadFor(ws));   // per-captain, plus unauthorized shapes
+    }
+    try {
+      ws.send(data);
+    } catch { /* client went away mid-send */ }
+  }
 }
 
 function init(server) {
