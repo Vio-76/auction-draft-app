@@ -136,6 +136,8 @@ function buildBoardState() {
       captainPrice: c.price,
       players,
       maxBid,
+      // Budget left unspent (shown instead of max bid once the team is full).
+      leftOver:     s.teamBudget - team.spentByCaptain(c),
       full,
       pricedOut,
       leading,

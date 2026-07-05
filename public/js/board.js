@@ -148,7 +148,8 @@ function buildCard(t) {
   const head = el('div', 'team-head');
   card.maxBid = el('span', 'team-maxbid');
   head.appendChild(card.maxBid);
-  head.appendChild(el('span', 'team-maxbid-label', '(Max bid)'));
+  card.maxBidLabel = el('span', 'team-maxbid-label', '(Max bid)');
+  head.appendChild(card.maxBidLabel);
   card.el.appendChild(head);
 
   const roster = el('div', 'roster');
@@ -199,7 +200,9 @@ function buildCard(t) {
 function updateCard(card, t, dim) {
   setText(card.captainName, t.captain);
   setText(card.captainPrice, '$' + t.captainPrice);
-  setText(card.maxBid, '$' + t.maxBid);
+  // Full team: show the unspent budget labelled "Left over"; otherwise the live max bid.
+  setText(card.maxBid, '$' + (t.full ? t.leftOver : t.maxBid));
+  setText(card.maxBidLabel, t.full ? '(Left over)' : '(Max bid)');
   card.maxBid.classList.toggle('dim', !!dim);
   card.captainName.classList.toggle('leading', !!t.leading);   // current high bidder -> green name
 
