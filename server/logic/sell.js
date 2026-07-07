@@ -22,16 +22,43 @@ function recentSoldMessage() {
   return { player: d.player, winner: d.winner, bid: d.bid };
 }
 
+// ----- opening-bid announcement (ephemeral) -----
+// Snapshotted the moment a captain opens a player (OPENING -> BIDDING). Drives the timed banner
+// on the captain page + board; the image URL is captured here so a later admin edit can't change
+// an in-flight announcement. Same shape/lifecycle as the sold banner above.
+
+function setLastOpening(playerName, bidderName, bid, imageUrl) {
+  state.clocks.lastOpening = { player: playerName, bidder: bidderName, bid, image: imageUrl || null, at: Date.now() };
+}
+function recentOpeningMessage() {
+  const d = state.clocks.lastOpening;
+  if (!d) return null;
+  if (Date.now() - d.at > state.settings.openingMessageSeconds * 1000) return null;
+  return { player: d.player, bidder: d.bidder, bid: d.bid, image: d.image };
+}
+
 // ----- last-bid clock + derived timers (ephemeral) -----
 
 function setLastBidTime() { state.clocks.lastBidTime = Date.now(); }
 function clearLastBidTime() { state.clocks.lastBidTime = 0; }
 
-/** Seconds until the AUTO-mode auto-sell fires (for the captain countdown ring). */
+/** Seconds until the AUTO-mode auto-sell fires (for the captain countdown ring). Clamped to the
+ *  full window at the top end so a deferred start (opening-bid reveal, lastBidTime parked in the
+ *  future) reads as "full / not started yet" rather than more than the window. */
 function autoSellSecondsRemaining() {
   const lb = state.clocks.lastBidTime;
   if (!lb) return state.settings.autoWindow;
-  return Math.max(0, Math.round(state.settings.autoWindow - (Date.now() - lb) / 1000));
+  const remaining = Math.round(state.settings.autoWindow - (Date.now() - lb) / 1000);
+  return Math.max(0, Math.min(state.settings.autoWindow, remaining));
+}
+
+/**
+ * Opening-bid reveal: hold the auto-sell window shut until the announcement finishes, so the sale
+ * countdown starts *after* the reveal, not during it. Parks lastBidTime openingMessageSeconds in
+ * the future — until then autoSellSecondsRemaining stays full and autoSellIfElapsed can't fire.
+ */
+function deferSellWindowForOpening() {
+  state.clocks.lastBidTime = Date.now() + state.settings.openingMessageSeconds * 1000;
 }
 
 /** True once the Sold-action arming cooldown has passed (both modes). */
@@ -73,6 +100,9 @@ function finalizeSaleAndAdvance() {
   if (!result.ok) return result;
   clearLastBidTime();
   turn.advanceTurn();
+  // The sold banner owns the captain screen for soldMessageSeconds; defer the next turn-holder's
+  // opening deadline by the same amount so their clock starts *after* the banner clears, not under it.
+  if (state.settings.status === STATUS.OPENING) turn.deferOpeningDeadline(state.settings.soldMessageSeconds);
   return result;
 }
 
@@ -116,9 +146,12 @@ function autoSellIfElapsed() {
 
 module.exports = {
   recentSoldMessage,
+  setLastOpening,
+  recentOpeningMessage,
   setLastBidTime,
   clearLastBidTime,
   autoSellSecondsRemaining,
+  deferSellWindowForOpening,
   soldButtonUsable,
   reanchorAutoWindowOnSwitchToAuto,
   sellPlayerInner,

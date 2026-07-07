@@ -19,7 +19,8 @@ const state = {
   auction: { currentPlayerId: null, highestBid: 0, byCaptainId: null },
   // Ephemeral clocks (were Apps Script script properties) — never persisted.
   // pausedRemaining: snapshot of the countdown when the admin pauses (display only).
-  clocks: { openingDeadline: 0, lastBidTime: 0, lastSold: null, previousSellMode: null, pausedRemaining: null },
+  // lastOpening: snapshot of the most recent opening bid (for the timed announcement banner).
+  clocks: { openingDeadline: 0, lastBidTime: 0, lastSold: null, lastOpening: null, previousSellMode: null, pausedRemaining: null },
 };
 
 // ----- load -----
@@ -43,7 +44,7 @@ function load() {
 
   state.captains = db.prepare('SELECT id, name, code, price, role, seat, discord FROM captains ORDER BY seat, id').all();
 
-  state.players = db.prepare('SELECT id, name, role, status, captain_id AS captainId, price, discord, sold_seq AS soldSeq FROM players ORDER BY id').all();
+  state.players = db.prepare('SELECT id, name, role, status, captain_id AS captainId, price, discord, sold_seq AS soldSeq, image FROM players ORDER BY id').all();
 
   const a = db.prepare('SELECT current_player_id AS currentPlayerId, highest_bid AS highestBid, by_captain_id AS byCaptainId FROM auction WHERE id = 1').get();
   state.auction = a || { currentPlayerId: null, highestBid: 0, byCaptainId: null };
@@ -73,8 +74,8 @@ function persistCaptains() {
 function persistPlayers() {
   transaction(() => {
     db.prepare('DELETE FROM players').run();
-    const stmt = db.prepare('INSERT INTO players (id, name, role, status, captain_id, price, discord, sold_seq) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
-    for (const p of state.players) stmt.run(p.id, p.name, p.role, p.status, p.captainId ?? null, p.price, p.discord || '', p.soldSeq || 0);
+    const stmt = db.prepare('INSERT INTO players (id, name, role, status, captain_id, price, discord, sold_seq, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const p of state.players) stmt.run(p.id, p.name, p.role, p.status, p.captainId ?? null, p.price, p.discord || '', p.soldSeq || 0, p.image || '');
   });
 }
 

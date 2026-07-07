@@ -11,8 +11,19 @@ let playersSig = '';
 
 // ----- modal helpers (replace prompt/confirm/alert) -----
 
-/** Opens a form modal. `fields`: [{name,label,type:'text'|'number'|'select',value,options}].
- *  Resolves to { name: value, ... } on submit, or null on cancel. */
+/** Reads a File into a base64 data URL (used by the modal's file fields). */
+function readFileAsDataUrl(file) {
+  return new Promise((resolve) => {
+    const r = new FileReader();
+    r.onload = function () { resolve(r.result); };
+    r.onerror = function () { resolve(''); };
+    r.readAsDataURL(file);
+  });
+}
+
+/** Opens a form modal. `fields`: [{name,label,type:'text'|'number'|'select'|'file',value,options,accept}].
+ *  A 'file' field resolves to a base64 data URL (or '' if none chosen); `value` on a file field is
+ *  treated as a current-image URL and shown as a thumbnail. Resolves to { name: value } or null. */
 function openModal(opts) {
   const fields = opts.fields || [];
   return new Promise((resolve) => {
@@ -27,6 +38,9 @@ function openModal(opts) {
           const sel = String(o.value) === String(f.value != null ? f.value : '') ? ' selected' : '';
           return '<option value="' + esc(String(o.value)) + '"' + sel + '>' + esc(o.label) + '</option>';
         }).join('') + '</select>';
+      } else if (f.type === 'file') {
+        if (f.value) html += '<img class="modal-thumb" src="' + esc(String(f.value)) + '" alt="current image">';
+        html += '<input id="' + id + '" type="file"' + (f.accept ? ' accept="' + esc(f.accept) + '"' : '') + '>';
       } else {
         const step = f.type === 'number' ? ' step="1"' : '';
         html += '<input id="' + id + '" type="' + (f.type || 'text') + '" value="' + esc(f.value != null ? String(f.value) : '') + '"' + step + '>';
@@ -40,10 +54,17 @@ function openModal(opts) {
 
     function done(result) { try { dlg.close(); } catch (e) {} dlg.remove(); resolve(result); }
     dlg.querySelector('[data-cancel]').onclick = function () { done(null); };
-    dlg.querySelector('form').onsubmit = function (e) {
+    dlg.querySelector('form').onsubmit = async function (e) {
       e.preventDefault();
       const values = {};
-      for (const f of fields) { const el = document.getElementById('m_' + f.name); values[f.name] = el ? el.value : ''; }
+      for (const f of fields) {
+        const el = document.getElementById('m_' + f.name);
+        if (f.type === 'file') {
+          values[f.name] = (el && el.files && el.files[0]) ? await readFileAsDataUrl(el.files[0]) : '';
+        } else {
+          values[f.name] = el ? el.value : '';
+        }
+      }
       done(values);
     };
     dlg.addEventListener('cancel', function (e) { e.preventDefault(); done(null); }); // ESC key
@@ -109,6 +130,8 @@ function saveSettings() {
     smallBlind: numVal('set-smallBlind'), teamBudget: numVal('set-teamBudget'),
     teamSlots: numVal('set-teamSlots'), openingTimeout: numVal('set-openingTimeout'),
     autoWindow: numVal('set-autoWindow'), soldCooldown: numVal('set-soldCooldown'),
+    openingMessageSeconds: numVal('set-openingMessageSeconds'),
+    soldMessageSeconds: numVal('set-soldMessageSeconds'),
   };
   adminAction('settings', { patch });
 }
@@ -164,14 +187,19 @@ async function copyCaptainLink(id) {
 }
 
 // players
+const IMG_ACCEPT = 'image/png,image/jpeg,image/webp';
+const IMG_HINT = 'JPG/PNG/WebP, under ~500 KB, square-ish, ~800px. Shown when the player gets their opening bid.';
+
 async function addPlayer() {
   const v = await openModal({ title: 'Add player', submitLabel: 'Add', fields: [
     { name: 'name', label: 'Name', type: 'text', value: '' },
     { name: 'role', label: 'Role', type: 'select', value: '', options: roleOptions('') },
     { name: 'discord', label: 'Discord name', type: 'text', value: '' },
+    { name: 'image', label: 'Image (optional) — ' + IMG_HINT, type: 'file', accept: IMG_ACCEPT },
   ] });
   if (!v || !v.name.trim()) return;
-  adminAction('player/add', { name: v.name, role: v.role, discord: v.discord });
+  const res = await adminAction('player/add', { name: v.name, role: v.role, discord: v.discord });
+  if (res && res.ok && res.id && v.image) await adminAction('player/image', { id: res.id, dataUrl: v.image });
 }
 async function editPlayer(id) {
   const p = (STATE.players || []).find((x) => x.id === id);
@@ -180,9 +208,17 @@ async function editPlayer(id) {
     { name: 'name', label: 'Name', type: 'text', value: p.name },
     { name: 'role', label: 'Role', type: 'select', value: p.role, options: roleOptions(p.role) },
     { name: 'discord', label: 'Discord name', type: 'text', value: p.discord || '' },
+    { name: 'image', label: (p.image ? 'Replace image' : 'Image') + ' (optional) — ' + IMG_HINT, type: 'file',
+      accept: IMG_ACCEPT, value: p.image ? '/uploads/' + p.image : '' },
   ] });
   if (!v || !v.name.trim()) return;
-  adminAction('player/update', { id, patch: { name: v.name, role: v.role, discord: v.discord } });
+  await adminAction('player/update', { id, patch: { name: v.name, role: v.role, discord: v.discord } });
+  if (v.image) await adminAction('player/image', { id, dataUrl: v.image });
+}
+async function removePlayerImage(id) {
+  const p = (STATE.players || []).find((x) => x.id === id);
+  if (await confirmModal('Remove the image for "' + (p ? p.name : id) + '"?', 'Remove'))
+    adminAction('player/image/clear', { id });
 }
 async function deletePlayer(id) {
   const p = (STATE.players || []).find((x) => x.id === id);
@@ -291,6 +327,8 @@ function fillSettingsOnce(s) {
   setVal('set-openingTimeout', s.settings.openingTimeout);
   setVal('set-autoWindow', s.settings.autoWindow);
   setVal('set-soldCooldown', s.settings.soldCooldown);
+  setVal('set-openingMessageSeconds', s.settings.openingMessageSeconds);
+  setVal('set-soldMessageSeconds', s.settings.soldMessageSeconds);
 }
 
 function renderCaptains(s) {
@@ -333,17 +371,21 @@ function renderPlayers() {
   if (filter === 'sold') players = players.filter((p) => p.status === 'sold');
   players.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
-  const sig = filter + '|' + JSON.stringify((s.players || []).map((p) => [p.id, p.name, p.role, p.status, p.captainName, p.price, p.discord]));
+  const sig = filter + '|' + JSON.stringify((s.players || []).map((p) => [p.id, p.name, p.role, p.status, p.captainName, p.price, p.discord, p.image]));
   if (sig === playersSig) return;
   playersSig = sig;
 
   document.getElementById('player-count').textContent =
     (s.players || []).length + ' total · ' + (s.players || []).filter((p) => p.status === 'open').length + ' open';
 
-  let html = '<tr><th>Name</th><th>Role</th><th>Discord</th><th>Status</th><th>Team</th><th class="num">Price</th><th>Actions</th></tr>';
+  let html = '<tr><th>Img</th><th>Name</th><th>Role</th><th>Discord</th><th>Status</th><th>Team</th><th class="num">Price</th><th>Actions</th></tr>';
   for (const p of players) {
     const isSold = p.status === 'sold';
+    const imgCell = p.image
+      ? '<img class="tbl-thumb" src="/uploads/' + esc(p.image) + '" alt="" title="' + esc(p.name) + '">'
+      : '<span class="tbl-thumb tbl-thumb-empty">—</span>';
     html += '<tr>' +
+      '<td>' + imgCell + '</td>' +
       '<td>' + esc(p.name) + '</td>' +
       '<td>' + esc(p.role || '—') + '</td>' +
       '<td>' + esc(p.discord || '—') + '</td>' +
@@ -352,6 +394,7 @@ function renderPlayers() {
       '<td class="num">' + (isSold ? '$' + p.price : '—') + '</td>' +
       '<td class="actions">' +
         '<button class="btn btn-sm" onclick="editPlayer(' + p.id + ')">Edit</button>' +
+        (p.image ? '<button class="btn btn-sm" onclick="removePlayerImage(' + p.id + ')">Rmv img</button>' : '') +
         (isSold
           ? '<button class="btn btn-sm" onclick="reassign(' + p.id + ')">Team/price</button>' +
             '<button class="btn btn-sm" onclick="removeFromTeam(' + p.id + ')">Unassign</button>'

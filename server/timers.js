@@ -28,8 +28,9 @@ function tick() {
   }
 
   const s = state.settings;
-  const live = s.status === STATUS.OPENING || s.status === STATUS.BIDDING || !!sell.recentSoldMessage();
-  if (live) markChanged(); // no state change — just re-push time-derived fields
+  const live = s.status === STATUS.OPENING || s.status === STATUS.BIDDING
+    || !!sell.recentSoldMessage() || !!sell.recentOpeningMessage();
+  if (live) markChanged(); // no state change — just re-push time-derived fields (banners expire on time)
 }
 
 function start() {

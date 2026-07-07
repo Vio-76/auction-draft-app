@@ -14,6 +14,7 @@ const {
 } = require('./state');
 const { STATUS, SELL_MODE, TURN_ORDER, TURN_DIR, PLAYER_STATUS, THEME_FONT_URLS } = require('./config');
 const { markChanged } = require('./bus');
+const { saveImage, deleteImage } = require('./uploads');
 const team = require('./logic/team');
 const turn = require('./logic/turn');
 const sell = require('./logic/sell');
@@ -116,7 +117,7 @@ function emptyTeams() {
 
 // ----- settings -----
 
-const NUMERIC_SETTINGS = ['smallBlind', 'teamBudget', 'teamSlots', 'openingTimeout', 'autoWindow', 'soldCooldown'];
+const NUMERIC_SETTINGS = ['smallBlind', 'teamBudget', 'teamSlots', 'openingTimeout', 'autoWindow', 'soldCooldown', 'openingMessageSeconds', 'soldMessageSeconds'];
 
 function updateSettings(patch) {
   if (!patch || typeof patch !== 'object') return err('No settings provided.');
@@ -249,11 +250,13 @@ function deleteCaptain(id) {
 function addPlayer({ name, role, discord } = {}) {
   const nm = String(name || '').trim();
   if (!nm) return err('Player name is required.');
+  const id = nextPlayerId();
   state.players.push({
-    id: nextPlayerId(), name: nm, role: String(role || '').trim(),
-    status: PLAYER_STATUS.OPEN, captainId: null, price: 0, discord: String(discord || '').trim(),
+    id, name: nm, role: String(role || '').trim(),
+    status: PLAYER_STATUS.OPEN, captainId: null, price: 0, discord: String(discord || '').trim(), image: '',
   });
-  return ok();
+  commit();
+  return { ok: true, id };   // id returned so the admin UI can attach an image to the new player
 }
 
 function updatePlayer(id, patch = {}) {
@@ -265,10 +268,35 @@ function updatePlayer(id, patch = {}) {
   return ok();
 }
 
+/** Attach an uploaded image (base64 data URL) to a player. Writes the file to disk, stores only
+ *  the bare filename in state, and deletes any previous file. Kept out of updatePlayer's generic
+ *  patch path so the file I/O only runs on an actual image change. */
+function setPlayerImage(id, dataUrl) {
+  const p = playerById(Number(id));
+  if (!p) return err('Unknown player.');
+  const res = saveImage(p.id, dataUrl);
+  if (!res.ok) return err(res.error);
+  const previous = p.image;
+  p.image = res.filename;
+  if (previous && previous !== res.filename) deleteImage(previous);
+  return ok();
+}
+
+function clearPlayerImage(id) {
+  const p = playerById(Number(id));
+  if (!p) return err('Unknown player.');
+  const previous = p.image;
+  p.image = '';
+  if (previous) deleteImage(previous);
+  return ok();
+}
+
 function deletePlayer(id) {
   const pid = Number(id);
-  if (!playerById(pid)) return err('Unknown player.');
-  state.players = state.players.filter((p) => p.id !== pid);
+  const p = playerById(pid);
+  if (!p) return err('Unknown player.');
+  if (p.image) deleteImage(p.image);
+  state.players = state.players.filter((x) => x.id !== pid);
   if (state.auction.currentPlayerId === pid) team.clearAuctionBlock();
   return ok();
 }
@@ -299,7 +327,7 @@ function importPlayers(text, mode = 'replace') {
   }
   let id = nextPlayerId();
   for (const { name, role, discord } of parsed) {
-    state.players.push({ id: id++, name, role, status: PLAYER_STATUS.OPEN, captainId: null, price: 0, discord: discord || '' });
+    state.players.push({ id: id++, name, role, status: PLAYER_STATUS.OPEN, captainId: null, price: 0, discord: discord || '', image: '' });
   }
   commit();
   return { ok: true, added: parsed.length };
@@ -350,5 +378,6 @@ module.exports = {
   updateSettings,
   addCaptain, updateCaptain, deleteCaptain, importCaptains, moveCaptain,
   addPlayer, updatePlayer, deletePlayer, importPlayers, clearPool,
+  setPlayerImage, clearPlayerImage,
   assignPlayerToTeam, removePlayerFromTeam, setPlayerPrice,
 };

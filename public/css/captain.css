@@ -188,6 +188,24 @@
       padding:3px 8px; border-radius:6px; flex-shrink:0;
     }
 
+    /* Opening-bid announcement: player image above the "who bid what on whom" line. */
+    .opening-card {
+      display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center;
+      padding:20px 18px; margin-bottom:18px;
+      background:var(--card); border:1px solid var(--accent-border); border-radius:var(--radius);
+      box-shadow:var(--shadow), var(--accent-glow); animation:openingIn .35s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .opening-img {
+      width:200px; height:200px; max-width:70vw; object-fit:cover;
+      border-radius:var(--control-radius); border:1px solid var(--accent-border); box-shadow:var(--shadow);
+    }
+    .opening-text { font-size:17px; line-height:1.4; color:var(--ink); }
+    .opening-by { font-weight:700; color:var(--leader); }
+    .opening-bid { font-family:var(--font-mono); font-weight:700; color:var(--accent); }
+    .opening-player { font-weight:700; color:var(--accent); }
+    @keyframes openingIn { from { opacity:0; transform:scale(.94) translateY(10px); } to { opacity:1; transform:none; } }
+    @media (prefers-reduced-motion:reduce) { .opening-card { animation:none; } }
+
     @keyframes cardIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
     @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
     @keyframes ping { 0% { transform:scale(1.08); } 60% { transform:scale(1); } 100% { transform:scale(1); } }

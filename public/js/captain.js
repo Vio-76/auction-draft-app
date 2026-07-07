@@ -138,6 +138,15 @@ function renderOpeningBid(root, state) {
 }
 
 function syncTimer(state) {
+  // While a takeover banner (opening reveal or sold) owns the screen, hold the opening timer — the
+  // server defers the opening deadline to match, and resetting lastTurnSig re-anchors it (fresh,
+  // full clock) the moment the banner clears.
+  if (state.openingMessage || state.soldMessage) {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    timerEndsAt = null;
+    lastTurnSig = '';
+    return;
+  }
   const sig = state.phase + '|' + state.currentTurnCaptain + '|' + (state.isYourTurnToOpen ? 'Y' : 'N');
   if (sig !== lastTurnSig) {
     lastTurnSig = sig;
@@ -177,6 +186,15 @@ function tickTimer() {
 function syncSellTimer(state) {
   const active = state.phase === STATUSES.BIDDING && state.sellMode === SELL_MODE_AUTO;
   if (!active) {
+    if (sellInterval) { clearInterval(sellInterval); sellInterval = null; }
+    sellEndsAt = null;
+    lastBidSig = '';
+    return;
+  }
+  // While the opening-bid announcement is showing, the reveal owns the screen (the bidding card is
+  // hidden — see updateOpeningBanner). Just make sure the countdown re-anchors to a fresh window
+  // the moment the announcement clears (the server defers the window to match).
+  if (state.openingMessage) {
     if (sellInterval) { clearInterval(sellInterval); sellInterval = null; }
     sellEndsAt = null;
     lastBidSig = '';
@@ -311,12 +329,43 @@ function updateSoldBanner(state) {
     : '';
 }
 
+// Opening-bid announcement: image above "X placed a $N opening bid on Y", shown for
+// openingMessageSeconds (server-timed; it re-pushes openingMessage:null when the window ends).
+let lastOpeningSig = '';
+function updateOpeningBanner(state) {
+  const banner = document.getElementById('opening-banner');
+  if (!banner) return;
+  const m = state && state.openingMessage;
+  const sig = m ? (m.player + '|' + m.bidder + '|' + m.bid + '|' + (m.image || '')) : '';
+  if (sig === lastOpeningSig) return;
+  lastOpeningSig = sig;
+  if (!m) { banner.innerHTML = ''; return; }
+  const img = m.image
+    ? '<img class="opening-img" src="' + esc(m.image) + '" alt="' + esc(m.player) + '" decoding="async">'
+    : '';
+  banner.innerHTML = '<div class="opening-card">' + img +
+    '<div class="opening-text"><span class="opening-by">' + esc(m.bidder) + '</span> placed a ' +
+    '<span class="opening-bid">$' + esc(m.bid) + '</span> opening bid on ' +
+    '<span class="opening-player">' + esc(m.player) + '</span></div></div>';
+}
+
+// A takeover banner (opening reveal or sold) owns the screen: hide the bidding/opening UI while
+// either shows, so the next opening UI only appears once the banner's timed window ends.
+function updateContentVisibility(state) {
+  const content = document.getElementById('content');
+  if (!content) return;
+  const takeover = !!(state.openingMessage || state.soldMessage);
+  content.style.display = takeover ? 'none' : '';
+}
+
 function onState(state) {
   if (!state) return;
   render(state);
   syncTimer(state);
   syncSellTimer(state);
   updateSoldBanner(state);
+  updateOpeningBanner(state);
+  updateContentVisibility(state);
 }
 
 connectState('?captain=' + encodeURIComponent(captain), onState);

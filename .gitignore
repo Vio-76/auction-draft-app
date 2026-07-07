@@ -8,6 +8,9 @@ auction.db-wal
 auction.db-shm
 *.db
 
+# uploaded player images (runtime; on Render these live on the /data disk instead)
+uploads/
+
 # secrets / local config
 .env
 .env.*

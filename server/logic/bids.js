@@ -72,7 +72,14 @@ function placeOpeningBid(captain, playerName, amount) {
   state.auction.highestBid = bid;
   state.auction.byCaptainId = captain.id;
   state.settings.status = STATUS.BIDDING;
-  sell.finalizeBid(captain.id, bid);
+  // Snapshot the opening-bid announcement (image above "X placed a $N opening bid on Y"), shown
+  // for openingMessageSeconds on the captain page + board. Captured before finalizeBid, which may
+  // auto-sell an uncontestable opening immediately.
+  sell.setLastOpening(player.name, captain.name, bid, player.image ? '/uploads/' + player.image : null);
+  const soldNow = sell.finalizeBid(captain.id, bid);
+  // Unless it was uncontestable (already sold + advanced), hold the sale countdown until the
+  // reveal announcement finishes, so it starts after the reveal rather than ticking under it.
+  if (!soldNow) sell.deferSellWindowForOpening();
   persistAll();
   markChanged();
   return { ok: true };

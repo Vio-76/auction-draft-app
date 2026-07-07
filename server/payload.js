@@ -94,6 +94,9 @@ function buildCaptainState(captain) {
   const soldMessage = sell.recentSoldMessage();
   if (soldMessage) result.soldMessage = soldMessage;
 
+  const openingMessage = sell.recentOpeningMessage();
+  if (openingMessage) result.openingMessage = openingMessage;
+
   return result;
 }
 
@@ -190,6 +193,13 @@ function buildBoardState() {
     openPlayers: team.openPlayersWithRoles(),
     turn:        turnInfo,
     liveBid,
+    // Timed opening-bid announcement (image + "X placed a $N opening bid on Y"). It names the bid
+    // amount + bidder, so on the public board it's gated by showBidOnBoard exactly like liveBid
+    // (captains always get it in buildCaptainState — they're participants).
+    openingMessage: s.showBidOnBoard ? sell.recentOpeningMessage() : null,
+    // Timed "sold" banner (same as the captain page). Ungated: the sale result (player/winner/price)
+    // is already public on the board — sold players show with their price in the team rosters.
+    soldMessage: sell.recentSoldMessage(),
   };
 }
 
@@ -223,7 +233,7 @@ function buildAdminState() {
   const players = state.players.map((p) => ({
     id: p.id, name: p.name, role: p.role, status: p.status,
     captainId: p.captainId, captainName: p.captainId ? (captainById(p.captainId)?.name || '') : '',
-    price: p.price, discord: p.discord || '',
+    price: p.price, discord: p.discord || '', image: p.image || '',
   }));
 
   const openingSecondsRemaining = s.status === STATUS.OPENING ? turn.openingSecondsRemaining() : null;

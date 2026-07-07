@@ -81,6 +81,8 @@ function registerAdminRoutes(app) {
   post('player/add',    (b) => A.addPlayer(b));
   post('player/update', (b) => A.updatePlayer(b.id, b.patch || {}));
   post('player/delete', (b) => A.deletePlayer(b.id));
+  post('player/image',       (b) => A.setPlayerImage(b.id, b.dataUrl));
+  post('player/image/clear', (b) => A.clearPlayerImage(b.id));
   post('import',        (b) => A.importPlayers(b.text, b.mode));
   post('pool/clear',    () => A.clearPool());
 

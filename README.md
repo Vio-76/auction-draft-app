@@ -38,7 +38,9 @@ npm start              # http://localhost:3000
 ```
 
 Requires Node 22.5+ (for built-in `node:sqlite`). `DB_PATH` optionally overrides where the
-SQLite file lives (defaults to `./auction.db`); leave it unset for local development.
+SQLite file lives (defaults to `./auction.db`); leave it unset for local development. Uploaded
+player images are stored beside it (default `./uploads`; on the deploy host they land on the
+persistent disk — see below).
 
 ## Deployment
 
@@ -54,6 +56,12 @@ Environment variables:
 - `ADMIN_PASSWORD` — password for the admin console.
 - `SESSION_SECRET` — long random string; signs the admin and captain session cookies.
 - `DB_PATH` — path to the SQLite file on the persistent disk (e.g. a mounted volume).
+- `UPLOADS_DIR` — where uploaded player images are stored; defaults to an `uploads/` folder
+  next to `DB_PATH`, so pointing `DB_PATH` at the persistent disk puts images there too. No need
+  to set it explicitly.
+
+Player images (shown in the opening-bid announcement) are uploaded per player in the admin
+console — recommend JPG/PNG, square-ish, ~800px, under ~500 KB each.
 
 ## Auction flow
 

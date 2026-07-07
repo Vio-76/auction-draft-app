@@ -64,7 +64,16 @@ function clearOpeningDeadline() {
 }
 function openingSecondsRemaining() {
   if (!state.clocks.openingDeadline) return state.settings.openingTimeout;
-  return Math.max(0, Math.round((state.clocks.openingDeadline - Date.now()) / 1000));
+  const remaining = Math.round((state.clocks.openingDeadline - Date.now()) / 1000);
+  // Clamp to the full timeout so a deferred start (the post-sale sold-banner hold, deadline parked
+  // in the future) reads as "full / not started yet" rather than more than the timeout.
+  return Math.max(0, Math.min(state.settings.openingTimeout, remaining));
+}
+
+/** Push the opening deadline out by `extraSeconds` — used after a sale so the next turn-holder's
+ *  clock only starts once the sold banner has finished owning the screen. */
+function deferOpeningDeadline(extraSeconds) {
+  if (state.clocks.openingDeadline) state.clocks.openingDeadline += Math.max(0, extraSeconds) * 1000;
 }
 
 // ----- advance / skip (state only) -----
@@ -143,6 +152,7 @@ module.exports = {
   setOpeningDeadline,
   clearOpeningDeadline,
   openingSecondsRemaining,
+  deferOpeningDeadline,
   advanceMarker,
   advanceTurn,
   skipTurnAdvance,

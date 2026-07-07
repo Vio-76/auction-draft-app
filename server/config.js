@@ -26,7 +26,8 @@ const DEFAULT_SETTINGS = {
   openingTimeout:     30,          // seconds for the turn-holder to open
   autoWindow:         20,          // AUTO mode: seconds with no new bid before auto-sell
   soldCooldown:       3,           // seconds the Sold action is blocked after each bid
-  soldMessageSeconds: 6,           // how long the "sold" banner shows
+  soldMessageSeconds: 5,           // how long the "sold" banner owns the screen before the next opening UI
+  openingMessageSeconds: 5,        // how long the opening-bid announcement (with player image) shows
   marker:             -1,          // current turn index into captains (seat order); -1 = none
   theme:              'draftroom',
   showBidOnBoard:     true,        // show the live bid (player/amount/bidder) on the public board

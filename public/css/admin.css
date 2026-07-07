@@ -127,3 +127,8 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, .55); }
 .modal-fields label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
 .modal-msg { font-size: 15px; line-height: 1.5; margin-bottom: 20px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Player image: modal preview + compact table thumbnail */
+.modal-thumb { width: 96px; height: 96px; object-fit: cover; border-radius: var(--control-radius); border: 1px solid var(--line); }
+.tbl-thumb { display: inline-block; width: 34px; height: 34px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); vertical-align: middle; }
+.tbl-thumb-empty { display: inline-flex; align-items: center; justify-content: center; color: var(--muted); border-style: dashed; }

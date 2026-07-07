@@ -168,6 +168,28 @@ test('uncontestable opening bid auto-sells immediately when the other team is fu
   assert.equal(state.settings.status, STATUS.FINISHED);
 });
 
+test('a sale defers the next opening deadline by the sold-message duration', () => {
+  setup({
+    settings: { teamBudget: 100, teamSlots: 2, smallBlind: 1, openingTimeout: 30, soldMessageSeconds: 5 },
+    captains: [{ name: 'A' }, { name: 'B' }],
+    players: [{ name: 'P1', role: 'Mid' }, { name: 'P2', role: 'Mid' }],
+  });
+  const [A] = state.captains;
+  turn.advanceTurn(); persistAll();                 // A opening
+  assert.deepEqual(bids.placeOpeningBid(A, 'P1', 5), { ok: true });   // -> BIDDING
+
+  const r = sell.finalizeSaleAndAdvance(); persistAll();
+  assert.equal(r.ok, true);
+  assert.equal(state.settings.status, STATUS.OPENING);               // advanced to B, OPENING
+  // Reported opening time is clamped to the full timeout...
+  assert.equal(turn.openingSecondsRemaining(), 30);
+  // ...but the real deadline is parked ~soldMessageSeconds beyond it, so B's clock only truly
+  // starts once the sold banner clears + B isn't auto-skipped during it.
+  const rawRemaining = Math.round((state.clocks.openingDeadline - Date.now()) / 1000);
+  assert.ok(rawRemaining > 30 && rawRemaining <= 36, 'deadline deferred by ~soldMessageSeconds: ' + rawRemaining);
+  assert.equal(turn.autoSkipIfDeadlinePassed(), false);
+});
+
 test('skip advances; rejects when not your turn or not OPENING', () => {
   setup({
     settings: { teamSlots: 2, turnOrder: TURN_ORDER.WATERFALL },
@@ -179,6 +201,55 @@ test('skip advances; rejects when not your turn or not OPENING', () => {
   assert.equal(bids.skipTurn(B).ok, false);   // not B's turn
   assert.equal(bids.skipTurn(A).ok, true);    // A skips
   assert.equal(turn.currentTurnCaptain().id, B.id);
+});
+
+test('opening bid snapshots a timed announcement (with the player image) that expires', () => {
+  setup({
+    settings: { teamBudget: 100, teamSlots: 2, smallBlind: 1, openingMessageSeconds: 5 },
+    captains: [{ name: 'A' }, { name: 'B' }],
+    players: [{ name: 'Faker', role: 'Mid' }, { name: 'Caps', role: 'Mid' }],
+  });
+  const [A] = state.captains;
+  state.players.find((p) => p.name === 'Faker').image = 'pic.png';
+
+  turn.advanceTurn(); persistAll();
+  assert.equal(sell.recentOpeningMessage(), null);           // nothing before the bid
+
+  assert.deepEqual(bids.placeOpeningBid(A, 'Faker', 5), { ok: true });
+  assert.deepEqual(sell.recentOpeningMessage(), {
+    player: 'Faker', bidder: 'A', bid: 5, image: '/uploads/pic.png',
+  });
+
+  state.clocks.lastOpening.at -= 6000;                       // window elapsed
+  assert.equal(sell.recentOpeningMessage(), null);
+});
+
+test('opening bid defers the auto-sell window until the reveal ends', () => {
+  setup({
+    settings: { teamBudget: 100, teamSlots: 2, smallBlind: 1, sellMode: SELL_MODE.AUTO,
+      autoWindow: 20, openingMessageSeconds: 5 },
+    captains: [{ name: 'A' }, { name: 'B' }],   // contestable, so the opening won't auto-sell
+    players: [{ name: 'Faker', role: 'Mid' }, { name: 'Caps', role: 'Mid' }],
+  });
+  const [A] = state.captains;
+  turn.advanceTurn(); persistAll();
+
+  const before = Date.now();
+  assert.deepEqual(bids.placeOpeningBid(A, 'Faker', 5), { ok: true });
+
+  // window start is parked ~openingMessageSeconds in the future...
+  assert.ok(state.clocks.lastBidTime >= before + 5000 - 50, 'lastBidTime deferred into the future');
+  // ...so the countdown reads full and can't auto-sell during the reveal
+  assert.equal(sell.autoSellSecondsRemaining(), 20);
+  assert.equal(sell.autoSellIfElapsed(), false);
+
+  // reveal over, window just started: still full-ish, no sale yet
+  state.clocks.lastBidTime = Date.now();
+  assert.equal(sell.autoSellIfElapsed(), false);
+
+  // full window elapsed after the reveal → auto-sells
+  state.clocks.lastBidTime = Date.now() - 21000;
+  assert.equal(sell.autoSellIfElapsed(), true);
 });
 
 test('auto-skip fires once the opening deadline passes', () => {

@@ -42,17 +42,82 @@ function render(state) {
   }
 
   updateSub(teams.length);
-  renderLiveBid(state.liveBid);
+  renderOpeningBanner(state.openingMessage);
+  renderSoldBanner(state.soldMessage);
+  renderWaitingBanner(state.turn, !!state.openingMessage || !!state.soldMessage);
+  renderLiveBid(state.liveBid, !!state.openingMessage);
   renderPool(state.openPlayers || []);
   renderTurn(state.turn);
 }
 
-function renderLiveBid(lb) {
+// "Sold" banner — the same one the captain page shows, on the board too. Server-timed
+// (soldMessageSeconds); re-pushed by timers.js while live so it clears on time.
+let lastSoldSig = '';
+function renderSoldBanner(m) {
+  const banner = document.getElementById('sold-banner');
+  if (!banner) return;
+  const sig = m ? (m.player + '|' + m.winner + '|' + m.bid) : '';
+  if (sig === lastSoldSig) return;
+  lastSoldSig = sig;
+  if (!m) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+  banner.innerHTML = '<div class="sold-banner"><span class="sold-tag">Sold</span>'
+    + '<span>' + esc(m.player) + ' → ' + esc(m.winner) + ' &nbsp;·&nbsp; $' + esc(m.bid) + '</span></div>';
+  banner.style.display = '';
+}
+
+// "Waiting for X to choose a player…" during the OPENING phase — mirrors the captain page's
+// non-turn view so spectators see whose opening bid we're waiting on (the turn rail also
+// highlights them). Hidden outside OPENING; during BIDDING the reveal + live band show instead.
+let lastWaitingSig = '';
+function renderWaitingBanner(turn, suppress) {
+  const banner = document.getElementById('waiting-banner');
+  if (!banner) return;
+  const order = (turn && turn.order) || [];
+  const i = turn ? turn.currentIndex : -1;
+  // Suppressed while the opening reveal is showing (an uncontestable opening auto-sells straight
+  // into the next OPENING, so the two can briefly coincide — the reveal wins).
+  const name = (!suppress && turn && turn.phase === 'OPENING' && i >= 0 && i < order.length) ? order[i] : '';
+  if (name === lastWaitingSig) return;
+  lastWaitingSig = name;
+  if (!name) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+  banner.innerHTML = '<div class="waiting-band">Waiting for <b>' + esc(name) + '</b> to choose a player…</div>';
+  banner.style.display = '';
+}
+
+// Opening-bid announcement: image above "X placed a $N opening bid on Y", shown for
+// openingMessageSeconds (server-timed — it re-pushes openingMessage:null when the window ends).
+let lastOpeningSig = '';
+function renderOpeningBanner(m) {
+  const banner = document.getElementById('opening-banner');
+  if (!banner) return;
+  const sig = m ? (m.player + '|' + m.bidder + '|' + m.bid + '|' + (m.image || '')) : '';
+  if (sig === lastOpeningSig) return;
+  lastOpeningSig = sig;
+  if (!m) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+  const img = m.image
+    ? '<img class="opening-img" src="' + esc(m.image) + '" alt="' + esc(m.player) + '" decoding="async">'
+    : '';
+  banner.innerHTML = '<div class="opening-card">' + img +
+    '<div class="opening-text"><span class="opening-by">' + esc(m.bidder) + '</span> placed a ' +
+    '<span class="opening-bid">$' + esc(m.bid) + '</span> opening bid on ' +
+    '<span class="opening-player">' + esc(m.player) + '</span></div></div>';
+  banner.style.display = '';
+}
+
+function renderLiveBid(lb, announcing) {
   const sec = document.getElementById('livebid-section');
   if (!sec) return;
   if (!lb || !lb.player) {
     sec.style.display = 'none'; sec.classList.remove('paused');
     stopLiveLoop(); liveBidSig = ''; livePaused = false; return;
+  }
+
+  // While the opening reveal is showing, it owns the screen — hide the on-the-block band entirely.
+  // Resetting liveBidSig makes the band re-appear with a fresh countdown once the reveal clears.
+  if (announcing) {
+    sec.style.display = 'none'; sec.classList.remove('paused');
+    stopLiveLoop(); liveBidSig = ''; livePaused = false;
+    return;
   }
 
   setText(document.getElementById('livebid-player'), lb.player);
@@ -124,6 +189,9 @@ function showMessage(root, msg) {
   root.innerHTML = '<div class="board-empty">' + msg + '</div>';
   cardEls = {};
   messageShown = true;
+  renderOpeningBanner(null);
+  renderSoldBanner(null);
+  renderWaitingBanner(null, false);
   renderLiveBid(null);
   hidePool();
   hideTurn();

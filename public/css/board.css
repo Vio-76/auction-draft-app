@@ -188,6 +188,50 @@
       .liveband-fill { transition:none; }
     }
 
+    /* Opening-bid announcement: a prominent reveal card (player image above the bid line). */
+    #opening-banner { margin-bottom:16px; }
+    .opening-card {
+      display:flex; align-items:center; gap:20px; padding:20px 24px;
+      background:var(--card); border:1px solid var(--accent-border); border-radius:var(--radius);
+      box-shadow:var(--shadow), var(--accent-glow); animation:openingIn .35s cubic-bezier(.2,.8,.2,1) both;
+    }
+    .opening-img {
+      width:150px; height:150px; flex-shrink:0; object-fit:cover;
+      border-radius:var(--control-radius); border:1px solid var(--accent-border); box-shadow:var(--shadow);
+    }
+    .opening-text { font-size:22px; line-height:1.4; color:var(--ink); }
+    .opening-by { font-weight:700; color:var(--leader); }
+    .opening-bid { font-family:var(--font-mono); font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums; }
+    .opening-player { font-weight:700; color:var(--accent); }
+    @keyframes openingIn { from { opacity:0; transform:scale(.96) translateY(8px); } to { opacity:1; transform:none; } }
+    @media (max-width:560px) {
+      .opening-card { flex-direction:column; text-align:center; gap:14px; }
+      .opening-text { font-size:18px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .opening-card { animation:none; } }
+
+    /* "Sold" banner — same look as the captain page (var(--sold-bg) + accent "Sold" tag). */
+    #sold-banner { margin-bottom:16px; }
+    .sold-banner {
+      display:flex; align-items:center; gap:10px; padding:14px 18px;
+      background:var(--sold-bg); border:1px solid var(--accent-border); border-radius:var(--radius);
+      font-size:17px; color:var(--ink); animation:bandIn .25s ease both;
+    }
+    .sold-tag {
+      font-family:var(--font-display); font-weight:700; font-size:12px; letter-spacing:.12em;
+      text-transform:uppercase; color:var(--accent-ink); background:var(--accent);
+      padding:3px 9px; border-radius:6px; flex-shrink:0;
+    }
+
+    /* "Waiting for X to open" — a light prompt (lower-key than the reveal), shown during OPENING. */
+    #waiting-banner { margin-bottom:16px; }
+    .waiting-band {
+      padding:14px 18px; text-align:center; font-size:17px; color:var(--ink);
+      background:var(--accent-soft); border:1px solid var(--accent-border); border-radius:var(--radius);
+      box-shadow:var(--shadow); animation:bandIn .25s ease both;
+    }
+    .waiting-band b { color:var(--accent); }
+
     .pool-grid {
       display:grid; gap:16px;
       grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));

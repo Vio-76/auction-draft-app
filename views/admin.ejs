@@ -57,6 +57,8 @@
           <label>Team budget <input type="number" id="set-teamBudget" min="0" step="1"></label>
           <label>Opening timeout (s) <input type="number" id="set-openingTimeout" min="0" step="1"></label>
           <label>Sold cooldown (s) <input type="number" id="set-soldCooldown" min="0" step="1"></label>
+          <label>Opening announcement (s) <input type="number" id="set-openingMessageSeconds" min="0" step="1"></label>
+          <label>Sold message (s) <input type="number" id="set-soldMessageSeconds" min="0" step="1"></label>
           <label>Show bids on board
             <select id="set-showBidOnBoard"><option value="true">Show (public)</option><option value="false">Hide (captains only)</option></select>
           </label>
@@ -120,7 +122,7 @@
 
       <details class="import-box">
         <summary>Bulk import (paste a player list)</summary>
-        <p class="hint">One player per line, in the table's column order: <code>Name &lt;tab/comma&gt; Role, Discord</code>. Role and Discord are optional.</p>
+        <p class="hint">One player per line, in the table's column order: <code>Name &lt;tab/comma&gt; Role, Discord</code>. Role and Discord are optional. Player images aren't imported here — add them per player with <b>Edit</b> after importing.</p>
         <textarea id="import-text" rows="8" placeholder="Faker	Mid	faker_gg&#10;Caps,Mid,caps_dc&#10;Zeus	Top"></textarea>
         <div class="btn-row">
           <label class="inline">Mode
