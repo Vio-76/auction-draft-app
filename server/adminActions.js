@@ -12,7 +12,7 @@ const {
   state, persistAll, nextCaptainId, nextPlayerId, nextSoldSeq,
   captainById, playerById, captainsBySeat,
 } = require('./state');
-const { STATUS, SELL_MODE, TURN_ORDER, TURN_DIR, PLAYER_STATUS, THEME_FONT_URLS } = require('./config');
+const { STATUS, SELL_MODE, TURN_ORDER, TURN_DIR, POOL_ORDER, PLAYER_STATUS, THEME_FONT_URLS } = require('./config');
 const { markChanged } = require('./bus');
 const { saveImage, deleteImage } = require('./uploads');
 const team = require('./logic/team');
@@ -134,6 +134,9 @@ function updateSettings(patch) {
     } else if (key === 'turnOrder') {
       if (raw !== TURN_ORDER.WATERFALL && raw !== TURN_ORDER.SNAKE) return err('Invalid turn order.');
       state.settings.turnOrder = raw;
+    } else if (key === 'poolOrder') {
+      if (raw !== POOL_ORDER.RANDOM && raw !== POOL_ORDER.ALPHABETICAL) return err('Invalid pool order.');
+      state.settings.poolOrder = raw;
     } else if (key === 'turnDirection') {
       state.settings.turnDirection = (raw === 'UP' || raw === -1) ? TURN_DIR.UP : TURN_DIR.DOWN;
     } else if (key === 'theme') {

@@ -125,7 +125,8 @@ async function adminAction(path, body, confirmMsg) {
 function saveSettings() {
   const patch = {
     sellMode: val('set-sellMode'), turnOrder: val('set-turnOrder'),
-    turnDirection: val('set-turnDirection'), theme: val('set-theme'),
+    turnDirection: val('set-turnDirection'), poolOrder: val('set-poolOrder'),
+    theme: val('set-theme'),
     showBidOnBoard: val('set-showBidOnBoard') === 'true',
     smallBlind: numVal('set-smallBlind'), teamBudget: numVal('set-teamBudget'),
     teamSlots: numVal('set-teamSlots'), openingTimeout: numVal('set-openingTimeout'),
@@ -319,6 +320,7 @@ function fillSettingsOnce(s) {
   setVal('set-sellMode', s.settings.sellMode);
   setVal('set-turnOrder', s.settings.turnOrder);
   setVal('set-turnDirection', s.settings.turnDirection);
+  setVal('set-poolOrder', s.settings.poolOrder);
   setVal('set-theme', s.settings.theme);
   setVal('set-showBidOnBoard', String(s.settings.showBidOnBoard));
   setVal('set-smallBlind', s.settings.smallBlind);

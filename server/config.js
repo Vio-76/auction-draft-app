@@ -11,6 +11,7 @@ const STATUS = { OPENING: 'OPENING', BIDDING: 'BIDDING', CLOSED: 'CLOSED', FINIS
 const SELL_MODE = { AUTO: 'AUTO', MANUAL: 'MANUAL' };
 const TURN_ORDER = { WATERFALL: 'WATERFALL', SNAKE: 'SNAKE' };
 const TURN_DIR = { DOWN: 1, UP: -1 };          // numeric for the walker; serialized as DOWN/UP
+const POOL_ORDER = { RANDOM: 'RANDOM', ALPHABETICAL: 'ALPHABETICAL' };   // spectator-board open-pool ordering
 
 const PLAYER_STATUS = { OPEN: 'open', SOLD: 'sold' };
 
@@ -20,6 +21,7 @@ const DEFAULT_SETTINGS = {
   sellMode:           SELL_MODE.AUTO,
   turnOrder:          TURN_ORDER.WATERFALL,
   turnDirection:      TURN_DIR.DOWN,
+  poolOrder:          POOL_ORDER.RANDOM,       // spectator-board open pool: RANDOM (seeded shuffle) or ALPHABETICAL
   smallBlind:         5,
   teamBudget:         100,
   teamSlots:          4,           // drafted players per team, excluding the captain
@@ -111,6 +113,7 @@ module.exports = {
   SELL_MODE,
   TURN_ORDER,
   TURN_DIR,
+  POOL_ORDER,
   PLAYER_STATUS,
   DEFAULT_SETTINGS,
   ROLE_LABELS,

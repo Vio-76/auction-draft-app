@@ -8,7 +8,7 @@
  */
 
 const { state, draftedPlayers, openPlayers, nextSoldSeq } = require('../state');
-const { ROLE_LABELS, PLAYER_SHUFFLE_SEED, PLAYER_STATUS } = require('../config');
+const { ROLE_LABELS, PLAYER_SHUFFLE_SEED, PLAYER_STATUS, POOL_ORDER } = require('../config');
 
 // ----- derived team values -----
 
@@ -75,13 +75,18 @@ function openPlayerNames() {
     .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 }
 
-/** Open players as [{name, role}], deterministically shuffled — for the spectator board. */
+/** Open players as [{name, role}] for the spectator board. Ordered per settings.poolOrder:
+ *  ALPHABETICAL (by name) or, by default, a deterministic seeded shuffle (stable, random-looking). */
 function openPlayersWithRoles() {
   const out = openPlayers().map((p) => ({ name: p.name, role: p.role }));
-  out.sort((a, b) => {
-    const ka = shuffleKey(a.name), kb = shuffleKey(b.name);
-    return ka === kb ? a.name.localeCompare(b.name) : ka - kb;
-  });
+  if (state.settings.poolOrder === POOL_ORDER.ALPHABETICAL) {
+    out.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  } else {
+    out.sort((a, b) => {
+      const ka = shuffleKey(a.name), kb = shuffleKey(b.name);
+      return ka === kb ? a.name.localeCompare(b.name) : ka - kb;
+    });
+  }
   return out;
 }
 
