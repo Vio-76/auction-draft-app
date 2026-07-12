@@ -128,6 +128,7 @@ function saveSettings() {
     turnDirection: val('set-turnDirection'), poolOrder: val('set-poolOrder'),
     theme: val('set-theme'),
     showBidOnBoard: val('set-showBidOnBoard') === 'true',
+    showBudgetOnBoard: val('set-showBudgetOnBoard') === 'true',
     smallBlind: numVal('set-smallBlind'), teamBudget: numVal('set-teamBudget'),
     teamSlots: numVal('set-teamSlots'), openingTimeout: numVal('set-openingTimeout'),
     autoWindow: numVal('set-autoWindow'), soldCooldown: numVal('set-soldCooldown'),
@@ -323,6 +324,7 @@ function fillSettingsOnce(s) {
   setVal('set-poolOrder', s.settings.poolOrder);
   setVal('set-theme', s.settings.theme);
   setVal('set-showBidOnBoard', String(s.settings.showBidOnBoard));
+  setVal('set-showBudgetOnBoard', String(s.settings.showBudgetOnBoard));
   setVal('set-smallBlind', s.settings.smallBlind);
   setVal('set-teamBudget', s.settings.teamBudget);
   setVal('set-teamSlots', s.settings.teamSlots);

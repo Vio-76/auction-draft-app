@@ -59,6 +59,16 @@
       display:flex; align-items:baseline; justify-content:center;
       margin-bottom:14px;
     }
+    /* Small "available budget" meter under the role icons: a gold bar for the captain's remaining
+       budget + a muted right-aligned "Budget $remaining/total". Deliberately quiet so it reads as
+       clearly less important than the max bid. */
+    .team-budget { margin-top:14px; }
+    .team-budget-head { display:flex; justify-content:flex-end; margin-bottom:5px; }
+    .team-budget-val { font-family:var(--font-mono); font-size:11px; color:var(--muted); }
+    .team-budget-track { height:5px; border-radius:3px; background:var(--line); overflow:hidden; }
+    .team-budget-fill { height:100%; background:var(--accent); border-radius:3px; }
+    /* Full team: grey the bar so gold consistently means "still bidding" across the board. */
+    .team-budget.full .team-budget-fill { background:var(--muted); opacity:.5; }
     .team-maxbid-label {
       font-family:var(--font-display); font-weight:700; font-size:14px;
       color:var(--ink); width:0; white-space:nowrap; margin-left:8px;
@@ -68,6 +78,13 @@
       letter-spacing:-.02em;
     }
     .team-maxbid.dim { color:var(--muted); opacity:.75; }
+    /* Full team: the headline is the word "Full", not a dollar figure — render it in the display
+       font (white) so it reads as a clear settled state rather than a mono number. Overrides the
+       .dim muting that's applied to the headline when the team is full. */
+    .team-maxbid.is-full {
+      font-family:var(--font-display); font-weight:700; font-size:16px;
+      letter-spacing:.04em; text-transform:uppercase; color:var(--ink); opacity:1;
+    }
 
     .roster { display:flex; flex-direction:column; gap:1px; margin-bottom:14px; }
     .roster-row {

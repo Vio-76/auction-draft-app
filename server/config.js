@@ -33,6 +33,7 @@ const DEFAULT_SETTINGS = {
   marker:             -1,          // current turn index into captains (seat order); -1 = none
   theme:              'draftroom',
   showBidOnBoard:     true,        // show the live bid (player/amount/bidder) on the public board
+  showBudgetOnBoard:  true,        // show the per-team available-budget bar on the board team cards
 };
 
 // ----- Roles (board grouping + per-team role flags) -----

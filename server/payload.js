@@ -127,6 +127,7 @@ function buildBoardState() {
       players.push({ name: p ? p.name : '', price: p ? p.price : 0 });
     }
     const maxBid = team.captainMaxBid(c);
+    const spent = team.spentByCaptain(c);
     const full = team.isCaptainFull(c);
     // Priced out: the live bid already meets/exceeds this captain's max so they can't outbid.
     // Gated by showBidOnBoard (it's derived from the live bid) and excludes the current leader.
@@ -139,8 +140,10 @@ function buildBoardState() {
       captainPrice: c.price,
       players,
       maxBid,
-      // Budget left unspent (shown instead of max bid once the team is full).
-      leftOver:     s.teamBudget - team.spentByCaptain(c),
+      // Total budget + unspent remainder — drives the per-team "available budget" meter on the
+      // board card (a concrete anchor so the max-bid figure feels less arbitrary).
+      teamBudget:   s.teamBudget,
+      leftOver:     s.teamBudget - spent,
       full,
       pricedOut,
       leading,
@@ -193,6 +196,8 @@ function buildBoardState() {
     openPlayers: team.openPlayersWithRoles(),
     turn:        turnInfo,
     liveBid,
+    // Whether the per-team available-budget bar shows on the board team cards (admin toggle).
+    showBudgetOnBoard: s.showBudgetOnBoard,
     // Timed opening-bid announcement (image + "X placed a $N opening bid on Y"). It names the bid
     // amount + bidder, so on the public board it's gated by showBidOnBoard exactly like liveBid
     // (captains always get it in buildCaptainState — they're participants).

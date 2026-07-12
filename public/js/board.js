@@ -28,13 +28,19 @@ function render(state) {
   if (!teams.length) { showMessage(root, 'No teams yet.'); updateSub(0); return; }
   if (messageShown) { root.innerHTML = ''; cardEls = {}; messageShown = false; }
 
+  // Once the auction is over, max bid / budget are no longer meaningful — hide them and let the
+  // card show just the final roster (+ team op.gg link).
+  const finished = !!(state.turn && state.turn.phase === 'FINISHED');
+  // Admin toggle: whether the available-budget bar shows at all (default on if unspecified).
+  const showBudget = state.showBudgetOnBoard !== false;
+
   const seen = {};
   for (let i = 0; i < teams.length; i++) {
     const t = teams[i];
     seen[t.captain] = true;
     let card = cardEls[t.captain];
     if (!card) card = cardEls[t.captain] = buildCard(t);
-    updateCard(card, t, t.full || t.pricedOut);   // dim max bid when full or priced out
+    updateCard(card, t, t.full || t.pricedOut, finished, showBudget);   // dim max bid when full or priced out
     if (root.children[i] !== card.el) root.insertBefore(card.el, root.children[i] || null);
   }
   for (const cap in cardEls) {
@@ -213,7 +219,7 @@ function setText(node, v) { if (node.textContent !== v) node.textContent = v; }
 function buildCard(t) {
   const card = { el: el('div', 'team-card') };
 
-  const head = el('div', 'team-head');
+  const head = card.head = el('div', 'team-head');
   card.maxBid = el('span', 'team-maxbid');
   head.appendChild(card.maxBid);
   card.maxBidLabel = el('span', 'team-maxbid-label', '(Max bid)');
@@ -255,6 +261,20 @@ function buildCard(t) {
   }
   card.el.appendChild(rolesWrap);
 
+  // "Available budget" meter, under the role icons: a gold bar (how much budget the captain still
+  // has) with a muted right-aligned "Budget $remaining/total". Styled quiet (see .team-budget*) to
+  // stay clearly secondary to the max-bid headline.
+  card.budget = el('div', 'team-budget');
+  const budgetHead = el('div', 'team-budget-head');
+  card.budgetVal = el('span', 'team-budget-val');
+  budgetHead.appendChild(card.budgetVal);
+  card.budget.appendChild(budgetHead);
+  const budgetTrack = el('div', 'team-budget-track');
+  card.budgetFill = el('div', 'team-budget-fill');
+  budgetTrack.appendChild(card.budgetFill);
+  card.budget.appendChild(budgetTrack);
+  card.el.appendChild(card.budget);
+
   // Multi-op.gg link for the finished roster — hidden until the auction is FINISHED.
   card.oppg = el('a', 'team-oppg', 'Team op.gg ↗');
   card.oppg.target = '_blank';
@@ -265,13 +285,29 @@ function buildCard(t) {
   return card;
 }
 
-function updateCard(card, t, dim) {
+function updateCard(card, t, dim, finished, showBudget) {
+  // Auction over: drop the max-bid headline and the budget meter (both meaningless now); the card
+  // becomes a clean final roster. The budget bar is also hidden when the admin toggles it off.
+  card.head.style.display = finished ? 'none' : '';
+  card.budget.style.display = (finished || !showBudget) ? 'none' : '';
+
   setText(card.captainName, t.captain);
   setText(card.captainPrice, '$' + t.captainPrice);
-  // Full team: show the unspent budget labelled "Left over"; otherwise the live max bid.
-  setText(card.maxBid, '$' + (t.full ? t.leftOver : t.maxBid));
-  setText(card.maxBidLabel, t.full ? '(Left over)' : '(Max bid)');
+  // Full team: headline reads "Full" (max bid is a meaningless $0 by then) and the budget bar
+  // greys out — done, no longer of concern to other captains. Otherwise the live max bid.
+  if (t.full) {
+    setText(card.maxBid, 'Full');
+    setText(card.maxBidLabel, '');
+  } else {
+    setText(card.maxBid, '$' + t.maxBid);
+    setText(card.maxBidLabel, '(Max bid)');
+  }
+  setText(card.budgetVal, 'Budget $' + t.leftOver + '/' + t.teamBudget);
+  const budgetFrac = t.teamBudget > 0 ? Math.max(0, Math.min(1, t.leftOver / t.teamBudget)) : 0;
+  card.budgetFill.style.width = (budgetFrac * 100) + '%';
   card.maxBid.classList.toggle('dim', !!dim);
+  card.maxBid.classList.toggle('is-full', !!t.full);   // render "Full" as a word, not a mono figure
+  card.budget.classList.toggle('full', !!t.full);      // grey the bar when settled
   card.captainName.classList.toggle('leading', !!t.leading);   // current high bidder -> green name
 
   const players = t.players || [];

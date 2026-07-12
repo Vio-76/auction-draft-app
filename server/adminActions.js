@@ -143,6 +143,8 @@ function updateSettings(patch) {
       state.settings.theme = THEME_FONT_URLS[raw] ? raw : 'draftroom';
     } else if (key === 'showBidOnBoard') {
       state.settings.showBidOnBoard = (raw === true || raw === 'true' || raw === 1 || raw === '1' || raw === 'on');
+    } else if (key === 'showBudgetOnBoard') {
+      state.settings.showBudgetOnBoard = (raw === true || raw === 'true' || raw === 1 || raw === '1' || raw === 'on');
     }
     // unknown keys ignored
   }
