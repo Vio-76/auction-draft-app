@@ -210,7 +210,7 @@ function buildBoardState() {
 
 // ----- discord team string (admin-only; consumed by an external role-assign bot) -----
 
-/** "Team 1: <captainDiscord>; <player discords…> | Team 2: …" in board (seat) order.
+/** "Team 1: <captainDiscord>, <player discords…> | Team 2: …" in board (seat) order.
  *  Captain first, then their drafted players; blank discord names are skipped. Ported
  *  from the spreadsheet TEXTJOIN formulas. */
 function buildTeamString() {
@@ -218,7 +218,7 @@ function buildTeamString() {
     const discords = [c.discord, ...draftedPlayers(c.id).map((p) => p.discord)]
       .map((d) => (d || '').trim())
       .filter(Boolean);
-    return `Team ${i + 1}: ${discords.join('; ')}`;
+    return `Team ${i + 1}: ${discords.join(', ')}`;
   }).join(' | ');
 }
 
