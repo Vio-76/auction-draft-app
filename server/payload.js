@@ -148,6 +148,10 @@ function buildBoardState() {
       pricedOut,
       leading,
       roles:        team.captainRoleFlags(c),
+      // Team identity (group + chosen name) — only revealed on the board once FINISHED, same gate
+      // as the op.gg link. Kept off the wire during the live auction so assignments stay hidden.
+      teamGroup:    s.status === STATUS.FINISHED ? (c.teamGroup || '') : '',
+      teamName:     s.status === STATUS.FINISHED ? (c.teamName || '') : '',
       // Once the auction is over, expose a multi-op.gg link for the whole roster
       // (captain first, then drafted players). Works for partial teams too.
       oppgUrl:      s.status === STATUS.FINISHED
@@ -231,6 +235,7 @@ function buildAdminState() {
   const captains = captainsBySeat().map((c) => ({
     id: c.id, name: c.name, code: c.code, price: c.price, role: c.role || '', seat: c.seat,
     discord: c.discord || '',
+    teamGroup: c.teamGroup || '', teamName: c.teamName || '',
     maxBid: team.captainMaxBid(c), full: team.isCaptainFull(c),
     draftedCount: team.draftedCount(c), spent: team.spentByCaptain(c),
   }));

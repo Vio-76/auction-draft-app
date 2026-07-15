@@ -27,7 +27,9 @@ CREATE TABLE IF NOT EXISTS captains (
   price   INTEGER NOT NULL DEFAULT 0,
   role    TEXT NOT NULL DEFAULT '',
   seat    INTEGER NOT NULL DEFAULT 0,
-  discord TEXT NOT NULL DEFAULT ''
+  discord TEXT NOT NULL DEFAULT '',
+  team_group TEXT NOT NULL DEFAULT '',   -- 'Group A' | 'Group B' | '' (shown on the board once FINISHED)
+  team_name  TEXT NOT NULL DEFAULT ''    -- captain-chosen team name (shown on the board once FINISHED)
 );
 
 CREATE TABLE IF NOT EXISTS players (
@@ -62,6 +64,8 @@ function migrate() {
   db.exec(SCHEMA);
   ensureColumn('captains', 'role', "TEXT NOT NULL DEFAULT ''"); // added after first release
   ensureColumn('captains', 'discord', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn('captains', 'team_group', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn('captains', 'team_name', "TEXT NOT NULL DEFAULT ''");
   ensureColumn('players',  'discord', "TEXT NOT NULL DEFAULT ''");
   ensureColumn('players',  'sold_seq', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('players',  'image', "TEXT NOT NULL DEFAULT ''");

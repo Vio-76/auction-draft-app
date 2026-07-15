@@ -156,7 +156,11 @@ function updateSettings(patch) {
 
 // ----- captains CRUD -----
 
-function addCaptain({ name, code, price, role, seat, discord } = {}) {
+// Allowed team-group values (board display, once FINISHED). Anything else normalizes to ''.
+const GROUP_VALUES = ['', 'Group A', 'Group B'];
+const normalizeGroup = (g) => (GROUP_VALUES.includes(String(g || '').trim()) ? String(g || '').trim() : '');
+
+function addCaptain({ name, code, price, role, seat, discord, teamGroup, teamName } = {}) {
   const nm = String(name || '').trim();
   if (!nm) return err('Captain name is required.');
   const maxSeat = state.captains.reduce((m, c) => Math.max(m, c.seat), -1);
@@ -168,6 +172,8 @@ function addCaptain({ name, code, price, role, seat, discord } = {}) {
     role: String(role || '').trim(),
     seat: Number.isFinite(Number(seat)) ? Number(seat) : maxSeat + 1,
     discord: String(discord || '').trim(),
+    teamGroup: normalizeGroup(teamGroup),
+    teamName: String(teamName || '').trim(),
   });
   normalizeSeats();
   return ok();
@@ -191,6 +197,8 @@ function updateCaptain(id, patch = {}) {
   if ('price' in patch) c.price = Math.max(0, Math.floor(Number(patch.price) || 0));
   if ('role' in patch) c.role = String(patch.role).trim();
   if ('discord' in patch) c.discord = String(patch.discord).trim();
+  if ('teamGroup' in patch) c.teamGroup = normalizeGroup(patch.teamGroup);
+  if ('teamName' in patch) c.teamName = String(patch.teamName).trim();
   if ('seat' in patch) c.seat = Number(patch.seat);
   normalizeSeats();
   return ok();

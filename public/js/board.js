@@ -219,6 +219,17 @@ function setText(node, v) { if (node.textContent !== v) node.textContent = v; }
 function buildCard(t) {
   const card = { el: el('div', 'team-card') };
 
+  // Team identity (chosen name + group badge) — shown at the very top, but only once the auction
+  // is FINISHED and at least one of the two is set (see updateCard). Hidden by default so a card
+  // with neither looks exactly as before.
+  card.identity = el('div', 'team-identity');
+  card.identity.style.display = 'none';
+  card.teamName = el('span', 'team-name');
+  card.teamGroup = el('span', 'team-group');
+  card.identity.appendChild(card.teamName);
+  card.identity.appendChild(card.teamGroup);
+  card.el.appendChild(card.identity);
+
   const head = card.head = el('div', 'team-head');
   card.maxBid = el('span', 'team-maxbid');
   head.appendChild(card.maxBid);
@@ -290,6 +301,16 @@ function updateCard(card, t, dim, finished, showBudget) {
   // becomes a clean final roster. The budget bar is also hidden when the admin toggles it off.
   card.head.style.display = finished ? 'none' : '';
   card.budget.style.display = (finished || !showBudget) ? 'none' : '';
+
+  // Team identity (name + group) — only once FINISHED, and only if at least one is set. With both
+  // empty the block stays hidden, so the card is unchanged from the live-auction look.
+  const name = t.teamName || '';
+  const group = t.teamGroup || '';
+  card.identity.style.display = (finished && (name || group)) ? '' : 'none';
+  setText(card.teamName, name);
+  card.teamName.style.display = name ? '' : 'none';
+  setText(card.teamGroup, group);
+  card.teamGroup.style.display = group ? '' : 'none';
 
   setText(card.captainName, t.captain);
   setText(card.captainPrice, '$' + t.captainPrice);

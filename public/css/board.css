@@ -52,6 +52,24 @@
       content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--topbar);
     }
 
+    /* Team identity — shown at the top only once the auction is FINISHED (the max-bid header is
+       hidden by then, so this becomes the card's headline). Team name is the headline, the group
+       a small muted pill beside it. Token-driven so every theme inherits. */
+    .team-identity {
+      display:flex; align-items:flex-start; justify-content:space-between;
+      gap:10px; margin-bottom:14px;
+    }
+    .team-name {
+      font-family:var(--font-display); font-weight:700; font-size:22px; line-height:1.15;
+      color:var(--accent); letter-spacing:.01em;
+    }
+    .team-group {
+      margin-left:auto;   /* stay pinned to the right edge even when the name is absent */
+      font-family:var(--font-display); font-weight:700; font-size:11px; letter-spacing:.06em;
+      text-transform:uppercase; color:var(--ink);
+      padding:2px 8px; border:1px solid var(--line); border-radius:999px; white-space:nowrap;
+    }
+
     /* Header is the max-bid headline stat: value centered to the card, label to its right.
        Flex baseline-aligns the two; the label has zero layout width (text overflows to the
        right) so the value alone determines centering. */

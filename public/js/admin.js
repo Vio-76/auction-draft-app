@@ -140,6 +140,11 @@ function saveSettings() {
 
 
 // captains
+// Team group (board display once FINISHED): none / Group A / Group B. (Selection is driven by
+// the field's `value` in openModal, so this just lists the choices.)
+function groupOptions() {
+  return [{ value: '', label: '— none —' }, { value: 'Group A', label: 'Group A' }, { value: 'Group B', label: 'Group B' }];
+}
 async function addCaptain() {
   const v = await openModal({ title: 'Add captain', submitLabel: 'Add', fields: [
     { name: 'name', label: 'Name', type: 'text', value: '' },
@@ -147,9 +152,11 @@ async function addCaptain() {
     { name: 'price', label: 'Price', type: 'number', value: 0 },
     { name: 'role', label: 'Role', type: 'select', value: '', options: roleOptions('') },
     { name: 'discord', label: 'Discord name', type: 'text', value: '' },
+    { name: 'teamGroup', label: 'Group', type: 'select', value: '', options: groupOptions() },
+    { name: 'teamName', label: 'Team name', type: 'text', value: '' },
   ] });
   if (!v || !v.name.trim()) return;
-  adminAction('captain/add', { name: v.name, code: v.code, price: Number(v.price) || 0, role: v.role, discord: v.discord });
+  adminAction('captain/add', { name: v.name, code: v.code, price: Number(v.price) || 0, role: v.role, discord: v.discord, teamGroup: v.teamGroup, teamName: v.teamName });
 }
 async function editCaptain(id) {
   const c = (STATE.captains || []).find((x) => x.id === id);
@@ -160,9 +167,11 @@ async function editCaptain(id) {
     { name: 'price', label: 'Price', type: 'number', value: c.price },
     { name: 'role', label: 'Role', type: 'select', value: c.role, options: roleOptions(c.role) },
     { name: 'discord', label: 'Discord name', type: 'text', value: c.discord || '' },
+    { name: 'teamGroup', label: 'Group', type: 'select', value: c.teamGroup || '', options: groupOptions() },
+    { name: 'teamName', label: 'Team name', type: 'text', value: c.teamName || '' },
   ] });
   if (!v || !v.name.trim()) return;
-  adminAction('captain/update', { id, patch: { name: v.name, code: v.code, price: Number(v.price) || 0, role: v.role, discord: v.discord } });
+  adminAction('captain/update', { id, patch: { name: v.name, code: v.code, price: Number(v.price) || 0, role: v.role, discord: v.discord, teamGroup: v.teamGroup, teamName: v.teamName } });
 }
 async function importCaptains() {
   const text = val('captain-import-text');
@@ -336,19 +345,21 @@ function fillSettingsOnce(s) {
 }
 
 function renderCaptains(s) {
-  const sig = JSON.stringify((s.captains || []).map((c) => [c.id, c.name, c.code, c.price, c.role, c.seat, c.discord, c.maxBid, c.full, c.draftedCount]));
+  const sig = JSON.stringify((s.captains || []).map((c) => [c.id, c.name, c.code, c.price, c.role, c.seat, c.discord, c.teamGroup, c.teamName, c.maxBid, c.full, c.draftedCount]));
   if (sig === captainsSig) return;
   captainsSig = sig;
 
   const slots = s.settings.teamSlots;
   const caps = s.captains || [];
-  let html = '<tr><th>#</th><th>Name</th><th>Role</th><th>Discord</th><th>Password</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Order</th><th>Actions</th></tr>';
+  let html = '<tr><th>#</th><th>Name</th><th>Role</th><th>Discord</th><th>Group</th><th>Team name</th><th>Password</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Order</th><th>Actions</th></tr>';
   caps.forEach(function (c, i) {
     html += '<tr>' +
       '<td class="num">' + (c.seat + 1) + '</td>' +
       '<td>' + esc(c.name) + (c.full ? ' <span class="tag full">full</span>' : '') + '</td>' +
       '<td>' + esc(c.role || '—') + '</td>' +
       '<td>' + esc(c.discord || '—') + '</td>' +
+      '<td>' + esc(c.teamGroup || '—') + '</td>' +
+      '<td>' + esc(c.teamName || '—') + '</td>' +
       '<td><span class="code" data-code="' + esc(c.code) + '" data-shown="0" onclick="revealCode(this)" title="Click to reveal / hide">••••</span></td>' +
       '<td><span class="copylink" onclick="copyCaptainLink(' + c.id + ')" title="Click to copy the full invite link (password stays hidden on screen)">?captain=' + esc(c.name) + ' 🔗</span></td>' +
       '<td class="num">$' + c.price + '</td>' +
