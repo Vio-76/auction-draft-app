@@ -63,11 +63,19 @@
       font-family:var(--font-display); font-weight:700; font-size:22px; line-height:1.15;
       color:var(--accent); letter-spacing:.01em;
     }
+    /* Group badge: a big "A"/"B" (matching the team-name size) with a small "group" caption
+       stacked below it, pinned to the right corner. */
     .team-group {
       margin-left:auto;   /* stay pinned to the right edge even when the name is absent */
-      font-family:var(--font-display); font-weight:700; font-size:11px; letter-spacing:.06em;
-      text-transform:uppercase; color:var(--ink);
-      padding:2px 8px; border:1px solid var(--line); border-radius:999px; white-space:nowrap;
+      display:flex; flex-direction:column; align-items:center; line-height:1;
+    }
+    .team-group-letter {
+      font-family:var(--font-display); font-weight:700; font-size:22px; line-height:1;
+      color:var(--ink);
+    }
+    .team-group-label {
+      font-family:var(--font-display); font-weight:600; font-size:10px; letter-spacing:.08em;
+      color:var(--muted); margin-top:2px;
     }
 
     /* Header is the max-bid headline stat: value centered to the card, label to its right.

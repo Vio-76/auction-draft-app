@@ -143,7 +143,7 @@ function saveSettings() {
 // Team group (board display once FINISHED): none / Group A / Group B. (Selection is driven by
 // the field's `value` in openModal, so this just lists the choices.)
 function groupOptions() {
-  return [{ value: '', label: '— none —' }, { value: 'Group A', label: 'Group A' }, { value: 'Group B', label: 'Group B' }];
+  return [{ value: '', label: '— none —' }, { value: 'A', label: 'A' }, { value: 'B', label: 'B' }];
 }
 async function addCaptain() {
   const v = await openModal({ title: 'Add captain', submitLabel: 'Add', fields: [

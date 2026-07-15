@@ -225,7 +225,11 @@ function buildCard(t) {
   card.identity = el('div', 'team-identity');
   card.identity.style.display = 'none';
   card.teamName = el('span', 'team-name');
-  card.teamGroup = el('span', 'team-group');
+  // Group badge: a big "A"/"B" (as large as the team name) with a small "group" caption below.
+  card.teamGroup = el('div', 'team-group');
+  card.teamGroupLetter = el('span', 'team-group-letter');
+  card.teamGroup.appendChild(card.teamGroupLetter);
+  card.teamGroup.appendChild(el('span', 'team-group-label', 'group'));
   card.identity.appendChild(card.teamName);
   card.identity.appendChild(card.teamGroup);
   card.el.appendChild(card.identity);
@@ -309,7 +313,7 @@ function updateCard(card, t, dim, finished, showBudget) {
   card.identity.style.display = (finished && (name || group)) ? '' : 'none';
   setText(card.teamName, name);
   card.teamName.style.display = name ? '' : 'none';
-  setText(card.teamGroup, group);
+  setText(card.teamGroupLetter, group);
   card.teamGroup.style.display = group ? '' : 'none';
 
   setText(card.captainName, t.captain);

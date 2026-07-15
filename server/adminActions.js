@@ -157,8 +157,14 @@ function updateSettings(patch) {
 // ----- captains CRUD -----
 
 // Allowed team-group values (board display, once FINISHED). Anything else normalizes to ''.
-const GROUP_VALUES = ['', 'Group A', 'Group B'];
-const normalizeGroup = (g) => (GROUP_VALUES.includes(String(g || '').trim()) ? String(g || '').trim() : '');
+// Legacy "Group A"/"Group B" values fold to the short "A"/"B" form.
+const GROUP_VALUES = ['', 'A', 'B'];
+const normalizeGroup = (g) => {
+  let v = String(g || '').trim();
+  if (v === 'Group A') v = 'A';
+  else if (v === 'Group B') v = 'B';
+  return GROUP_VALUES.includes(v) ? v : '';
+};
 
 function addCaptain({ name, code, price, role, seat, discord, teamGroup, teamName } = {}) {
   const nm = String(name || '').trim();
