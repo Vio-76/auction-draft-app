@@ -40,6 +40,21 @@
       display:grid; gap:16px;
       grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
     }
+    /* Only the team grid breaks out of the 1440px shell on wide screens: it spans the full
+       viewport minus a 22px gutter (same as the shell's side padding), so more teams fit per
+       row. Header, live band, pool and turn order stay at the shell width. Below 1440px the
+       shell is already full-width, so nothing changes.
+       Cards are a fixed 250px here and the group is centered: auto-fit collapses the empty
+       columns, so a short row (e.g. 5 teams on 1920px) sits in the middle instead of hugging
+       the left. A partial last row lines up under the block's left column. 250px keeps the
+       per-row count of the old 240px-min grid (5 @1440, 7 @1920, 9 @2560). */
+    @media (min-width:1440px) {
+      .team-grid {
+        margin-inline:calc(720px - 50vw);
+        grid-template-columns:repeat(auto-fit, 250px);
+        justify-content:center;
+      }
+    }
 
     .team-card {
       position:relative; overflow:hidden;
@@ -337,6 +352,16 @@
     .turn-chip.current .turn-name { color:var(--accent); }
 
     .turn-chip.full { opacity:.45; filter:grayscale(1); }
+
+    /* Wide screens: center the sections below the team grid to match its centered block.
+       Pool columns keep their old ~160px width (auto-fit collapses the unused columns so the
+       role columns sit in the middle); the turn bar shrinks to its content and centers, and a
+       wrapped second line is centered too. Below 1440px nothing changes. */
+    @media (min-width:1440px) {
+      .pool-head, .turn-head { justify-content:center; }
+      .pool-grid { grid-template-columns:repeat(auto-fit, 160px); justify-content:center; }
+      .turn-rail { display:flex; width:fit-content; margin-inline:auto; justify-content:center; }
+    }
     .turn-chip.full .turn-name { text-decoration:line-through; }
 
     @keyframes cardIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
