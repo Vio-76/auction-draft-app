@@ -69,6 +69,7 @@ function registerAdminRoutes(app) {
 
   // settings
   post('settings',      (b) => A.updateSettings(b.patch || b));
+  post('tiers',         (b) => A.setTiers(b.tiers));
 
   // captains
   post('captain/add',    (b) => A.addCaptain(b));

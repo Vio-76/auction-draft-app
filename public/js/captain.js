@@ -103,17 +103,25 @@ function render(state) {
   const newPlayer = document.getElementById('player-select');
   if (newAmount && savedAmount) newAmount.value = savedAmount;
   if (newPlayer && savedPlayer) newPlayer.value = savedPlayer;
+  if (newPlayer) updateMinBid(state);   // re-apply the restored pick's tier minimum
   if (focusedId) {
     const el = document.getElementById(focusedId);
     if (el) el.focus();
   }
 }
 
+// Per-player minimum opening bid for the current dropdown (name -> minBid), refreshed each render.
+let openingMins = {};
+
 function renderOpeningBid(root, state) {
   let options = '<option value="">— Choose a player —</option>';
-  const players = state.openPlayers || [];
+  const players = state.openPlayers || [];   // [{name, tier, minBid}]
+  openingMins = {};
   for (let i = 0; i < players.length; i++) {
-    options += '<option value="' + esc(players[i]) + '">' + esc(players[i]) + '</option>';
+    const p = players[i];
+    openingMins[p.name] = p.minBid;
+    const label = p.tier ? p.name + ' (' + p.tier + ' · min $' + p.minBid + ')' : p.name;
+    options += '<option value="' + esc(p.name) + '">' + esc(label) + '</option>';
   }
 
   root.innerHTML =
@@ -123,7 +131,7 @@ function renderOpeningBid(root, state) {
         ringSvg('timer-arc', 'timer-text', OPENING_TIMEOUT) +
       '</div>' +
       '<select id="player-select">' + options + '</select>' +
-      '<div class="max-line">Min opening bid: <b>$' + state.smallBlind + '</b> &nbsp;•&nbsp; Your max bid: <b>$' + state.yourMaxBid + '</b></div>' +
+      '<div class="max-line">Min opening bid: <b id="min-bid">$' + state.smallBlind + '</b> &nbsp;•&nbsp; Your max bid: <b>$' + state.yourMaxBid + '</b></div>' +
       '<div class="bid-row">' +
         '<input id="amount" type="number" min="' + state.smallBlind + '" step="1" placeholder="Opening bid">' +
         '<button id="submit">Place bid</button>' +
@@ -135,6 +143,19 @@ function renderOpeningBid(root, state) {
   document.getElementById('submit').onclick = submitOpeningBid;
   document.getElementById('skip').onclick = submitSkip;
   document.getElementById('amount').onkeydown = function (e) { if (e.key === 'Enter') submitOpeningBid(); };
+  document.getElementById('player-select').onchange = function () { updateMinBid(state); };
+}
+
+/** Point the "Min opening bid" line + the amount input's min at the selected player's minimum
+ *  (their tier's, or the default when no player is picked / the player is untiered). */
+function updateMinBid(state) {
+  const sel = document.getElementById('player-select');
+  const pick = sel ? sel.value : '';
+  const min = (pick && openingMins[pick] != null) ? openingMins[pick] : state.smallBlind;
+  const label = document.getElementById('min-bid');
+  if (label) label.textContent = '$' + min;
+  const amount = document.getElementById('amount');
+  if (amount) amount.min = String(min);
 }
 
 function syncTimer(state) {

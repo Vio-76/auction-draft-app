@@ -197,6 +197,119 @@ async function copyCaptainLink(id) {
   else await alertModal('Could not copy automatically. Full link:\n' + url);
 }
 
+// tiers — edited as a local draft (so live WS pushes don't clobber typing), saved as one list.
+let tierDraft = [];        // [{ id|null, name, minBid, range }] in display order
+let tiersDirty = false;
+let tiersSig = '';
+
+function tierList() { return (STATE && STATE.settings && STATE.settings.tiers) || []; }
+function tierName(id) { const t = tierList().find((x) => x.id === id); return t ? t.name : ''; }
+function tierOptions() {
+  return [{ value: '', label: '— none (default min) —' }]
+    .concat(tierList().map((t) => ({ value: t.id, label: t.name + ' · min $' + t.minBid })));
+}
+function tierPlayerCount(id) { return ((STATE && STATE.players) || []).filter((p) => p.tierId === id).length; }
+
+function markTiersDirty() {
+  tiersDirty = true;
+  const el = document.getElementById('tiers-dirty');
+  if (el) el.textContent = 'Unsaved changes';
+}
+
+/** Re-seed the draft from the server's tiers (unless the admin has unsaved edits). */
+function syncTiersFromState(force) {
+  const sig = JSON.stringify([tierList(), STATE.settings.smallBlind]);   // default min shows in the table too
+  if (!force && (tiersDirty || sig === tiersSig)) return;
+  tiersSig = sig;
+  tierDraft = tierList().map((t) => ({ id: t.id, name: t.name, minBid: t.minBid, range: t.range || '' }));
+  tiersDirty = false;
+  const el = document.getElementById('tiers-dirty');
+  if (el) el.textContent = '';
+  renderTiers();
+}
+
+function renderTiers() {
+  const tbl = document.getElementById('tiers-tbl');
+  if (!tbl || !STATE) return;
+  const def = STATE.settings.smallBlind;
+  let html = '<tr><th>Name</th><th>Price range</th><th class="num">Min bid</th><th class="num">Players</th><th>Order</th><th></th></tr>';
+  if (!tierDraft.length) {
+    html += '<tr><td colspan="6" class="hint">No tiers — every player uses the default min bid ($' + def + ').</td></tr>';
+  }
+  tierDraft.forEach(function (t, i) {
+    html += '<tr>' +
+      '<td><input class="tier-name" type="text" maxlength="40" value="' + esc(t.name) + '" placeholder="e.g. S-Tier" oninput="editTier(' + i + ',\'name\',this.value)"></td>' +
+      '<td><input class="tier-range" type="text" maxlength="40" value="' + esc(t.range || '') + '" placeholder="e.g. 25-30$" title="Recommended price, shown on the board (not enforced)" oninput="editTier(' + i + ',\'range\',this.value)"></td>' +
+      '<td class="num"><input class="tier-min" type="number" min="0" step="1" value="' + esc(String(t.minBid)) + '" oninput="editTier(' + i + ',\'minBid\',this.value)"></td>' +
+      '<td class="num" data-tier-count="' + (t.id == null ? '' : t.id) + '">' + (t.id == null ? '—' : tierPlayerCount(t.id)) + '</td>' +
+      '<td><div class="ord-btns">' +
+        '<button class="btn btn-sm" onclick="moveTier(' + i + ',-1)"' + (i === 0 ? ' disabled' : '') + ' title="Move up">↑</button>' +
+        '<button class="btn btn-sm" onclick="moveTier(' + i + ',1)"' + (i === tierDraft.length - 1 ? ' disabled' : '') + ' title="Move down">↓</button>' +
+      '</div></td>' +
+      '<td><button class="btn btn-sm btn-danger" onclick="removeTierRow(' + i + ')" title="Remove tier">✕</button></td>' +
+      '</tr>';
+  });
+  if (tierDraft.length) {
+    const untiered = ((STATE.players) || []).filter((p) => p.tierId == null).length;
+    html += '<tr class="tier-default"><td class="hint">(no tier)</td><td></td><td class="num hint">$' + def + ' default</td>' +
+      '<td class="num" id="tier-count-none">' + untiered + '</td><td></td><td></td></tr>';
+  }
+  tbl.innerHTML = html;
+}
+
+/** Live player counts only (keeps the inputs untouched while the admin types). */
+function updateTierCounts() {
+  document.querySelectorAll('#tiers-tbl [data-tier-count]').forEach(function (td) {
+    const id = td.getAttribute('data-tier-count');
+    if (id !== '') td.textContent = tierPlayerCount(Number(id));
+  });
+  const none = document.getElementById('tier-count-none');
+  if (none) none.textContent = ((STATE.players) || []).filter((p) => p.tierId == null).length;
+}
+
+function editTier(i, field, value) {
+  if (!tierDraft[i]) return;
+  tierDraft[i][field] = value;
+  markTiersDirty();
+}
+function addTierRow() {
+  tierDraft.push({ id: null, name: '', minBid: STATE ? STATE.settings.smallBlind : 0, range: '' });
+  markTiersDirty();
+  renderTiers();
+  const inputs = document.querySelectorAll('#tiers-tbl .tier-name');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+function moveTier(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= tierDraft.length) return;
+  const tmp = tierDraft[i]; tierDraft[i] = tierDraft[j]; tierDraft[j] = tmp;
+  markTiersDirty();
+  renderTiers();
+}
+function removeTierRow(i) {
+  tierDraft.splice(i, 1);
+  markTiersDirty();
+  renderTiers();
+}
+async function saveTiers() {
+  const keep = new Set(tierDraft.filter((t) => t.id != null).map((t) => t.id));
+  const dropped = tierList().filter((t) => !keep.has(t.id) && tierPlayerCount(t.id) > 0);
+  if (dropped.length) {
+    const what = dropped.map((t) => t.name + ' (' + tierPlayerCount(t.id) + ' players)').join(', ');
+    if (!(await confirmModal('Remove ' + what + '? Those players become untiered and use the default min bid.', 'Remove'))) return;
+  }
+  const tiers = tierDraft.map((t) => ({ id: t.id, name: String(t.name).trim(), minBid: Number(t.minBid), range: String(t.range || '').trim() }));
+  const res = await adminAction('tiers', { tiers });
+  if (res && res.ok) {
+    // Re-seed from the server. The WS push carrying the saved list (with new ids) may land just
+    // before or after this response; clearing the sig makes whichever state we have now apply, and
+    // the push (if still to come) differs from it and re-seeds again.
+    tiersDirty = false;
+    tiersSig = '';
+    syncTiersFromState(false);
+  }
+}
+
 // players
 const IMG_ACCEPT = 'image/png,image/jpeg,image/webp';
 const IMG_HINT = 'JPG/PNG/WebP, under ~500 KB, square-ish, ~800px. Shown when the player gets their opening bid.';
@@ -205,11 +318,12 @@ async function addPlayer() {
   const v = await openModal({ title: 'Add player', submitLabel: 'Add', fields: [
     { name: 'name', label: 'Name', type: 'text', value: '' },
     { name: 'role', label: 'Role', type: 'select', value: '', options: roleOptions('') },
+    { name: 'tierId', label: 'Tier', type: 'select', value: '', options: tierOptions() },
     { name: 'discord', label: 'Discord name', type: 'text', value: '' },
     { name: 'image', label: 'Image (optional) — ' + IMG_HINT, type: 'file', accept: IMG_ACCEPT },
   ] });
   if (!v || !v.name.trim()) return;
-  const res = await adminAction('player/add', { name: v.name, role: v.role, discord: v.discord });
+  const res = await adminAction('player/add', { name: v.name, role: v.role, discord: v.discord, tierId: v.tierId });
   if (res && res.ok && res.id && v.image) await adminAction('player/image', { id: res.id, dataUrl: v.image });
 }
 async function editPlayer(id) {
@@ -218,12 +332,13 @@ async function editPlayer(id) {
   const v = await openModal({ title: 'Edit player', fields: [
     { name: 'name', label: 'Name', type: 'text', value: p.name },
     { name: 'role', label: 'Role', type: 'select', value: p.role, options: roleOptions(p.role) },
+    { name: 'tierId', label: 'Tier', type: 'select', value: p.tierId == null ? '' : p.tierId, options: tierOptions() },
     { name: 'discord', label: 'Discord name', type: 'text', value: p.discord || '' },
     { name: 'image', label: (p.image ? 'Replace image' : 'Image') + ' (optional) — ' + IMG_HINT, type: 'file',
       accept: IMG_ACCEPT, value: p.image ? '/uploads/' + p.image : '' },
   ] });
   if (!v || !v.name.trim()) return;
-  await adminAction('player/update', { id, patch: { name: v.name, role: v.role, discord: v.discord } });
+  await adminAction('player/update', { id, patch: { name: v.name, role: v.role, discord: v.discord, tierId: v.tierId } });
   if (v.image) await adminAction('player/image', { id, dataUrl: v.image });
 }
 async function removePlayerImage(id) {
@@ -243,7 +358,14 @@ async function importPlayers() {
   if (mode === 'replace' &&
       !(await confirmModal('Replace the open player pool? Every undrafted player is removed before importing (drafted players are kept).', 'Replace pool'))) return;
   const res = await adminAction('import', { text, mode });
-  if (res && res.ok) { document.getElementById('import-text').value = ''; await alertModal('Imported ' + res.added + ' players.'); }
+  if (res && res.ok) {
+    document.getElementById('import-text').value = '';
+    let msg = 'Imported ' + res.added + ' players.';
+    if (res.unknownTiers && res.unknownTiers.length) {
+      msg += ' Unknown tier names (imported as no tier): ' + res.unknownTiers.join(', ') + '.';
+    }
+    await alertModal(msg);
+  }
 }
 
 // team export string
@@ -386,14 +508,15 @@ function renderPlayers() {
   if (filter === 'sold') players = players.filter((p) => p.status === 'sold');
   players.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
-  const sig = filter + '|' + JSON.stringify((s.players || []).map((p) => [p.id, p.name, p.role, p.status, p.captainName, p.price, p.discord, p.image]));
+  const sig = filter + '|' + JSON.stringify(tierList()) + '|' +
+    JSON.stringify((s.players || []).map((p) => [p.id, p.name, p.role, p.status, p.captainName, p.price, p.discord, p.image, p.tierId]));
   if (sig === playersSig) return;
   playersSig = sig;
 
   document.getElementById('player-count').textContent =
     (s.players || []).length + ' total · ' + (s.players || []).filter((p) => p.status === 'open').length + ' open';
 
-  let html = '<tr><th>Img</th><th>Name</th><th>Role</th><th>Discord</th><th>Status</th><th>Team</th><th class="num">Price</th><th>Actions</th></tr>';
+  let html = '<tr><th>Img</th><th>Name</th><th>Role</th><th>Tier</th><th>Discord</th><th>Status</th><th>Team</th><th class="num">Price</th><th>Actions</th></tr>';
   for (const p of players) {
     const isSold = p.status === 'sold';
     const imgCell = p.image
@@ -403,6 +526,7 @@ function renderPlayers() {
       '<td>' + imgCell + '</td>' +
       '<td>' + esc(p.name) + '</td>' +
       '<td>' + esc(p.role || '—') + '</td>' +
+      '<td>' + (p.tierId != null ? '<span class="tag tier">' + esc(tierName(p.tierId)) + '</span>' : '—') + '</td>' +
       '<td>' + esc(p.discord || '—') + '</td>' +
       '<td><span class="tag ' + p.status + '">' + p.status + '</span></td>' +
       '<td>' + esc(p.captainName || '—') + '</td>' +
@@ -439,6 +563,8 @@ function onAdminState(state) {
   renderStatus(state);
   fillSettingsOnce(state);
   renderCaptains(state);
+  syncTiersFromState(false);
+  updateTierCounts();
   renderPlayers();
   renderTeamString(state);
 }

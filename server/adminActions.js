@@ -154,6 +154,68 @@ function updateSettings(patch) {
   return ok();
 }
 
+// ----- tiers -----
+
+const MAX_TIERS = 20;
+const MAX_TIER_NAME = 40;
+const MAX_TIER_RANGE = 40;
+
+/** Replace the whole tier list (admin Tiers card saves it in one go, in display order).
+ *  `list`: [{ id?, name, minBid, range? }]. `range` is a free-text recommended price (e.g. "20-30$"),
+ *  shown on the board only — not enforced. Existing ids are kept so player assignments survive a rename
+ *  or re-price; rows without a known id get a fresh one. Tiers missing from the list are deleted
+ *  and their players become untiered. Names must be unique (case-insensitive) since the bulk
+ *  import matches tiers by name. */
+function setTiers(list) {
+  if (!Array.isArray(list)) return err('No tiers provided.');
+  if (list.length > MAX_TIERS) return err(`At most ${MAX_TIERS} tiers.`);
+
+  const existingIds = new Set((state.settings.tiers || []).map((t) => t.id));
+  let nextId = Math.max(0, ...existingIds) + 1;
+  const seenNames = new Set();
+  const next = [];
+  for (const raw of list) {
+    const name = String((raw && raw.name) || '').trim();
+    if (!name) return err('Every tier needs a name.');
+    if (name.length > MAX_TIER_NAME) return err(`Tier names are limited to ${MAX_TIER_NAME} characters.`);
+    if (name.includes(',')) return err('Tier names cannot contain commas (the bulk import splits on them).');
+    const key = name.toLowerCase();
+    if (seenNames.has(key)) return err(`Duplicate tier name "${name}".`);
+    seenNames.add(key);
+
+    const minBid = Number(raw.minBid);
+    if (!Number.isInteger(minBid) || minBid < 0) return err(`Min bid for "${name}" must be a whole number ≥ 0.`);
+
+    const id = existingIds.has(Number(raw.id)) ? Number(raw.id) : nextId++;
+    const range = String((raw && raw.range) || '').trim();
+    if (range.length > MAX_TIER_RANGE) return err(`Price range for "${name}" is limited to ${MAX_TIER_RANGE} characters.`);
+
+    next.push({ id, name, minBid, range });
+  }
+
+  const keptIds = new Set(next.map((t) => t.id));
+  for (const p of state.players) {
+    if (p.tierId != null && !keptIds.has(p.tierId)) p.tierId = null;
+  }
+  state.settings.tiers = next;   // always a fresh array (never mutate the shared DEFAULT_SETTINGS one)
+  return ok();
+}
+
+/** A tier id from admin input ('' / unknown → null). */
+function normalizeTierId(raw) {
+  if (raw === '' || raw == null) return null;
+  const id = Number(raw);
+  return team.tierById(id) ? id : null;
+}
+
+/** Tier id for a name from the bulk import (case-insensitive), or null. */
+function tierIdByName(name) {
+  const key = String(name || '').trim().toLowerCase();
+  if (!key) return null;
+  const t = (state.settings.tiers || []).find((x) => x.name.toLowerCase() === key);
+  return t ? t.id : null;
+}
+
 // ----- captains CRUD -----
 
 // Allowed team-group values (board display, once FINISHED). Anything else normalizes to ''.
@@ -266,13 +328,14 @@ function deleteCaptain(id) {
 
 // ----- players CRUD + import -----
 
-function addPlayer({ name, role, discord } = {}) {
+function addPlayer({ name, role, discord, tierId } = {}) {
   const nm = String(name || '').trim();
   if (!nm) return err('Player name is required.');
   const id = nextPlayerId();
   state.players.push({
     id, name: nm, role: String(role || '').trim(),
     status: PLAYER_STATUS.OPEN, captainId: null, price: 0, discord: String(discord || '').trim(), image: '',
+    tierId: normalizeTierId(tierId),
   });
   commit();
   return { ok: true, id };   // id returned so the admin UI can attach an image to the new player
@@ -284,6 +347,7 @@ function updatePlayer(id, patch = {}) {
   if ('name' in patch) { const nm = String(patch.name).trim(); if (!nm) return err('Name cannot be empty.'); p.name = nm; }
   if ('role' in patch) p.role = String(patch.role).trim();
   if ('discord' in patch) p.discord = String(patch.discord).trim();
+  if ('tierId' in patch) p.tierId = normalizeTierId(patch.tierId);
   return ok();
 }
 
@@ -320,8 +384,8 @@ function deletePlayer(id) {
   return ok();
 }
 
-/** Parse pasted text: one player per line, "name <tab|comma|2+ spaces> role, discord"
- *  — field order matches the players table columns (role + discord optional). */
+/** Parse pasted text: one player per line, "name <tab|comma|2+ spaces> role, discord, tier"
+ *  — field order matches the players table columns (role, discord, tier optional; tier by name). */
 function parsePlayerList(text) {
   const out = [];
   for (const line of String(text || '').split(/\r?\n/)) {
@@ -329,13 +393,14 @@ function parsePlayerList(text) {
     if (!trimmed) continue;
     const parts = trimmed.split(/\t|,|\s{2,}/).map((s) => s.trim());
     const name = parts[0];
-    if (name) out.push({ name, role: parts[1] || '', discord: parts[2] || '' });
+    if (name) out.push({ name, role: parts[1] || '', discord: parts[2] || '', tier: parts[3] || '' });
   }
   return out;
 }
 
 /** Bulk import. mode 'replace' clears the current OPEN pool first (drafted players kept);
- *  'append' adds to it. Returns { ok, added }. */
+ *  'append' adds to it. A tier name that matches no configured tier imports as untiered and is
+ *  reported back. Returns { ok, added, unknownTiers }. */
 function importPlayers(text, mode = 'replace') {
   const parsed = parsePlayerList(text);
   if (!parsed.length) return err('No players found in the pasted text.');
@@ -344,12 +409,15 @@ function importPlayers(text, mode = 'replace') {
     state.players = state.players.filter((p) => p.status === PLAYER_STATUS.SOLD);
     if (state.auction.currentPlayerId && !playerById(state.auction.currentPlayerId)) team.clearAuctionBlock();
   }
+  const unknownTiers = new Set();
   let id = nextPlayerId();
-  for (const { name, role, discord } of parsed) {
-    state.players.push({ id: id++, name, role, status: PLAYER_STATUS.OPEN, captainId: null, price: 0, discord: discord || '', image: '' });
+  for (const { name, role, discord, tier } of parsed) {
+    const tierId = tierIdByName(tier);
+    if (tier && tierId == null) unknownTiers.add(tier);
+    state.players.push({ id: id++, name, role, status: PLAYER_STATUS.OPEN, captainId: null, price: 0, discord: discord || '', image: '', tierId });
   }
   commit();
-  return { ok: true, added: parsed.length };
+  return { ok: true, added: parsed.length, unknownTiers: [...unknownTiers] };
 }
 
 function clearPool() {
@@ -394,7 +462,7 @@ function setPlayerPrice(playerId, price) {
 module.exports = {
   startAuction, skipTurn, openBidding, closeBidding, openOpeningBid,
   sold, setStatus, emptyTeams,
-  updateSettings,
+  updateSettings, setTiers,
   addCaptain, updateCaptain, deleteCaptain, importCaptains, moveCaptain,
   addPlayer, updatePlayer, deletePlayer, importPlayers, clearPool,
   setPlayerImage, clearPlayerImage,

@@ -26,16 +26,21 @@ function buildInfoSections() {
   const sellAuto = s.sellMode === SELL_MODE.AUTO;
   const snake = s.turnOrder === TURN_ORDER.SNAKE;
 
+  const tiers = s.tiers || [];
   const valueTokens = {
     OPENING_SECONDS: s.openingTimeout,
     AUTO_SECONDS:    s.autoWindow,
     SMALL_BLIND:     s.smallBlind,
     TEAM_BUDGET:     s.teamBudget,
     NUM_CAPTAINS:    state.captains.length,
+    // e.g. "S-Tier $30, A-Tier $15" — tier names are admin input, so escape them here (values are
+    // inserted after the item text was escaped).
+    TIER_MINS:       tiers.map((t) => `${escapeHtml(t.name)} $${t.minBid}`).join(', '),
   };
   const snippetTokens = {
     TURN_ORDER: snake ? AUCTION_INFO_VARIANTS.TURN_ORDER_SNAKE : AUCTION_INFO_VARIANTS.TURN_ORDER_WATERFALL,
     SELL_MODE:  sellAuto ? AUCTION_INFO_VARIANTS.SELL_MODE_AUTO : AUCTION_INFO_VARIANTS.SELL_MODE_MANUAL,
+    OPENING_MIN: tiers.length ? AUCTION_INFO_VARIANTS.OPENING_MIN_TIERED : AUCTION_INFO_VARIANTS.OPENING_MIN_FLAT,
   };
 
   const fillFrom = (map, wrap) => (str) =>
@@ -82,7 +87,7 @@ function buildCaptainState(captain) {
   };
 
   if (isYourTurnToOpen) {
-    result.openPlayers = team.openPlayerNames();
+    result.openPlayers = team.openPlayersForOpening();   // [{name, tier, minBid}]
     result.secondsRemaining = turn.openingSecondsRemaining();
   }
 
@@ -198,6 +203,10 @@ function buildBoardState() {
     teams,
     highestBid:  state.auction.highestBid,
     openPlayers: team.openPlayersWithRoles(),
+    // Tier list (admin order) + the default minimum, for the pool's Role/Tier switch. Tier names,
+    // minimums and assignments are public on the board (they're auction rules, not bids).
+    tiers:         (s.tiers || []).map((t) => ({ id: t.id, name: t.name, minBid: t.minBid, range: t.range || '' })),
+    defaultMinBid: s.smallBlind,
     turn:        turnInfo,
     liveBid,
     // Whether the per-team available-budget bar shows on the board team cards (admin toggle).
@@ -244,6 +253,7 @@ function buildAdminState() {
     id: p.id, name: p.name, role: p.role, status: p.status,
     captainId: p.captainId, captainName: p.captainId ? (captainById(p.captainId)?.name || '') : '',
     price: p.price, discord: p.discord || '', image: p.image || '',
+    tierId: team.tierById(p.tierId) ? p.tierId : null,   // null if untiered (or its tier was removed)
   }));
 
   const openingSecondsRemaining = s.status === STATUS.OPENING ? turn.openingSecondsRemaining() : null;

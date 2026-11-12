@@ -56,7 +56,7 @@
             <select id="set-sellMode"><option value="MANUAL">MANUAL</option><option value="AUTO">AUTO</option></select>
           </label>
           <label>Auto-sell window (s) <input type="number" id="set-autoWindow" min="0" step="1"></label>
-          <label>Small blind <input type="number" id="set-smallBlind" min="0" step="1"></label>
+          <label>Default min bid <input type="number" id="set-smallBlind" min="0" step="1"></label>
           <label>Team budget <input type="number" id="set-teamBudget" min="0" step="1"></label>
           <label>Opening timeout (s) <input type="number" id="set-openingTimeout" min="0" step="1"></label>
           <label>Sold cooldown (s) <input type="number" id="set-soldCooldown" min="0" step="1"></label>
@@ -82,16 +82,31 @@
         </div>
       </section>
 
-      <!-- Status -->
-      <section class="card">
-        <h2>Status</h2>
-        <div class="btn-col">
-          <button class="btn" onclick="adminAction('close-bidding')">Pause (close)</button>
-          <button class="btn" onclick="adminAction('open-opening')">Set Opening Bid Phase</button>
-          <button class="btn" onclick="adminAction('open-bidding')">Set Bidding Phase</button>
-          <button class="btn" onclick="adminAction('status', {status:'FINISHED'})">Set Finished</button>
-        </div>
-      </section>
+      <div>
+        <!-- Status -->
+        <section class="card">
+          <h2>Status</h2>
+          <div class="btn-col">
+            <button class="btn" onclick="adminAction('close-bidding')">Pause (close)</button>
+            <button class="btn" onclick="adminAction('open-opening')">Set Opening Bid Phase</button>
+            <button class="btn" onclick="adminAction('open-bidding')">Set Bidding Phase</button>
+            <button class="btn" onclick="adminAction('status', {status:'FINISHED'})">Set Finished</button>
+          </div>
+        </section>
+
+        <!-- Tiers (per-tier minimum opening bid) -->
+        <section class="card">
+          <div class="card-head">
+            <h2>Tiers</h2>
+            <button class="btn" onclick="addTierRow()">+ Add tier</button>
+          </div>
+          <div class="table-wrap"><table class="tbl tier-tbl" id="tiers-tbl"></table></div>
+          <div class="btn-row hint-right tier-actions">
+            <span class="hint" id="tiers-dirty"></span>
+            <button class="btn btn-accent" onclick="saveTiers()">Save tiers</button>
+          </div>
+        </section>
+      </div>
     </div>
 
     <!-- Captains -->
@@ -128,8 +143,8 @@
 
       <details class="import-box">
         <summary>Bulk import (paste a player list)</summary>
-        <p class="hint">One player per line, in the table's column order: <code>Name &lt;tab/comma&gt; Role, Discord</code>. Role and Discord are optional. Player images aren't imported here — add them per player with <b>Edit</b> after importing.</p>
-        <textarea id="import-text" rows="8" placeholder="Faker	Mid	faker_gg&#10;Caps,Mid,caps_dc&#10;Zeus	Top"></textarea>
+        <p class="hint">One player per line: <code>Name &lt;tab/comma&gt; Role, Discord, Tier</code>. Role, Discord and Tier are optional; Tier is matched by name (create tiers first) — leave Discord empty to skip it (<code>Zeus,Top,,A-Tier</code>). Player images aren't imported here — add them per player with <b>Edit</b> after importing.</p>
+        <textarea id="import-text" rows="8" placeholder="Faker	Mid	faker_gg	S-Tier&#10;Caps,Mid,caps_dc,A-Tier&#10;Zeus	Top"></textarea>
         <div class="btn-row">
           <label class="inline">Mode
             <select id="import-mode"><option value="replace">Replace open pool</option><option value="append">Append</option></select>

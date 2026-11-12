@@ -252,6 +252,94 @@ test('opening bid defers the auto-sell window until the reveal ends', () => {
   assert.equal(sell.autoSellIfElapsed(), true);
 });
 
+// ---------- tiers ----------
+
+const admin = require('../server/adminActions');
+
+test('opening bid uses the player tier minimum; untiered players use the default', () => {
+  setup({
+    settings: { teamBudget: 100, teamSlots: 2, smallBlind: 2 },
+    captains: [{ name: 'A' }, { name: 'B' }],
+    players: [{ name: 'Faker', role: 'Mid' }, { name: 'Caps', role: 'Mid' }],
+  });
+  assert.equal(admin.setTiers([{ name: 'S-Tier', minBid: 30 }]).ok, true);
+  const sId = state.settings.tiers[0].id;
+  state.players.find((p) => p.name === 'Faker').tierId = sId;
+  const [A] = state.captains;
+  turn.advanceTurn(); persistAll();
+
+  const low = bids.placeOpeningBid(A, 'Faker', 29);
+  assert.equal(low.ok, false);
+  assert.match(low.error, /at least \$30 \(S-Tier\)/);
+  assert.equal(state.settings.status, STATUS.OPENING);        // rejected bid changed nothing
+
+  assert.equal(bids.placeOpeningBid(A, 'Caps', 1).ok, false);  // untiered: default min $2
+  assert.deepEqual(bids.placeOpeningBid(A, 'Faker', 30), { ok: true });
+});
+
+test('tiers do not change the max-bid reserve (still the default min bid)', () => {
+  setup({
+    settings: { teamBudget: 100, teamSlots: 4, smallBlind: 1 },
+    captains: [{ name: 'A', price: 5 }],
+    players: [{ name: 'P1' }],
+  });
+  admin.setTiers([{ name: 'S-Tier', minBid: 30 }]);
+  state.players[0].tierId = state.settings.tiers[0].id;
+  assert.equal(team.captainMaxBid(state.captains[0]), 92);     // 100 - 5 - 1*3, same as untiered
+});
+
+test('setTiers keeps ids across rename/reorder, untiers players of removed tiers, validates', () => {
+  setup({ players: [{ name: 'P1' }, { name: 'P2' }] });
+  admin.setTiers([{ name: 'S', minBid: 30 }, { name: 'A', minBid: 15 }]);
+  const [s, a] = state.settings.tiers;
+  state.players[0].tierId = s.id;
+  state.players[1].tierId = a.id;
+
+  // rename + reorder + re-price S, drop A, add B
+  assert.equal(admin.setTiers([
+    { id: 999, name: 'B', minBid: 5 },
+    { id: s.id, name: 'S-Tier', minBid: 40 },
+  ]).ok, true);
+  const tiers = state.settings.tiers;
+  assert.deepEqual(tiers.map((t) => t.name), ['B', 'S-Tier']);
+  assert.equal(tiers[1].id, s.id);                              // kept
+  assert.notEqual(tiers[0].id, a.id);                           // unknown id 999 → fresh id, not reused
+  assert.notEqual(tiers[0].id, 999);
+  assert.equal(team.playerMinBid(state.players[0]), 40);
+  assert.equal(state.players[1].tierId, null);                  // A removed → untiered
+
+  assert.equal(admin.setTiers([{ name: 'X', minBid: 1 }, { name: 'x', minBid: 2 }]).ok, false);  // dup (case-insensitive)
+  assert.equal(admin.setTiers([{ name: '', minBid: 1 }]).ok, false);
+  assert.equal(admin.setTiers([{ name: 'X', minBid: -1 }]).ok, false);
+  assert.equal(admin.setTiers([{ name: 'X', minBid: 1.5 }]).ok, false);
+  assert.equal(admin.setTiers([{ name: 'A,B', minBid: 1 }]).ok, false);
+  assert.deepEqual(state.settings.tiers.map((t) => t.name), ['B', 'S-Tier']);   // failed saves change nothing
+});
+
+test('tier price range is stored as trimmed free text (optional, length-capped)', () => {
+  setup({});
+  assert.equal(admin.setTiers([{ name: 'Master', minBid: 15, range: '  20-30$ ' }, { name: 'Gold', minBid: 5 }]).ok, true);
+  assert.deepEqual(state.settings.tiers.map((t) => t.range), ['20-30$', '']);
+  assert.equal(admin.setTiers([{ name: 'Master', minBid: 15, range: 'x'.repeat(41) }]).ok, false);
+  assert.equal(state.settings.tiers[0].range, '20-30$');        // failed save changed nothing
+});
+
+test('import matches the Tier column by name and reports unknown tiers', () => {
+  setup({});
+  admin.setTiers([{ name: 'S-Tier', minBid: 30 }]);
+  const sId = state.settings.tiers[0].id;
+  const res = admin.importPlayers('Faker\tMid\tfaker_gg\ts-tier\nZeus,Top,,Z-Tier\nCaps,Mid', 'replace');
+  assert.equal(res.ok, true);
+  assert.equal(res.added, 3);
+  assert.deepEqual(res.unknownTiers, ['Z-Tier']);
+  const by = (n) => state.players.find((p) => p.name === n);
+  assert.equal(by('Faker').tierId, sId);
+  assert.equal(by('Faker').discord, 'faker_gg');
+  assert.equal(by('Zeus').tierId, null);
+  assert.equal(by('Zeus').discord, '');
+  assert.equal(by('Caps').tierId, null);
+});
+
 test('auto-skip fires once the opening deadline passes', () => {
   setup({
     settings: { teamSlots: 2, openingTimeout: 30 },

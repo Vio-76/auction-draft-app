@@ -15,7 +15,7 @@ const { DEFAULT_SETTINGS } = require('./config');
 const state = {
   settings: { ...DEFAULT_SETTINGS },
   captains: [],   // { id, name, code, price, seat } — kept sorted by seat
-  players: [],    // { id, name, role, status, captainId, price }
+  players: [],    // { id, name, role, status, captainId, price, discord, soldSeq, image, tierId }
   auction: { currentPlayerId: null, highestBid: 0, byCaptainId: null },
   // Ephemeral clocks (were Apps Script script properties) — never persisted.
   // pausedRemaining: snapshot of the countdown when the admin pauses (display only).
@@ -44,7 +44,7 @@ function load() {
 
   state.captains = db.prepare('SELECT id, name, code, price, role, seat, discord, team_group AS teamGroup, team_name AS teamName FROM captains ORDER BY seat, id').all();
 
-  state.players = db.prepare('SELECT id, name, role, status, captain_id AS captainId, price, discord, sold_seq AS soldSeq, image FROM players ORDER BY id').all();
+  state.players = db.prepare('SELECT id, name, role, status, captain_id AS captainId, price, discord, sold_seq AS soldSeq, image, tier_id AS tierId FROM players ORDER BY id').all();
 
   const a = db.prepare('SELECT current_player_id AS currentPlayerId, highest_bid AS highestBid, by_captain_id AS byCaptainId FROM auction WHERE id = 1').get();
   state.auction = a || { currentPlayerId: null, highestBid: 0, byCaptainId: null };
@@ -74,8 +74,8 @@ function persistCaptains() {
 function persistPlayers() {
   transaction(() => {
     db.prepare('DELETE FROM players').run();
-    const stmt = db.prepare('INSERT INTO players (id, name, role, status, captain_id, price, discord, sold_seq, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-    for (const p of state.players) stmt.run(p.id, p.name, p.role, p.status, p.captainId ?? null, p.price, p.discord || '', p.soldSeq || 0, p.image || '');
+    const stmt = db.prepare('INSERT INTO players (id, name, role, status, captain_id, price, discord, sold_seq, image, tier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const p of state.players) stmt.run(p.id, p.name, p.role, p.status, p.captainId ?? null, p.price, p.discord || '', p.soldSeq || 0, p.image || '', p.tierId ?? null);
   });
 }
 

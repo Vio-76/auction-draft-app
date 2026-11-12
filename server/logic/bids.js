@@ -62,8 +62,12 @@ function placeOpeningBid(captain, playerName, amount) {
   if (!v.ok) return v;
   const bid = v.bid;
 
-  const smallBlind = state.settings.smallBlind;
-  if (bid < smallBlind) return { ok: false, error: `Opening bid must be at least $${smallBlind}.` };
+  // Tiered players have their own minimum; untiered ones use the default (smallBlind).
+  const minBid = team.playerMinBid(player);
+  if (bid < minBid) {
+    const tier = team.tierById(player.tierId);
+    return { ok: false, error: `Opening bid for ${player.name} must be at least $${minBid}` + (tier ? ` (${tier.name}).` : '.') };
+  }
 
   const maxBid = team.captainMaxBid(captain);
   if (maxBid && bid > maxBid) return { ok: false, error: `Exceeds your max bid of $${maxBid}.` };

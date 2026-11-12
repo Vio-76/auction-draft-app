@@ -66,19 +66,38 @@ function captainRoleFlags(captain) {
     roleMatches(captain.role, label) || drafted.some((p) => roleMatches(p.role, label)));
 }
 
-// ----- open-player pool -----
+// ----- tiers -----
 
-/** Open player names, sorted alphabetically — for the captain's opening-bid dropdown. */
-function openPlayerNames() {
-  return openPlayers()
-    .map((p) => p.name)
-    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+/** The tier object for an id (settings.tiers), or null for no tier / a deleted tier. */
+function tierById(id) {
+  if (id == null) return null;
+  return (state.settings.tiers || []).find((t) => t.id === id) || null;
 }
 
-/** Open players as [{name, role}] for the spectator board. Ordered per settings.poolOrder:
- *  ALPHABETICAL (by name) or, by default, a deterministic seeded shuffle (stable, random-looking). */
+/** Minimum opening bid for a player: its tier's minBid, or the default smallBlind if untiered. */
+function playerMinBid(player) {
+  const tier = player ? tierById(player.tierId) : null;
+  return tier ? tier.minBid : state.settings.smallBlind;
+}
+
+// ----- open-player pool -----
+
+/** Open players as [{name, tier, minBid}], sorted alphabetically — for the captain's opening-bid
+ *  dropdown. `tier` is the tier name ('' if untiered); `minBid` is that player's minimum opening bid. */
+function openPlayersForOpening() {
+  return openPlayers()
+    .map((p) => {
+      const tier = tierById(p.tierId);
+      return { name: p.name, tier: tier ? tier.name : '', minBid: playerMinBid(p) };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+}
+
+/** Open players as [{name, role, tierId}] for the spectator board (tierId null if untiered).
+ *  Ordered per settings.poolOrder: ALPHABETICAL (by name) or, by default, a deterministic seeded
+ *  shuffle (stable, random-looking). */
 function openPlayersWithRoles() {
-  const out = openPlayers().map((p) => ({ name: p.name, role: p.role }));
+  const out = openPlayers().map((p) => ({ name: p.name, role: p.role, tierId: tierById(p.tierId) ? p.tierId : null }));
   if (state.settings.poolOrder === POOL_ORDER.ALPHABETICAL) {
     out.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   } else {
@@ -128,7 +147,9 @@ module.exports = {
   fullByName,
   roleMatches,
   captainRoleFlags,
-  openPlayerNames,
+  tierById,
+  playerMinBid,
+  openPlayersForOpening,
   openPlayersWithRoles,
   shuffleKey,
   placePlayerInTeam,

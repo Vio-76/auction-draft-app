@@ -5,8 +5,8 @@
 
 let cardEls = {};        // captain -> { el, ...refs }
 let messageShown = false;
-let poolCols = null;     // role key -> { col, list, count }
-let poolPrefix = null;   // 3-letter role prefix -> role key
+let poolCols = null;     // column key -> { col, list, count }
+let poolPrefix = null;   // 3-letter role prefix -> ROLES entry
 let turnChips = null;    // [chip elements] in seat order
 
 // Live-bid countdown (AUTO mode): anchored locally and animated every frame for a fluid bar,
@@ -52,7 +52,7 @@ function render(state) {
   renderSoldBanner(state.soldMessage);
   renderWaitingBanner(state.turn, !!state.openingMessage || !!state.soldMessage);
   renderLiveBid(state.liveBid, !!state.openingMessage);
-  renderPool(state.openPlayers || []);
+  renderPool(state.openPlayers || [], state.tiers || [], state.defaultMinBid);
   renderTurn(state.turn);
 }
 
@@ -366,30 +366,52 @@ function updateCard(card, t, dim, finished, showBudget) {
 
 // ----- available-players pool -----
 
-function buildPool() {
-  const grid = document.getElementById('pool');
-  poolCols = {};
-  poolPrefix = {};
-  for (let i = 0; i < ROLES.length; i++) {
-    addPoolCol(grid, ROLES[i]);
-    poolPrefix[ROLES[i].key.slice(0, 3)] = ROLES[i].key;
-  }
-}
+// Two groupings, flipped by the Role/Tier switch in the pool header:
+//  - role: one column per ROLES entry (always shown, dimmed when empty) + "Other" if needed.
+//  - tier: one column per tier in admin order (always shown, dimmed when empty) + "No tier" if
+//    any untiered player is left; each player gets a small role icon so the role isn't lost.
+// The choice is per viewer (remembered in localStorage). With no tiers configured the switch is
+// hidden and the role view is used. Columns are rebuilt only when the column set changes.
+let poolMode = 'role';
+let poolColsSig = '';
+let lastPool = { players: [], tiers: [], defaultMinBid: 0 };
+try { if (localStorage.getItem('boardPoolMode') === 'tier') poolMode = 'tier'; } catch (e) { /* storage blocked */ }
 
-function addPoolCol(grid, role) {
+function rolePrefixMap() {
+  if (!poolPrefix) {
+    poolPrefix = {};
+    for (let i = 0; i < ROLES.length; i++) poolPrefix[ROLES[i].key.slice(0, 3)] = ROLES[i];
+  }
+  return poolPrefix;
+}
+/** The ROLES entry a player's free-text role maps to (first 3 letters), or null. */
+function roleOf(p) { return rolePrefixMap()[(p.role || '').toLowerCase().slice(0, 3)] || null; }
+
+function addPoolCol(grid, spec) {
   const col = el('div', 'pool-col');
   const head = el('div', 'pool-col-head');
-  const icon = el('div', 'pool-icon role-' + role.key, role.hasIcon ? '' : role.label.slice(0, 3));
-  icon.title = role.label;
-  head.appendChild(icon);
-  head.appendChild(el('span', 'pool-col-label', role.label));
+  if (spec.role) {
+    const icon = el('div', 'pool-icon role-' + spec.role.key, spec.role.hasIcon ? '' : spec.role.label.slice(0, 3));
+    icon.title = spec.role.label;
+    head.appendChild(icon);
+  } else if (spec.other) {
+    head.appendChild(el('div', 'pool-icon', 'Oth'));
+  }
+  head.appendChild(el('span', 'pool-col-label', spec.label));
+  // Tier view: the recommended price range (admin free text, shown as typed) is the headline next
+  // to the name; the enforced minimum sits on its own muted line underneath — a floor, not a price.
+  if (spec.range) head.appendChild(el('span', 'pool-col-range', spec.range));
   const count = el('span', 'pool-col-count');
   head.appendChild(count);
+  if (spec.min != null) {
+    head.classList.add('has-min');
+    head.appendChild(el('span', 'pool-col-min', '(minimum $' + spec.min + ')'));
+  }
   col.appendChild(head);
   const list = el('div', 'pool-list');
   col.appendChild(list);
   grid.appendChild(col);
-  return (poolCols[role.key] = { col: col, list: list, count: count });
+  return (poolCols[spec.key] = { col: col, list: list, count: count });
 }
 
 function hidePool() {
@@ -397,39 +419,104 @@ function hidePool() {
   if (sec) sec.style.display = 'none';
 }
 
-function renderPool(players) {
-  if (!players.length) { hidePool(); return; }
-  if (!poolCols) buildPool();
+/** Small role icon in front of a player's name (tier view). Text fallback if the PNG is missing. */
+function miniRoleIcon(role) {
+  if (!role) return el('span', 'pool-mini-icon pool-mini-none');
+  const i = el('span', 'pool-mini-icon role-' + role.key, role.hasIcon ? '' : role.label.slice(0, 1));
+  i.title = role.label;
+  return i;
+}
 
+function renderPool(players, tiers, defaultMinBid) {
+  lastPool = { players: players, tiers: tiers || [], defaultMinBid: defaultMinBid };
+  tiers = lastPool.tiers;
+  if (!players.length) { hidePool(); return; }
+
+  const hasTiers = tiers.length > 0;
+  const mode = hasTiers ? poolMode : 'role';
+  updatePoolSwitch(hasTiers, mode);
+
+  // Column specs + buckets (key -> [player]) for the active grouping.
+  const specs = [];
   const buckets = {};
-  for (let i = 0; i < players.length; i++) {
-    const p = players[i];
-    const prefix = (p.role || '').toLowerCase().slice(0, 3);
-    const bucket = poolPrefix[prefix] || 'other';
-    (buckets[bucket] = buckets[bucket] || []).push(p.name);
+  const put = (key, p) => { (buckets[key] = buckets[key] || []).push(p); };
+  if (mode === 'tier') {
+    const known = {};
+    for (let i = 0; i < tiers.length; i++) {
+      known[tiers[i].id] = true;
+      specs.push({ key: 't' + tiers[i].id, label: tiers[i].name, range: tiers[i].range || '', min: tiers[i].minBid });
+    }
+    for (let i = 0; i < players.length; i++) {
+      const p = players[i];
+      put(p.tierId != null && known[p.tierId] ? 't' + p.tierId : 'none', p);
+    }
+    if (buckets.none) specs.push({ key: 'none', label: 'No tier', min: defaultMinBid });
+  } else {
+    for (let i = 0; i < ROLES.length; i++) specs.push({ key: ROLES[i].key, label: ROLES[i].label, role: ROLES[i] });
+    for (let i = 0; i < players.length; i++) {
+      const r = roleOf(players[i]);
+      put(r ? r.key : 'other', players[i]);
+    }
+    if (buckets.other) specs.push({ key: 'other', label: 'Other', other: true });
   }
 
-  if (buckets.other && !poolCols.other) {
-    addPoolCol(document.getElementById('pool'), { key: 'other', label: 'Other', hasIcon: false });
-  } else if (!buckets.other && poolCols.other) {
-    poolCols.other.col.remove();
-    delete poolCols.other;
+  // Rebuild the columns only when the set (or a tier's name/range/min) changes.
+  const sig = mode + '|' + JSON.stringify(specs.map((s) => [s.key, s.label, s.range, s.min]));
+  if (sig !== poolColsSig) {
+    poolColsSig = sig;
+    const grid = document.getElementById('pool');
+    grid.textContent = '';
+    grid.classList.toggle('by-tier', mode === 'tier');   // wider columns in the tier view (board.css)
+    poolCols = {};
+    for (let i = 0; i < specs.length; i++) addPoolCol(grid, specs[i]);
   }
 
   for (const key in poolCols) {
     const c = poolCols[key];
-    const names = buckets[key] || [];
-    c.list.classList.toggle('is-empty', names.length === 0);
-    c.col.classList.toggle('empty', names.length === 0);
-    c.count.textContent = names.length || '';
+    const list = buckets[key] || [];
+    c.list.classList.toggle('is-empty', list.length === 0);
+    c.col.classList.toggle('empty', list.length === 0);
+    c.count.textContent = list.length || '';
     c.list.textContent = '';
-    for (let i = 0; i < names.length; i++) c.list.appendChild(el('div', 'pool-player', names[i]));
+    for (let i = 0; i < list.length; i++) {
+      const row = el('div', 'pool-player');
+      if (mode === 'tier') {
+        row.classList.add('with-icon');
+        row.appendChild(miniRoleIcon(roleOf(list[i])));
+        row.appendChild(el('span', 'pool-player-name', list[i].name));
+      } else {
+        row.textContent = list[i].name;
+      }
+      c.list.appendChild(row);
+    }
   }
 
   const countEl = document.getElementById('pool-count');
   if (countEl) countEl.textContent = players.length + ' available';
   document.getElementById('pool-section').style.display = '';
 }
+
+function updatePoolSwitch(show, mode) {
+  const sw = document.getElementById('pool-switch');
+  if (!sw) return;
+  sw.style.display = show ? '' : 'none';
+  const btns = sw.querySelectorAll('button[data-mode]');
+  for (let i = 0; i < btns.length; i++) {
+    btns[i].setAttribute('aria-pressed', btns[i].getAttribute('data-mode') === mode ? 'true' : 'false');
+  }
+}
+
+(function wirePoolSwitch() {
+  const sw = document.getElementById('pool-switch');
+  if (!sw) return;
+  sw.addEventListener('click', function (e) {
+    const btn = e.target.closest('button[data-mode]');
+    if (!btn) return;
+    poolMode = btn.getAttribute('data-mode') === 'tier' ? 'tier' : 'role';
+    try { localStorage.setItem('boardPoolMode', poolMode); } catch (err) { /* storage blocked */ }
+    renderPool(lastPool.players, lastPool.tiers, lastPool.defaultMinBid);
+  });
+})();
 
 // ----- turn-order rail -----
 

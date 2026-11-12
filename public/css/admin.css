@@ -105,6 +105,15 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .tag.open { color: var(--positive); background: var(--positive-soft); }
 .tag.sold { color: var(--accent); background: var(--accent-soft); }
 .tag.full { color: var(--danger); background: var(--danger-soft); }
+.tag.tier { color: var(--ink); background: var(--surface-2); border: 1px solid var(--line-strong); }
+
+/* ----- tiers card (inline-editable rows) ----- */
+.tier-tbl input { padding: 6px 8px; font-size: 13px; }
+.tier-tbl .tier-name { min-width: 120px; }
+.tier-tbl .tier-min { width: 80px; text-align: right; }
+.tier-tbl .tier-range { min-width: 110px; }
+.tier-tbl .tier-default td { border-bottom: none; }
+.tier-actions { margin-top: 12px; }
 
 /* ----- masked captain code (safe to stream; click to reveal/hide) ----- */
 .code { cursor: pointer; font-family: var(--font-mono); letter-spacing: 2px; user-select: none; padding: 1px 6px; border-radius: 6px; background: var(--surface-2); }

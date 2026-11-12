@@ -298,6 +298,8 @@
       background:var(--card); border:var(--card-border); border-radius:var(--radius);
       padding:14px 14px 12px; box-shadow:var(--shadow);
     }
+    /* Tier view: wider columns (almost team-card width) — fewer columns, longer names + role icons. */
+    .pool-grid.by-tier { grid-template-columns:repeat(auto-fill, minmax(min(230px, 100%), 1fr)); }
     .pool-col.empty { opacity:.4; }
     .pool-col-head {
       display:flex; align-items:center; gap:9px; margin-bottom:10px;
@@ -321,6 +323,37 @@
     .pool-player { font-size:14px; padding:5px 0; border-bottom:1px solid var(--line); word-break:break-word; }
     .pool-player:last-child { border-bottom:none; }
     .pool-list.is-empty::after { content:"—"; color:var(--muted); font-size:14px; padding:5px 0; }
+
+    /* Role/Tier switch (segmented pill) in the pool header — only shown when tiers exist. */
+    .pool-switch {
+      display:inline-flex; align-self:center; overflow:hidden;
+      border:1px solid var(--line-strong); border-radius:999px; background:var(--surface);
+    }
+    .pool-switch button {
+      font-family:var(--font-display); font-weight:700; font-size:12px; letter-spacing:.08em;
+      text-transform:uppercase; padding:5px 14px; border:none; background:transparent;
+      color:var(--muted); cursor:pointer; transition:background-color .15s, color .15s;
+    }
+    .pool-switch button + button { border-left:1px solid var(--line-strong); }
+    .pool-switch button:hover { color:var(--ink); }
+    .pool-switch button[aria-pressed="true"] { background:var(--accent); color:var(--accent-ink); }
+    .pool-switch button:focus-visible { outline:none; box-shadow:var(--focus-ring); }
+
+    /* Tier view: the tier's minimum opening bid ("min $30") beside its name, and a small role icon before each player. */
+    /* Tier header: "MASTER  20-30$  4" on line 1 (range = recommended price, accent), then
+       "(minimum $15)" on its own muted line 2 — the enforced floor, not the expected price. */
+    .pool-col-head.has-min { flex-wrap:wrap; row-gap:3px; }
+    .pool-col-range { font-family:var(--font-mono); font-weight:700; font-size:13px; color:var(--accent); min-width:0; overflow-wrap:anywhere; }
+    .pool-col-min { flex-basis:100%; font-family:var(--font-mono); font-size:12px; color:var(--muted); }
+    .pool-player.with-icon { display:flex; align-items:center; gap:7px; }
+    .pool-player-name { min-width:0; }
+    .pool-mini-icon {
+      width:16px; height:16px; flex-shrink:0; border-radius:4px;
+      background-size:80% 80%; background-repeat:no-repeat; background-position:center;
+      display:inline-flex; align-items:center; justify-content:center;
+      font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--muted);
+    }
+    .pool-mini-none { visibility:hidden; }   /* keeps names aligned when a player has no known role */
 
     /* ----- Turn-order rail, below the pool: captains in seat order, current one marked ----- */
     .turn-section { margin-top:40px; padding-top:24px; border-top:1px solid var(--line); }
@@ -354,12 +387,13 @@
     .turn-chip.full { opacity:.45; filter:grayscale(1); }
 
     /* Wide screens: center the sections below the team grid to match its centered block.
-       Pool columns keep their old ~160px width (auto-fit collapses the unused columns so the
+       Pool columns keep their old ~160px width (230px in the tier view) (auto-fit collapses the unused columns so the
        role columns sit in the middle); the turn bar shrinks to its content and centers, and a
        wrapped second line is centered too. Below 1440px nothing changes. */
     @media (min-width:1440px) {
       .pool-head, .turn-head { justify-content:center; }
       .pool-grid { grid-template-columns:repeat(auto-fit, 160px); justify-content:center; }
+      .pool-grid.by-tier { grid-template-columns:repeat(auto-fit, 230px); }
       .turn-rail { display:flex; width:fit-content; margin-inline:auto; justify-content:center; }
     }
     .turn-chip.full .turn-name { text-decoration:line-through; }

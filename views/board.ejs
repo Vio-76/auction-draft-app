@@ -46,6 +46,10 @@
       <div class="pool-head">
         <h2 class="pool-title">Available Players</h2>
         <span class="pool-count" id="pool-count"></span>
+        <div class="pool-switch" id="pool-switch" role="group" aria-label="Group available players by" style="display:none">
+          <button type="button" data-mode="role" aria-pressed="true">Role</button>
+          <button type="button" data-mode="tier" aria-pressed="false">Tier</button>
+        </div>
       </div>
       <div class="pool-grid" id="pool"></div>
     </div>

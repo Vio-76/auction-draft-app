@@ -34,6 +34,10 @@ const DEFAULT_SETTINGS = {
   theme:              'draftroom',
   showBidOnBoard:     true,        // show the live bid (player/amount/bidder) on the public board
   showBudgetOnBoard:  true,        // show the per-team available-budget bar on the board team cards
+  // Player tiers, in display order: [{ id, name, minBid, range }] (range = free-text recommended price, board only). A tiered player's opening bid must be
+  // at least its tier's minBid; untiered players (player.tierId null) fall back to smallBlind.
+  // The max-bid reserve still uses smallBlind. Edited as a whole list from the admin Tiers card.
+  tiers:              [],
 };
 
 // ----- Roles (board grouping + per-team role flags) -----
@@ -67,7 +71,7 @@ function fontUrlForTheme(theme) {
 // ----- Rules & info panel (captain page + spectator board) -----
 // Same author copy + token system as the Apps Script version. Tokens filled at render
 // time by buildInfoSections() (see payload.js): {OPENING_SECONDS} {AUTO_SECONDS}
-// {SMALL_BLIND} {TEAM_BUDGET} {NUM_CAPTAINS} {TURN_ORDER} {SELL_MODE}.
+// {SMALL_BLIND} {TEAM_BUDGET} {NUM_CAPTAINS} {TIER_MINS} {TURN_ORDER} {SELL_MODE} {OPENING_MIN}.
 // *term* marks an emphasized keyword.
 const AUCTION_INFO_SECTIONS = [
   {
@@ -85,7 +89,7 @@ const AUCTION_INFO_SECTIONS = [
     items: [
       'When it is a captains *turn* they have {OPENING_SECONDS}seconds to pick an available player and place an *opening bid*.',
       'Alternatively they can *Skip* to pass their turn.',
-      'Any opening bid must be at least ${SMALL_BLIND}.',
+      '{OPENING_MIN}',
       'The opening turn order is at the bottom of the teams page. Full teams are skipped.',
     ],
   },
@@ -102,6 +106,8 @@ const AUCTION_INFO_VARIANTS = {
   TURN_ORDER_SNAKE:     'It snakes back and forth, so the captain at each end bids twice in a row.',
   SELL_MODE_AUTO:       'Each bid refreshes a {AUTO_SECONDS}second countdown; when it ends the player is sold to the highest bidder.',
   SELL_MODE_MANUAL:     'The admin marks the player as *Sold* once bidding settles.',
+  OPENING_MIN_FLAT:     'Any opening bid must be at least ${SMALL_BLIND}.',
+  OPENING_MIN_TIERED:   'Any opening bid must be at least the player\'s *tier* minimum ({TIER_MINS}); players without a tier start at ${SMALL_BLIND}.',
 };
 
 // Extra links shown on the captain page beside the auto-added "View Teams" link.
