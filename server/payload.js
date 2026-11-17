@@ -125,7 +125,7 @@ function buildBoardState() {
   const byId = state.auction.byCaptainId;
 
   const teams = caps.map((c) => {
-    const drafted = require('./state').draftedPlayers(c.id);
+    const drafted = draftedPlayers(c.id);
     const players = [];
     for (let i = 0; i < s.teamSlots; i++) {
       const p = drafted[i];

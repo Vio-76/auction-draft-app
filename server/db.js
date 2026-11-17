@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS captains (
   role    TEXT NOT NULL DEFAULT '',
   seat    INTEGER NOT NULL DEFAULT 0,
   discord TEXT NOT NULL DEFAULT '',
-  team_group TEXT NOT NULL DEFAULT '',   -- 'Group A' | 'Group B' | '' (shown on the board once FINISHED)
+  team_group TEXT NOT NULL DEFAULT '',   -- 'A' | 'B' | '' (shown on the board once FINISHED)
   team_name  TEXT NOT NULL DEFAULT ''    -- captain-chosen team name (shown on the board once FINISHED)
 );
 
