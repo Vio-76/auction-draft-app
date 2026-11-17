@@ -340,6 +340,36 @@ test('import matches the Tier column by name and reports unknown tiers', () => {
   assert.equal(by('Caps').tierId, null);
 });
 
+// ---------- unique names ----------
+
+test('captain names must be unique (add, rename, import)', () => {
+  setup({ captains: [{ name: 'Monarch' }, { name: 'Tomi' }] });
+  assert.equal(admin.addCaptain({ name: ' monarch ' }).ok, false);      // trimmed + case-insensitive
+  assert.equal(admin.updateCaptain(2, { name: 'MONARCH' }).ok, false);
+  assert.equal(state.captains[1].name, 'Tomi');                         // rejected rename changed nothing
+  assert.equal(admin.updateCaptain(1, { name: 'monarch' }).ok, true);   // re-casing your own name is fine
+
+  assert.equal(admin.importCaptains('Vex\nTomi', 'append').ok, false);  // clashes with existing
+  assert.equal(admin.importCaptains('Vex\nvex', 'replace').ok, false);  // repeats within the paste
+  assert.equal(state.captains.length, 2);                               // failed imports changed nothing
+  assert.equal(admin.importCaptains('Tomi\nVex', 'replace').ok, true);  // replace: old names don't count
+});
+
+test('player names must be unique (add, rename, import)', () => {
+  setup({
+    captains: [{ name: 'A' }],
+    players: [{ name: 'Faker' }, { name: 'Caps' }, { name: 'Zeus', status: PLAYER_STATUS.SOLD, captainId: 1, price: 5 }],
+  });
+  assert.equal(admin.addPlayer({ name: 'faker' }).ok, false);
+  assert.equal(admin.updatePlayer(2, { name: 'Faker' }).ok, false);
+  assert.equal(admin.updatePlayer(2, { name: 'caps' }).ok, true);
+
+  assert.equal(admin.importPlayers('Chovy\nCaps', 'append').ok, false);
+  assert.equal(admin.importPlayers('Chovy\nzeus', 'replace').ok, false);  // drafted players are kept → still clash
+  assert.equal(state.players.length, 3);
+  assert.equal(admin.importPlayers('Faker\nChovy', 'replace').ok, true);  // open pool is replaced → no clash
+});
+
 test('auto-skip fires once the opening deadline passes', () => {
   setup({
     settings: { teamSlots: 2, openingTimeout: 30 },

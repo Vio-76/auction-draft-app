@@ -216,6 +216,29 @@ function tierIdByName(name) {
   return t ? t.id : null;
 }
 
+// ----- name uniqueness -----
+// Captains and players are looked up by name (invite links, opening bids), so names must be
+// unique within each list. Compared trimmed + case-insensitive so "Faker" and "faker " clash.
+
+const nameKey = (s) => String(s || '').trim().toLowerCase();
+
+/** True if another row in `list` (other than `exceptId`) already has this name. */
+function nameTaken(list, name, exceptId) {
+  const k = nameKey(name);
+  return list.some((x) => x.id !== exceptId && nameKey(x.name) === k);
+}
+
+/** Names from `incoming` that clash with `existing` rows or repeat within `incoming`. */
+function duplicateNames(incoming, existing) {
+  const seen = new Set(existing.map((x) => nameKey(x.name)));
+  const dups = new Set();
+  for (const n of incoming) {
+    const k = nameKey(n);
+    if (seen.has(k)) dups.add(n); else seen.add(k);
+  }
+  return [...dups];
+}
+
 // ----- captains CRUD -----
 
 // Allowed team-group values (board display, once FINISHED). Anything else normalizes to ''.
@@ -231,6 +254,7 @@ const normalizeGroup = (g) => {
 function addCaptain({ name, code, price, role, seat, discord, teamGroup, teamName } = {}) {
   const nm = String(name || '').trim();
   if (!nm) return err('Captain name is required.');
+  if (nameTaken(state.captains, nm)) return err(`A captain named "${nm}" already exists.`);
   const maxSeat = state.captains.reduce((m, c) => Math.max(m, c.seat), -1);
   state.captains.push({
     id: nextCaptainId(),
@@ -260,7 +284,12 @@ function moveCaptain(id, dir) {
 function updateCaptain(id, patch = {}) {
   const c = captainById(Number(id));
   if (!c) return err('Unknown captain.');
-  if ('name' in patch) { const nm = String(patch.name).trim(); if (!nm) return err('Name cannot be empty.'); c.name = nm; }
+  if ('name' in patch) {
+    const nm = String(patch.name).trim();
+    if (!nm) return err('Name cannot be empty.');
+    if (nameTaken(state.captains, nm, c.id)) return err(`A captain named "${nm}" already exists.`);
+    c.name = nm;
+  }
   if ('code' in patch) c.code = String(patch.code).trim();
   if ('price' in patch) c.price = Math.max(0, Math.floor(Number(patch.price) || 0));
   if ('role' in patch) c.role = String(patch.role).trim();
@@ -291,6 +320,9 @@ function parseCaptainList(text) {
 function importCaptains(text, mode = 'replace') {
   const parsed = parseCaptainList(text);
   if (!parsed.length) return err('No captains found in the pasted text.');
+  // Validate before mutating: 'replace' only has to be unique within the paste.
+  const dups = duplicateNames(parsed.map((c) => c.name), mode === 'replace' ? [] : state.captains);
+  if (dups.length) return err(`Duplicate captain names (nothing imported): ${dups.join(', ')}.`);
 
   if (mode === 'replace') {
     for (const p of state.players) {
@@ -331,6 +363,7 @@ function deleteCaptain(id) {
 function addPlayer({ name, role, discord, tierId } = {}) {
   const nm = String(name || '').trim();
   if (!nm) return err('Player name is required.');
+  if (nameTaken(state.players, nm)) return err(`A player named "${nm}" already exists.`);
   const id = nextPlayerId();
   state.players.push({
     id, name: nm, role: String(role || '').trim(),
@@ -344,7 +377,12 @@ function addPlayer({ name, role, discord, tierId } = {}) {
 function updatePlayer(id, patch = {}) {
   const p = playerById(Number(id));
   if (!p) return err('Unknown player.');
-  if ('name' in patch) { const nm = String(patch.name).trim(); if (!nm) return err('Name cannot be empty.'); p.name = nm; }
+  if ('name' in patch) {
+    const nm = String(patch.name).trim();
+    if (!nm) return err('Name cannot be empty.');
+    if (nameTaken(state.players, nm, p.id)) return err(`A player named "${nm}" already exists.`);
+    p.name = nm;
+  }
   if ('role' in patch) p.role = String(patch.role).trim();
   if ('discord' in patch) p.discord = String(patch.discord).trim();
   if ('tierId' in patch) p.tierId = normalizeTierId(patch.tierId);
@@ -404,6 +442,10 @@ function parsePlayerList(text) {
 function importPlayers(text, mode = 'replace') {
   const parsed = parsePlayerList(text);
   if (!parsed.length) return err('No players found in the pasted text.');
+  // Validate before mutating: 'replace' keeps drafted players, so check against those.
+  const kept = mode === 'replace' ? state.players.filter((p) => p.status === PLAYER_STATUS.SOLD) : state.players;
+  const dups = duplicateNames(parsed.map((p) => p.name), kept);
+  if (dups.length) return err(`Duplicate player names (nothing imported): ${dups.join(', ')}.`);
 
   if (mode === 'replace') {
     state.players = state.players.filter((p) => p.status === PLAYER_STATUS.SOLD);
