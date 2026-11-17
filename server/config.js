@@ -53,7 +53,7 @@ const OPGG_REGION = 'euw';
 const OPGG_MULTISEARCH_BASE = 'https://op.gg/lol/multisearch';
 
 // ----- Captain page theme -----
-// "draftroom" | "auctionhouse" | "terminal" | "broadcast" | "brutalist" | "casino"
+// "draftroom" | "auctionhouse" | "terminal" | "broadcast" | "brutalist" | "casino" | "wada-202"
 // (Stored per-auction in settings.theme; this is just the seed default.)
 const THEME_FONT_URLS = {
   draftroom:    'https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap',
@@ -62,6 +62,7 @@ const THEME_FONT_URLS = {
   broadcast:    'https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800;900&display=swap',
   brutalist:    'https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700&display=swap',
   casino:       'https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap',
+  'wada-202':   'https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@500;600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap',
 };
 
 function fontUrlForTheme(theme) {

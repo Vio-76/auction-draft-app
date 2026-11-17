@@ -11,11 +11,13 @@ let turnChips = null;    // [chip elements] in seat order
 
 // Live-bid countdown (AUTO mode): anchored locally and animated every frame for a fluid bar,
 // re-anchored only when the bid changes; frozen while the admin has paused. Colors follow the
-// active theme.
+// active theme: --live-fill / --live-urgent if the theme sets them (e.g. wada-202's dark band),
+// otherwise --accent / --danger.
 let liveRAF = null, liveEndsAt = 0, liveWindow = 0, liveBidSig = '', livePaused = false;
 const _liveCss = getComputedStyle(document.body);
-const LIVE_ACCENT = (_liveCss.getPropertyValue('--accent').trim()) || '#f6b53c';
-const LIVE_URGENT = (_liveCss.getPropertyValue('--danger').trim()) || '#ff5b54';
+const _liveVar = (name) => _liveCss.getPropertyValue(name).trim();
+const LIVE_ACCENT = _liveVar('--live-fill') || _liveVar('--accent') || '#f6b53c';
+const LIVE_URGENT = _liveVar('--live-urgent') || _liveVar('--danger') || '#ff5b54';
 
 // ----- team cards -----
 

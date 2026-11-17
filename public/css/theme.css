@@ -191,6 +191,40 @@
       --player-size:36px; --bid-size:44px;
     }
 
+    /* ---- wada-202 (Sanzo Wada combination No. 202: Turquoise Green, Cobalt Green, Slate Color) ----
+       Light theme. Slate is the accent; Cobalt Green (deepened for text) marks the leader; red is
+       used only for warnings. The live bid / sold / opening banners become solid slate bands —
+       see the [data-theme="wada-202"] blocks in board.css + captain.css. */
+    [data-theme="wada-202"] {
+      --bg:#dcefe6;
+      --bg-glow: radial-gradient(120% 80% at 50% -10%, rgba(255,255,255,.7), transparent 60%),
+                 radial-gradient(100% 60% at 50% 120%, rgba(150,209,170,.35), transparent 60%);
+      --grain-opacity:.04;
+      --surface:#eef7f2; --surface-2:#f8fcfa;
+      --card: linear-gradient(180deg, #fbfefc, #f1f8f4);
+      --line:rgba(52,69,76,.12); --line-strong:rgba(52,69,76,.24);
+      --ink:#1f2b30; --muted:#5d7270;
+      --accent:#34454c; --accent-strong:#465c65; --accent-ink:#f2faf6;
+      --accent-soft:rgba(52,69,76,.08); --accent-border:rgba(52,69,76,.28);
+      --accent-glow:0 8px 20px -10px rgba(52,69,76,.55); --eyebrow:#3f7a62;
+      --positive:#1f7a45; --positive-soft:rgba(150,209,170,.45); --positive-border:rgba(31,122,69,.35); --leader:#1f7a45;
+      --danger:#c8372d; --danger-soft:rgba(200,55,45,.09); --danger-border:rgba(200,55,45,.4);
+      --ring-track:rgba(52,69,76,.14);
+      --radius:10px; --control-radius:8px;
+      --shadow:0 14px 34px -18px rgba(31,43,48,.45);
+      --topbar: linear-gradient(90deg, #34454c, #96d1aa 60%, #b5decc);
+      --sold-bg: linear-gradient(90deg, rgba(150,209,170,.7), rgba(181,222,204,.2));
+      --focus-ring:0 0 0 3px rgba(52,69,76,.18);
+      --disabled-bg:#d3e2db; --disabled-ink:#8aa098;
+      /* Board countdown bar sits on the slate band, so it needs light colours (read by board.js). */
+      --live-fill:#96d1aa; --live-urgent:#ff8a7e;
+      --font-display:'Cormorant SC', Georgia, serif;
+      --font-body:'Zen Kaku Gothic New', sans-serif;
+      --font-mono:'JetBrains Mono', monospace;
+      --display-weight:700; --display-transform:none; --display-spacing:.02em;
+      --player-size:42px; --bid-size:44px;
+    }
+
     /* ===========================================================
        SHARED STRUCTURAL BASE (identical on both pages)
        =========================================================== */

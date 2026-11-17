@@ -19,6 +19,30 @@
     [data-theme="casino"] .team-maxbid { text-shadow:0 0 16px rgba(255,208,46,.5); }
     [data-theme="casino"] .card-eyebrow { text-shadow:0 0 12px rgba(255,77,109,.6); }
 
+    /* wada-202: the live moments (on the block, sold, opening reveal) are solid slate bands with
+       mint text, so they stand out from the light page. The countdown bar colours come from
+       --live-fill / --live-urgent (theme.css), read by board.js. */
+    [data-theme="wada-202"] .liveband { background:#34454c; border-color:#34454c; }
+    [data-theme="wada-202"] .liveband-tag { background:#96d1aa; color:#1f2b30; }
+    [data-theme="wada-202"] .liveband-player { color:#f2faf6; }
+    [data-theme="wada-202"] .liveband-bid,
+    [data-theme="wada-202"] .liveband-by { color:#b5decc; }
+    [data-theme="wada-202"] .liveband-bid b { color:#f2faf6; }
+    [data-theme="wada-202"] .liveband-name { color:#96d1aa; }
+    [data-theme="wada-202"] .liveband-secs { color:#b5decc; }
+    [data-theme="wada-202"] .liveband-secs.urgent { color:#ff8a7e; }
+    [data-theme="wada-202"] .liveband-track { background:rgba(255,255,255,.14); }
+    [data-theme="wada-202"] .sold-banner { background:#34454c; border-color:#34454c; color:#f2faf6; }
+    [data-theme="wada-202"] .sold-tag { background:#96d1aa; color:#1f2b30; }
+    [data-theme="wada-202"] .opening-card { background:#34454c; border-color:#34454c; }
+    [data-theme="wada-202"] .opening-text { color:#f2faf6; }
+    [data-theme="wada-202"] .opening-bid,
+    [data-theme="wada-202"] .opening-player { color:#b5decc; }
+    [data-theme="wada-202"] .opening-by { color:#96d1aa; }
+    /* Team op.gg link: solid slate instead of the fixed cyan, to match the slate bands. */
+    [data-theme="wada-202"] .team-oppg { background:#34454c; border-color:#34454c; color:#f2faf6; box-shadow:0 6px 16px -8px rgba(52,69,76,.6); }
+    [data-theme="wada-202"] .team-oppg:hover { background:#465c65; border-color:#465c65; box-shadow:0 6px 16px -8px rgba(52,69,76,.6); }
+
     /* ===========================================================
        BOARD LAYOUT (token-driven)
        =========================================================== */

@@ -32,6 +32,15 @@
     [data-theme="casino"] .card-eyebrow { text-shadow:0 0 12px rgba(255,77,109,.6); }
     [data-theme="casino"] .player-card { border:1px solid rgba(255,208,46,.18); }
 
+    /* wada-202: sold banner + opening reveal as solid slate bands (matches the board). */
+    [data-theme="wada-202"] .sold-banner { background:#34454c; border-color:#34454c; color:#f2faf6; }
+    [data-theme="wada-202"] .sold-tag { background:#96d1aa; color:#1f2b30; }
+    [data-theme="wada-202"] .opening-card { background:#34454c; border-color:#34454c; }
+    [data-theme="wada-202"] .opening-text { color:#f2faf6; }
+    [data-theme="wada-202"] .opening-bid,
+    [data-theme="wada-202"] .opening-player { color:#b5decc; }
+    [data-theme="wada-202"] .opening-by { color:#96d1aa; }
+
     /* ===========================================================
        LAYOUT & COMPONENTS (token-driven)
        =========================================================== */
