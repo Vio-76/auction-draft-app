@@ -27,20 +27,21 @@ function isCaptainFull(captain) {
   return draftedCount(captain) >= state.settings.teamSlots;
 }
 
+/** Unspent budget: budget − (captain price + bought players). Can't go below 0 on the board. */
+function remainingBudget(captain) {
+  if (!captain) return 0;
+  return Math.max(0, state.settings.teamBudget - spentByCaptain(captain));
+}
+
 /**
- * Highest amount this captain can still bid on the NEXT player:
- *   budget − (captain price + bought players) − smallBlind × (other empty slots)
- * i.e. enough budget must remain to fill every remaining slot at the minimum price.
- * Returns 0 when the team is full or fully priced out. (Replaces the Auth-sheet column
- * the old readCaptainMaxBid read; the sheet computed exactly this.)
+ * Highest amount this captain can bid on the next player: simply their remaining budget (#7).
+ * There's no reserve for the other empty slots any more — a captain who runs out goes broke and
+ * fills the rest in the fill-up round. 0 when the team is full.
  */
 function captainMaxBid(captain) {
   if (!captain) return 0;
-  const { teamBudget, teamSlots, smallBlind } = state.settings;
-  const empty = teamSlots - draftedCount(captain);
-  if (empty <= 0) return 0;
-  const reserve = smallBlind * (empty - 1);           // reserve min cost for the OTHER empty slots
-  return Math.max(0, teamBudget - spentByCaptain(captain) - reserve);
+  if (isCaptainFull(captain)) return 0;
+  return remainingBudget(captain);
 }
 
 /** { "Monarch": false, "Tomi": true, ... } — used by the turn walker and outbid checks. */
@@ -74,10 +75,77 @@ function tierById(id) {
   return (state.settings.tiers || []).find((t) => t.id === id) || null;
 }
 
-/** Minimum opening bid for a player: its tier's minBid, or the default smallBlind if untiered. */
+/** The base ("lowest") tier: the smallest minBid, ties going to the earlier tier on the Tiers card.
+ *  null when no tiers are configured. */
+function lowestTier() {
+  let best = null;
+  for (const t of state.settings.tiers || []) if (!best || t.minBid < best.minBid) best = t;
+  return best;
+}
+
+/** Minimum opening bid for an untiered player: the lowest tier's minimum, or the default min bid
+ *  (settings.smallBlind) when there are no tiers at all. */
+function defaultMinBid() {
+  const t = lowestTier();
+  return t ? t.minBid : state.settings.smallBlind;
+}
+
+/** Minimum opening bid for a player: its tier's minBid, or defaultMinBid() if untiered. */
 function playerMinBid(player) {
   const tier = player ? tierById(player.tierId) : null;
-  return tier ? tier.minBid : state.settings.smallBlind;
+  return tier ? tier.minBid : defaultMinBid();
+}
+
+// ----- broke captains (#7) -----
+
+/** The cheapest minimum opening bid among players still in the pool, or null if the pool is empty. */
+function cheapestOpenMinBid() {
+  let min = null;
+  for (const p of openPlayers()) {
+    const m = playerMinBid(p);
+    if (min === null || m < min) min = m;
+  }
+  return min;
+}
+
+/**
+ * Broke: the team isn't full, but the captain can't afford any player left — their remaining budget
+ * is $0, or below the cheapest minimum opening bid in the pool (an empty pool counts as nothing
+ * affordable). Broke captains can't bid or open, are skipped in the turn order, and fill their
+ * remaining slots in the fill-up round. Derived live; brokeSeq (below) only records *when*.
+ */
+function isCaptainBroke(captain) {
+  if (!captain || isCaptainFull(captain)) return false;
+  const left = remainingBudget(captain);
+  if (left <= 0) return true;
+  const cheapest = cheapestOpenMinBid();
+  return cheapest === null || left < cheapest;
+}
+
+/**
+ * Records the moment captains go broke, for the fill-up pick order (reverse broke order). Call once
+ * per action, after it mutated state. Everyone who goes broke in the same action shares one brokeSeq
+ * (ties are broken later) and gets a random brokeTie, rolled once so the order doesn't reshuffle.
+ * A captain who is no longer broke (e.g. after an admin edit) loses their place.
+ */
+function updateBrokeState() {
+  let nextSeq = 1;
+  for (const c of state.captains) if ((c.brokeSeq || 0) >= nextSeq) nextSeq = c.brokeSeq + 1;
+  for (const c of state.captains) {
+    if (isCaptainBroke(c)) {
+      if (!c.brokeSeq) { c.brokeSeq = nextSeq; c.brokeTie = Math.floor(Math.random() * 1e9); }
+    } else if (c.brokeSeq) {
+      c.brokeSeq = 0;
+      c.brokeTie = 0;
+    }
+  }
+}
+
+/** { name: true|false } — broke flags for the board's turn rail (like fullByName). */
+function brokeByName() {
+  const m = {};
+  for (const c of state.captains) m[c.name] = isCaptainBroke(c);
+  return m;
 }
 
 // ----- open-player pool -----
@@ -143,8 +211,15 @@ module.exports = {
   draftedCount,
   spentByCaptain,
   isCaptainFull,
+  remainingBudget,
   captainMaxBid,
   fullByName,
+  lowestTier,
+  defaultMinBid,
+  cheapestOpenMinBid,
+  isCaptainBroke,
+  updateBrokeState,
+  brokeByName,
   roleMatches,
   captainRoleFlags,
   tierById,

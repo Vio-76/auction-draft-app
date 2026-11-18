@@ -63,14 +63,14 @@ test('snake: bounces at the ends with the end captain back-to-back', () => {
 
 // ---------- max bid / full ----------
 
-test('captainMaxBid reserves the small blind for remaining empty slots', () => {
+test('captainMaxBid is the remaining budget (no reserve for other empty slots)', () => {
   setup({
     settings: { teamBudget: 100, teamSlots: 4, smallBlind: 1 },
     captains: [{ name: 'A', price: 5 }],
   });
   const a = state.captains[0];
-  // empty=4 → reserve 1*3=3 → 100-5-3 = 92
-  assert.equal(team.captainMaxBid(a), 92);
+  // 100 − captain price 5 = 95 (the old rule also held back 1 × 3 other empty slots)
+  assert.equal(team.captainMaxBid(a), 95);
   assert.equal(team.isCaptainFull(a), false);
 });
 
@@ -98,15 +98,16 @@ test('noOneCanOutbid: true only when every other captain is full or capped at/be
   setup({
     settings: { teamBudget: 100, teamSlots: 4, smallBlind: 1 },
     captains: [{ name: 'A', price: 0 }, { name: 'B', price: 0 }],
+    players: [{ name: 'OnTheBlock' }],   // something left in the pool, so nobody is broke
   });
   // B can clearly outbid a $5 bid
   assert.equal(sell.noOneCanOutbid(1, 5), false);
   // make B full → A's bid is uncontestable
   state.players.push(
-    { id: 1, name: 'x1', role: '', status: PLAYER_STATUS.SOLD, captainId: 2, price: 1 },
-    { id: 2, name: 'x2', role: '', status: PLAYER_STATUS.SOLD, captainId: 2, price: 1 },
-    { id: 3, name: 'x3', role: '', status: PLAYER_STATUS.SOLD, captainId: 2, price: 1 },
-    { id: 4, name: 'x4', role: '', status: PLAYER_STATUS.SOLD, captainId: 2, price: 1 },
+    { id: 11, name: 'x1', role: '', status: PLAYER_STATUS.SOLD, captainId: 2, price: 1 },
+    { id: 12, name: 'x2', role: '', status: PLAYER_STATUS.SOLD, captainId: 2, price: 1 },
+    { id: 13, name: 'x3', role: '', status: PLAYER_STATUS.SOLD, captainId: 2, price: 1 },
+    { id: 14, name: 'x4', role: '', status: PLAYER_STATUS.SOLD, captainId: 2, price: 1 },
   );
   assert.equal(sell.noOneCanOutbid(1, 5), true);
 });
@@ -277,15 +278,12 @@ test('opening bid uses the player tier minimum; untiered players use the default
   assert.deepEqual(bids.placeOpeningBid(A, 'Faker', 30), { ok: true });
 });
 
-test('tiers do not change the max-bid reserve (still the default min bid)', () => {
-  setup({
-    settings: { teamBudget: 100, teamSlots: 4, smallBlind: 1 },
-    captains: [{ name: 'A', price: 5 }],
-    players: [{ name: 'P1' }],
-  });
-  admin.setTiers([{ name: 'S-Tier', minBid: 30 }]);
-  state.players[0].tierId = state.settings.tiers[0].id;
-  assert.equal(team.captainMaxBid(state.captains[0]), 92);     // 100 - 5 - 1*3, same as untiered
+test('untiered players are priced like the lowest tier (by min bid); default min only without tiers', () => {
+  setup({ settings: { smallBlind: 5 }, players: [{ name: 'P1' }] });
+  assert.equal(team.playerMinBid(state.players[0]), 5);          // no tiers → default min bid
+  admin.setTiers([{ name: 'S-Tier', minBid: 30 }, { name: 'Gold', minBid: 1 }, { name: 'B-Tier', minBid: 10 }]);
+  assert.equal(team.lowestTier().name, 'Gold');                  // lowest = smallest min, not card order
+  assert.equal(team.playerMinBid(state.players[0]), 1);          // untiered → Gold's $1
 });
 
 test('setTiers keeps ids across rename/reorder, untiers players of removed tiers, validates', () => {
@@ -370,6 +368,74 @@ test('player names must be unique (add, rename, import)', () => {
   assert.equal(admin.importPlayers('Faker\nChovy', 'replace').ok, true);  // open pool is replaced → no clash
 });
 
+// ---------- broke captains (#7) ----------
+
+test('broke: $0 left, or below the cheapest min still in the pool; full teams are never broke', () => {
+  setup({
+    settings: { teamBudget: 30, teamSlots: 3 },
+    captains: [{ name: 'Rich' }, { name: 'Spent', price: 30 }, { name: 'Low', price: 25 }],
+    players: [{ name: 'Base' }, { name: 'Pricey' }],
+  });
+  admin.setTiers([{ name: 'Gold', minBid: 1 }, { name: 'S', minBid: 8 }]);
+  const [gold, sTier] = state.settings.tiers;
+  state.players[0].tierId = gold.id;
+  state.players[1].tierId = sTier.id;
+  const [rich, spent, low] = state.captains;
+
+  assert.equal(team.isCaptainBroke(rich), false);
+  assert.equal(team.isCaptainBroke(spent), true);                // $0 left
+  assert.equal(team.isCaptainBroke(low), false);                 // $5 left, a $1 base player remains
+
+  state.players[0].status = PLAYER_STATUS.SOLD;                  // base tier empties → cheapest is $8
+  state.players[0].captainId = 1;
+  assert.equal(team.isCaptainBroke(low), true);                  // $5 < $8
+  assert.equal(team.isCaptainBroke(rich), false);
+
+  state.settings.teamSlots = 0;                                  // everyone full → nobody broke
+  assert.equal(team.isCaptainBroke(spent), false);
+});
+
+test('broke order: same action → same brokeSeq, later → higher; tie roll kept; recovering clears it', () => {
+  setup({
+    settings: { teamBudget: 10, teamSlots: 3 },
+    captains: [{ name: 'A', price: 10 }, { name: 'B', price: 10 }, { name: 'C', price: 2 }],
+    players: [{ name: 'P' }],
+  });
+  const [A, B, C] = state.captains;
+  team.updateBrokeState();
+  assert.equal(A.brokeSeq, 1);
+  assert.equal(B.brokeSeq, 1);                                   // same moment
+  assert.equal(C.brokeSeq || 0, 0);
+  const tie = A.brokeTie;
+
+  C.price = 10;                                                  // C goes broke later
+  team.updateBrokeState();
+  assert.equal(C.brokeSeq, 2);
+  assert.equal(A.brokeTie, tie);                                 // not re-rolled
+
+  A.price = 0;                                                   // admin edit: A can afford again
+  team.updateBrokeState();
+  assert.equal(A.brokeSeq, 0);
+});
+
+test('broke captains are skipped in the turn order and cannot open or bid', () => {
+  setup({
+    settings: { teamBudget: 10, teamSlots: 2, smallBlind: 1, turnOrder: TURN_ORDER.WATERFALL },
+    captains: [{ name: 'A' }, { name: 'Broke', price: 10 }, { name: 'C' }],
+    players: [{ name: 'P1' }, { name: 'P2' }],
+  });
+  const [A, broke, C] = state.captains;
+  turn.advanceTurn(); persistAll();
+  assert.equal(turn.currentTurnCaptain().id, A.id);
+  assert.equal(bids.skipTurn(A).ok, true);
+  assert.equal(turn.currentTurnCaptain().id, C.id);              // Broke was skipped
+
+  assert.equal(bids.placeOpeningBid(C, 'P1', 3).ok, true);
+  const r = bids.placeBid(broke, 4);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /You're broke/);
+});
+
 // ---------- co-captains ----------
 
 test('co-captain: own price counts, listed first, one per team, survives Empty teams, cleared on unassign', () => {
@@ -384,8 +450,8 @@ test('co-captain: own price counts, listed first, one per team, survives Empty t
   assert.equal(admin.assignPlayerToTeam(2, 1, 4, true).ok, true);         // Tomi = A's co-captain at $4
   const tomi = state.players[1];
   assert.equal(tomi.coCaptain, true);
-  // drafted 2 → 2 empty, reserve 1 → 100 − (6 + 20 + 4) − 1 = 69
-  assert.equal(team.captainMaxBid(A), 69);
+  // remaining budget: 100 − (6 + 20 + 4) = 70
+  assert.equal(team.captainMaxBid(A), 70);
   assert.deepEqual(require('../server/state').draftedPlayers(1).map((p) => p.name), ['Tomi', 'Bought']);   // co-captain first
   const t0 = require('../server/payload').buildBoardState().teams[0];
   assert.deepEqual(t0.players.slice(0, 2).map((p) => [p.name, p.price, p.coCaptain]), [['Tomi', 4, true], ['Bought', 20, false]]);

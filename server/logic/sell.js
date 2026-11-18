@@ -99,6 +99,7 @@ function finalizeSaleAndAdvance() {
   const result = sellPlayerInner();
   if (!result.ok) return result;
   clearLastBidTime();
+  team.updateBrokeState();   // this sale is the moment anyone it priced out went broke (#7)
   turn.advanceTurn();
   // The sold banner owns the captain screen for soldMessageSeconds; defer the next turn-holder's
   // opening deadline by the same amount so their clock starts *after* the banner clears, not under it.
@@ -109,7 +110,7 @@ function finalizeSaleAndAdvance() {
 // ----- uncontestable-bid auto-sell -----
 
 function captainCanOutbid(captain, currentBid) {
-  if (team.isCaptainFull(captain)) return false;
+  if (team.isCaptainFull(captain) || team.isCaptainBroke(captain)) return false;
   return team.captainMaxBid(captain) > currentBid;
 }
 

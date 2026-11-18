@@ -64,7 +64,7 @@ function render(state) {
     state.phase, state.isYourTurnToOpen, state.currentTurnCaptain,
     state.player, state.highestBid, state.byCaptain,
     state.yourMaxBid, state.smallBlind, state.openPlayers,
-    state.youAreFull, state.sellMode,
+    state.youAreFull, state.sellMode, state.youAreBroke, state.yourOpenSlots,
   ]);
   if (key === lastKey) return;
   lastKey = key;
@@ -88,7 +88,7 @@ function render(state) {
       renderOpeningBid(root, state);
     } else {
       const turnCap = state.currentTurnCaptain || 'someone';
-      root.innerHTML = '<div class="waiting">Waiting for <b>' + esc(turnCap) + '</b> to choose a player…</div>';
+      root.innerHTML = '<div class="waiting">Waiting for <b>' + esc(turnCap) + '</b> to choose a player…</div>' + brokeBox(state);
       return;
     }
   } else if (state.phase === STATUSES.BIDDING) {
@@ -108,6 +108,16 @@ function render(state) {
     const el = document.getElementById(focusedId);
     if (el) el.focus();
   }
+}
+
+// Broke (#7): a neutral box (a state, not an error) with the no-money coin, how much is left and
+// how many slots the captain will fill in the fill-up round. '' when not broke.
+function brokeBox(state) {
+  if (!state.youAreBroke) return '';
+  const n = state.yourOpenSlots || 0;
+  return '<div class="broke-box">' + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.5 0-2.6.8-2.6 2s1.2 1.6 2.6 1.9 2.6.8 2.6 2-1.1 2-2.6 2c-1.2 0-2.2-.5-2.7-1.4"/><path d="M4 20 20 4"/></svg>' + '<div>You\'re broke' +
+    '<span class="sub">You have <b>$' + state.yourMaxBid + '</b> left — not enough for any player still in the pool. ' +
+    'You\'ll fill your remaining <b>' + n + ' slot' + (n === 1 ? '' : 's') + '</b> for $0 in the fill-up round after the auction.</span></div></div>';
 }
 
 // Per-player minimum opening bid for the current dropdown (name -> minBid), refreshed each render.
@@ -131,7 +141,7 @@ function renderOpeningBid(root, state) {
         ringSvg('timer-arc', 'timer-text', OPENING_TIMEOUT) +
       '</div>' +
       '<select id="player-select">' + options + '</select>' +
-      '<div class="max-line">Min opening bid: <b id="min-bid">$' + state.smallBlind + '</b> &nbsp;•&nbsp; Your max bid: <b>$' + state.yourMaxBid + '</b></div>' +
+      '<div class="max-line">Min opening bid: <b id="min-bid">$' + state.smallBlind + '</b> &nbsp;•&nbsp; Your budget: <b>$' + state.yourMaxBid + '</b></div>' +
       '<div class="bid-row">' +
         '<input id="amount" type="number" min="' + state.smallBlind + '" step="1" placeholder="Opening bid">' +
         '<button id="submit">Place bid</button>' +
@@ -256,12 +266,14 @@ function renderRegularBid(root, state) {
     ? (leadingYou ? 'by <span class="leading-you">you</span>' : 'by ' + esc(state.byCaptain))
     : 'No bids yet';
 
-  const pricedOut = !state.youAreFull && state.yourMaxBid <= state.highestBid;
+  const pricedOut = !state.youAreFull && !state.youAreBroke && state.yourMaxBid <= state.highestBid;
 
   const bidControls = state.youAreFull
     ? '<div class="team-full">Your team is full — you can\'t place bids.</div>'
+    : state.youAreBroke
+      ? brokeBox(state)
     : pricedOut
-      ? '<div class="priced-out">Max bid reached ($' + state.yourMaxBid + ') — you can\'t outbid this.</div>'
+      ? '<div class="priced-out">Budget reached ($' + state.yourMaxBid + ') — you can\'t outbid this.</div>'
       : '<div class="bid-row">' +
           '<input id="amount" type="number" min="' + (state.highestBid + 1) + '" step="1" placeholder="Your bid">' +
           '<button id="submit">Bid</button>' +
@@ -284,12 +296,12 @@ function renderRegularBid(root, state) {
         '<div class="bid-figure' + (leadingYou ? ' leading-you' : '') + '">$' + state.highestBid + '</div>' +
         '<div class="bid-by">' + byText + '</div>' +
       '</div>' +
-      '<div class="max-line">Your max bid: <b>$' + state.yourMaxBid + '</b></div>' +
+      '<div class="max-line">Your budget: <b>$' + state.yourMaxBid + '</b></div>' +
       bidControls +
       '<div class="error" id="error"></div>' +
     '</div>';
 
-  if (!state.youAreFull && !pricedOut) {
+  if (!state.youAreFull && !state.youAreBroke && !pricedOut) {
     document.getElementById('submit').onclick = submitRegularBid;
     document.getElementById('amount').onkeydown = function (e) { if (e.key === 'Enter') submitRegularBid(); };
   }

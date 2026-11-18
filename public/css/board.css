@@ -155,6 +155,8 @@
       font-family:var(--font-display); font-weight:700; font-size:16px;
       letter-spacing:.04em; text-transform:uppercase; color:var(--ink); opacity:1;
     }
+    /* Broke (#7): same settled word style as "Full", but muted — the team still has slots to fill. */
+    .team-maxbid.is-broke { color:var(--muted); }
 
     .roster { display:flex; flex-direction:column; gap:1px; margin-bottom:14px; }
     .roster-row {
@@ -426,6 +428,12 @@
     .turn-chip.current .turn-name { color:var(--accent); }
 
     .turn-chip.full { opacity:.45; filter:grayscale(1); }
+    /* Broke (#7): dimmed but not struck through (they still pick in the fill-up round), with a
+       small no-money coin. */
+    .turn-chip.broke { opacity:.55; }
+    .turn-coin { display:none; width:13px; height:13px; align-self:center; color:var(--muted); }
+    .turn-coin svg { display:block; width:100%; height:100%; }
+    .turn-chip.broke .turn-coin { display:block; }
 
     /* Wide screens: center the sections below the team grid to match its centered block.
        Pool columns keep their old ~160px width (230px in the tier view) (auto-fit collapses the unused columns so the

@@ -217,7 +217,7 @@ let tiersSig = '';
 function tierList() { return (STATE && STATE.settings && STATE.settings.tiers) || []; }
 function tierName(id) { const t = tierList().find((x) => x.id === id); return t ? t.name : ''; }
 function tierOptions() {
-  return [{ value: '', label: '— none (default min) —' }]
+  return [{ value: '', label: '— none (counts as the lowest tier) —' }]
     .concat(tierList().map((t) => ({ value: t.id, label: t.name + ' · min $' + t.minBid })));
 }
 function tierPlayerCount(id) { return ((STATE && STATE.players) || []).filter((p) => p.tierId === id).length; }
@@ -246,7 +246,7 @@ function renderTiers() {
   const def = STATE.settings.smallBlind;
   let html = '<tr><th>Name</th><th>Price range</th><th class="num">Min bid</th><th class="num">Players</th><th>Order</th><th></th></tr>';
   if (!tierDraft.length) {
-    html += '<tr><td colspan="6" class="hint">No tiers — every player uses the default min bid ($' + def + ').</td></tr>';
+    html += '<tr><td colspan="6" class="hint">No tiers — every player uses the min bid without tiers ($' + def + ').</td></tr>';
   }
   tierDraft.forEach(function (t, i) {
     html += '<tr>' +
@@ -263,10 +263,32 @@ function renderTiers() {
   });
   if (tierDraft.length) {
     const untiered = ((STATE.players) || []).filter((p) => p.tierId == null).length;
-    html += '<tr class="tier-default"><td class="hint">(no tier)</td><td></td><td class="num hint">$' + def + ' default</td>' +
+    html += '<tr class="tier-default"><td class="hint">(no tier)</td><td></td><td class="num hint" id="tier-default-min">= lowest tier</td>' +
       '<td class="num" id="tier-count-none">' + untiered + '</td><td></td><td></td></tr>';
   }
   tbl.innerHTML = html;
+  updateTierWarning();
+}
+
+/** #7: the lowest tier's minimum should be $1 (it's the base tier, and untiered players count as it).
+ *  Checked against the unsaved draft, so the warning reacts while the admin types. Lowest = the
+ *  smallest minimum, matching the server (team.lowestTier). */
+const WARN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true">' +
+  '<path d="M12 3 22 20H2Z"/><path d="M12 10v4M12 17v.5" stroke-linecap="round"/></svg>';
+function updateTierWarning() {
+  const mins = tierDraft.map((t) => Number(t.minBid)).filter((n) => Number.isFinite(n));
+  const low = mins.length ? Math.min.apply(null, mins) : null;
+  const warn = low !== null && low !== 1;
+  const box = document.getElementById('tiers-warn');
+  if (box) {
+    box.hidden = !warn;
+    box.innerHTML = warn ? WARN_SVG + 'The lowest tier\u2019s minimum should be $1 (now $' + low + ').' : '';
+  }
+  document.querySelectorAll('#tiers-tbl .tier-min').forEach(function (inp, i) {
+    inp.classList.toggle('bad', warn && tierDraft[i] && Number(tierDraft[i].minBid) === low);
+  });
+  const def = document.getElementById('tier-default-min');
+  if (def) def.textContent = low !== null ? '= lowest tier ($' + low + ')' : '= lowest tier';
 }
 
 /** Live player counts only (keeps the inputs untouched while the admin types). */
@@ -283,6 +305,7 @@ function editTier(i, field, value) {
   if (!tierDraft[i]) return;
   tierDraft[i][field] = value;
   markTiersDirty();
+  if (field === 'minBid') updateTierWarning();
 }
 function addTierRow() {
   tierDraft.push({ id: null, name: '', minBid: STATE ? STATE.settings.smallBlind : 0, range: '' });
@@ -308,7 +331,7 @@ async function saveTiers() {
   const dropped = tierList().filter((t) => !keep.has(t.id) && tierPlayerCount(t.id) > 0);
   if (dropped.length) {
     const what = dropped.map((t) => t.name + ' (' + tierPlayerCount(t.id) + ' players)').join(', ');
-    if (!(await confirmModal('Remove ' + what + '? Those players become untiered and use the default min bid.', 'Remove'))) return;
+    if (!(await confirmModal('Remove ' + what + '? Those players become untiered and count as the lowest tier.', 'Remove'))) return;
   }
   const tiers = tierDraft.map((t) => ({ id: t.id, name: String(t.name).trim(), minBid: Number(t.minBid), range: String(t.range || '').trim() }));
   const res = await adminAction('tiers', { tiers });
@@ -489,17 +512,17 @@ function fillSettingsOnce(s) {
 }
 
 function renderCaptains(s) {
-  const sig = JSON.stringify((s.captains || []).map((c) => [c.id, c.name, c.code, c.price, c.role, c.seat, c.discord, c.teamGroup, c.teamName, c.logo, c.maxBid, c.full, c.draftedCount]));
+  const sig = JSON.stringify((s.captains || []).map((c) => [c.id, c.name, c.code, c.price, c.role, c.seat, c.discord, c.teamGroup, c.teamName, c.logo, c.maxBid, c.broke, c.full, c.draftedCount]));
   if (sig === captainsSig) return;
   captainsSig = sig;
 
   const slots = s.settings.teamSlots;
   const caps = s.captains || [];
-  let html = '<tr><th>#</th><th>Name</th><th>Role</th><th>Discord</th><th>Group</th><th>Team name</th><th>Password</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Max bid</th><th>Order</th><th>Actions</th></tr>';
+  let html = '<tr><th>#</th><th>Name</th><th>Role</th><th>Discord</th><th>Group</th><th>Team name</th><th>Password</th><th>Invite link</th><th class="num">Price</th><th class="num">Roster</th><th class="num">Budget</th><th>Order</th><th>Actions</th></tr>';
   caps.forEach(function (c, i) {
     html += '<tr>' +
       '<td class="num">' + (c.seat + 1) + '</td>' +
-      '<td>' + esc(c.name) + (c.full ? ' <span class="tag full">full</span>' : '') + '</td>' +
+      '<td>' + esc(c.name) + (c.full ? ' <span class="tag full">full</span>' : '') + (c.broke ? ' <span class="tag broke">broke</span>' : '') + '</td>' +
       '<td>' + esc(c.role || '—') + '</td>' +
       '<td>' + esc(c.discord || '—') + '</td>' +
       '<td>' + esc(c.teamGroup || '—') + '</td>' +

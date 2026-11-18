@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS captains (
   discord TEXT NOT NULL DEFAULT '',
   team_group TEXT NOT NULL DEFAULT '',   -- 'A' | 'B' | '' (shown on the board once FINISHED)
   team_name  TEXT NOT NULL DEFAULT '',   -- team name (board: once FINISHED, or always if teamIdentityAlways)
-  logo       TEXT NOT NULL DEFAULT ''    -- uploaded team logo filename (bare basename) or ''
+  logo       TEXT NOT NULL DEFAULT '',   -- uploaded team logo filename (bare basename) or ''
+  broke_seq  INTEGER NOT NULL DEFAULT 0, -- when the captain went broke (#7); 0 = not broke. Same value = same moment
+  broke_tie  INTEGER NOT NULL DEFAULT 0  -- random tie-breaker, rolled once when they went broke
 );
 
 CREATE TABLE IF NOT EXISTS players (
@@ -70,6 +72,8 @@ function migrate() {
   ensureColumn('captains', 'team_group', "TEXT NOT NULL DEFAULT ''");
   ensureColumn('captains', 'team_name', "TEXT NOT NULL DEFAULT ''");
   ensureColumn('captains', 'logo', "TEXT NOT NULL DEFAULT ''");
+  ensureColumn('captains', 'broke_seq', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn('captains', 'broke_tie', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('players',  'discord', "TEXT NOT NULL DEFAULT ''");
   ensureColumn('players',  'sold_seq', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('players',  'image', "TEXT NOT NULL DEFAULT ''");

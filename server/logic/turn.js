@@ -85,7 +85,8 @@ function deferOpeningDeadline(extraSeconds) {
  */
 function advanceMarker() {
   const caps = captainsBySeat();
-  const isFull = (c) => team.isCaptainFull(c);
+  // Full and broke captains both sit out the rotation (#7).
+  const isFull = (c) => team.isCaptainFull(c) || team.isCaptainBroke(c);
 
   let nextIdx;
   if (state.settings.turnOrder === TURN_ORDER.SNAKE) {

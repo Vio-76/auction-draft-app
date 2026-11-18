@@ -22,6 +22,8 @@ const sell = require('./logic/sell');
 function commit() {
   // The paused-countdown snapshot is only meaningful while CLOSED; clear it on resume.
   if (state.settings.status !== STATUS.CLOSED) state.clocks.pausedRemaining = null;
+  // Admin edits (prices, rosters, pool, budget, tiers) can make captains go broke or stop being broke.
+  team.updateBrokeState();
   persistAll();
   markChanged();
 }

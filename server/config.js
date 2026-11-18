@@ -22,7 +22,7 @@ const DEFAULT_SETTINGS = {
   turnOrder:          TURN_ORDER.WATERFALL,
   turnDirection:      TURN_DIR.DOWN,
   poolOrder:          POOL_ORDER.RANDOM,       // spectator-board open pool: RANDOM (seeded shuffle) or ALPHABETICAL
-  smallBlind:         5,
+  smallBlind:         5,           // min opening bid when NO tiers exist (otherwise untiered = lowest tier)
   teamBudget:         100,
   teamSlots:          4,           // drafted players per team, excluding the captain
   openingTimeout:     30,          // seconds for the turn-holder to open
@@ -37,8 +37,8 @@ const DEFAULT_SETTINGS = {
   teamIdentityAlways: false,       // board: show team names + logos during the auction (false = only once FINISHED)
   showTeamNameOnBoard: true,       // board: show the team name next to the logo (false = logo only)
   // Player tiers, in display order: [{ id, name, minBid, range }] (range = free-text recommended price, board only). A tiered player's opening bid must be
-  // at least its tier's minBid; untiered players (player.tierId null) fall back to smallBlind.
-  // The max-bid reserve still uses smallBlind. Edited as a whole list from the admin Tiers card.
+  // at least its tier's minBid; untiered players (player.tierId null) are priced like the lowest tier
+  // (smallest minBid), or smallBlind when there are no tiers. Edited as a whole list from the admin Tiers card.
   tiers:              [],
 };
 
@@ -82,8 +82,9 @@ const AUCTION_INFO_SECTIONS = [
     items: [
       'When a player is on the block, any captain can place a bid.',
       'A new bid must beat the current bid by at least $1.',
-      'The *max bid* of a captain is the highest amount they can bid on a player. (It is calculated from the total team budget ${TEAM_BUDGET}, the minimum player cost ${SMALL_BLIND} and the costs of players already in the team.)',
-      'A captain can not bid if the current bid exceeds their max bid or their team is full.',
+      'A captain can bid up to their remaining *budget*: the team budget ${TEAM_BUDGET} minus the captain\'s price and the players already bought.',
+      'A captain can not bid if the current bid exceeds their budget or their team is full.',
+      'A captain who can no longer afford any player left in the pool is *broke*: they sit out the rest of the auction and fill their remaining slots for $0 in the fill-up round afterwards.',
       '{SELL_MODE}',
     ],
   },
@@ -110,7 +111,7 @@ const AUCTION_INFO_VARIANTS = {
   SELL_MODE_AUTO:       'Each bid refreshes a {AUTO_SECONDS}second countdown; when it ends the player is sold to the highest bidder.',
   SELL_MODE_MANUAL:     'The admin marks the player as *Sold* once bidding settles.',
   OPENING_MIN_FLAT:     'Any opening bid must be at least ${SMALL_BLIND}.',
-  OPENING_MIN_TIERED:   'Any opening bid must be at least the player\'s *tier* minimum ({TIER_MINS}); players without a tier start at ${SMALL_BLIND}.',
+  OPENING_MIN_TIERED:   'Any opening bid must be at least the player\'s *tier* minimum ({TIER_MINS}); players without a tier count as the lowest tier.',
 };
 
 // Extra links shown on the captain page beside the auto-added "View Teams" link.

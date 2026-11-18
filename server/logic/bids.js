@@ -17,6 +17,8 @@ const team = require('./team');
 const turn = require('./turn');
 const sell = require('./sell');
 
+const BROKE_ERROR = "You're broke — you can't afford any player left. You'll fill your remaining slots in the fill-up round.";
+
 function validBidAmount(amount) {
   const bid = Number(amount);
   if (!Number.isFinite(bid) || bid <= 0) return { ok: false, error: 'Invalid bid.' };
@@ -27,6 +29,7 @@ function validBidAmount(amount) {
 function placeBid(captain, amount) {
   if (state.settings.status !== STATUS.BIDDING) return { ok: false, error: 'Bidding is closed.' };
   if (team.isCaptainFull(captain)) return { ok: false, error: 'Your team is full.' };
+  if (team.isCaptainBroke(captain)) return { ok: false, error: BROKE_ERROR };
 
   const v = validBidAmount(amount);
   if (!v.ok) return v;
@@ -36,7 +39,7 @@ function placeBid(captain, amount) {
     return { ok: false, error: `Bid must be higher than $${state.auction.highestBid}.` };
   }
   const maxBid = team.captainMaxBid(captain);
-  if (maxBid && bid > maxBid) return { ok: false, error: `Exceeds your max bid of $${maxBid}.` };
+  if (bid > maxBid) return { ok: false, error: `Exceeds your budget of $${maxBid}.` };
 
   state.auction.highestBid = bid;
   state.auction.byCaptainId = captain.id;
@@ -49,6 +52,7 @@ function placeBid(captain, amount) {
 function placeOpeningBid(captain, playerName, amount) {
   if (state.settings.status !== STATUS.OPENING) return { ok: false, error: 'Not currently in opening bid phase.' };
   if (team.isCaptainFull(captain)) return { ok: false, error: 'Your team is full.' };
+  if (team.isCaptainBroke(captain)) return { ok: false, error: BROKE_ERROR };
 
   const cur = turn.currentTurnCaptain();
   if (!cur || cur.id !== captain.id) return { ok: false, error: "It's not your turn to open." };
@@ -62,7 +66,7 @@ function placeOpeningBid(captain, playerName, amount) {
   if (!v.ok) return v;
   const bid = v.bid;
 
-  // Tiered players have their own minimum; untiered ones use the default (smallBlind).
+  // Tiered players have their own minimum; untiered ones use the lowest tier's (team.defaultMinBid).
   const minBid = team.playerMinBid(player);
   if (bid < minBid) {
     const tier = team.tierById(player.tierId);
@@ -70,7 +74,7 @@ function placeOpeningBid(captain, playerName, amount) {
   }
 
   const maxBid = team.captainMaxBid(captain);
-  if (maxBid && bid > maxBid) return { ok: false, error: `Exceeds your max bid of $${maxBid}.` };
+  if (bid > maxBid) return { ok: false, error: `Exceeds your budget of $${maxBid}.` };
 
   state.auction.currentPlayerId = player.id;
   state.auction.highestBid = bid;

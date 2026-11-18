@@ -124,6 +124,14 @@
       font-family:var(--font-body); padding:14px 16px; border-radius:var(--control-radius); margin-top:8px;
       background:var(--accent-soft); border:1px solid var(--accent-border); color:var(--accent); font-weight:600;
     }
+    /* Broke (#7): neutral, not red — it's a state, not an error. */
+    .broke-box {
+      display:flex; gap:12px; align-items:flex-start; padding:14px 16px; border-radius:var(--control-radius); margin-top:8px;
+      background:var(--surface-2); border:1px solid var(--line-strong); color:var(--ink); font-weight:600; line-height:1.4;
+    }
+    .broke-box svg { width:26px; height:26px; flex-shrink:0; color:var(--muted); margin-top:1px; }
+    .broke-box b { color:var(--accent); }
+    .broke-box .sub { display:block; color:var(--muted); font-size:13px; font-weight:400; margin-top:3px; }
     .priced-out {
       padding:14px 16px; border-radius:var(--control-radius); margin-top:8px;
       background:var(--danger-soft); border:1px solid var(--danger-border); color:var(--danger); font-weight:600;

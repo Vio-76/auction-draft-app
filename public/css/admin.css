@@ -107,6 +107,13 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .tag.full { color: var(--danger); background: var(--danger-soft); }
 .tag.tier { color: var(--ink); background: var(--surface-2); border: 1px solid var(--line-strong); }
 .tag.co { color: var(--accent-ink); background: var(--accent); }
+.tag.broke { color: var(--muted); background: var(--surface-2); border: 1px solid var(--line-strong); }
+/* Tiers card: warning when the lowest tier's minimum isn't $1 (#7). */
+.tier-warn { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 8px 12px; border-radius: var(--control-radius);
+  background: var(--danger-soft); border: 1px solid var(--danger-border); color: var(--danger); font-size: 13px; font-weight: 600; }
+.tier-warn[hidden] { display: none; }
+.tier-warn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.tier-tbl input.bad { border-color: var(--danger); box-shadow: 0 0 0 3px var(--danger-soft); }
 
 /* ----- tiers card (inline-editable rows) ----- */
 .tier-tbl input { padding: 6px 8px; font-size: 13px; }

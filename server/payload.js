@@ -82,8 +82,10 @@ function buildCaptainState(captain) {
     highestBid:         state.auction.highestBid,
     byCaptain:          byCap,
     yourMaxBid:         team.captainMaxBid(captain),
-    smallBlind:         s.smallBlind,
+    smallBlind:         team.defaultMinBid(),   // min opening bid for untiered players (field name kept for captain.js)
     youAreFull:         team.isCaptainFull(captain),
+    youAreBroke:        team.isCaptainBroke(captain),
+    yourOpenSlots:      Math.max(0, s.teamSlots - team.draftedCount(captain)),
   };
 
   if (isYourTurnToOpen) {
@@ -153,6 +155,7 @@ function buildBoardState() {
       teamBudget:   s.teamBudget,
       leftOver:     s.teamBudget - spent,
       full,
+      broke:        team.isCaptainBroke(c),
       pricedOut,
       leading,
       roles:        team.captainRoleFlags(c),
@@ -203,6 +206,7 @@ function buildBoardState() {
     direction:    s.turnDirection === TURN_DIR.UP ? 'UP' : 'DOWN',
     phase:        s.status,
     full:         fullByName,
+    broke:        team.brokeByName(),
   };
 
   return {
@@ -212,7 +216,7 @@ function buildBoardState() {
     // Tier list (admin order) + the default minimum, for the pool's Role/Tier switch. Tier names,
     // minimums and assignments are public on the board (they're auction rules, not bids).
     tiers:         (s.tiers || []).map((t) => ({ id: t.id, name: t.name, minBid: t.minBid, range: t.range || '' })),
-    defaultMinBid: s.smallBlind,
+    defaultMinBid: team.defaultMinBid(),
     turn:        turnInfo,
     liveBid,
     // Whether the per-team available-budget bar shows on the board team cards (admin toggle).
@@ -251,7 +255,7 @@ function buildAdminState() {
     id: c.id, name: c.name, code: c.code, price: c.price, role: c.role || '', seat: c.seat,
     discord: c.discord || '',
     teamGroup: c.teamGroup || '', teamName: c.teamName || '', logo: c.logo || '',
-    maxBid: team.captainMaxBid(c), full: team.isCaptainFull(c),
+    maxBid: team.captainMaxBid(c), full: team.isCaptainFull(c), broke: team.isCaptainBroke(c), brokeSeq: c.brokeSeq || 0,
     draftedCount: team.draftedCount(c), spent: team.spentByCaptain(c),
   }));
 

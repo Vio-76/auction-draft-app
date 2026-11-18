@@ -30,7 +30,7 @@ function render(state) {
   if (!teams.length) { showMessage(root, 'No teams yet.'); updateSub(0); return; }
   if (messageShown) { root.innerHTML = ''; cardEls = {}; messageShown = false; }
 
-  // Once the auction is over, max bid / budget are no longer meaningful — hide them and let the
+  // Once the auction is over, the budget headline / bar are no longer meaningful — hide them and let the
   // card show just the final roster (+ team op.gg link).
   const finished = !!(state.turn && state.turn.phase === 'FINISHED');
   // Admin toggle: whether the available-budget bar shows at all (default on if unspecified).
@@ -42,7 +42,7 @@ function render(state) {
     seen[t.captain] = true;
     let card = cardEls[t.captain];
     if (!card) card = cardEls[t.captain] = buildCard(t);
-    updateCard(card, t, t.full || t.pricedOut, finished, showBudget);   // dim max bid when full or priced out
+    updateCard(card, t, t.full || t.pricedOut, finished, showBudget);   // dim the budget when full or priced out
     if (root.children[i] !== card.el) root.insertBefore(card.el, root.children[i] || null);
   }
   for (const cap in cardEls) {
@@ -256,7 +256,7 @@ function buildCard(t) {
   const head = card.head = el('div', 'team-head');
   card.maxBid = el('span', 'team-maxbid');
   head.appendChild(card.maxBid);
-  card.maxBidLabel = el('span', 'team-maxbid-label', '(Max bid)');
+  card.maxBidLabel = el('span', 'team-maxbid-label', '(Budget)');
   head.appendChild(card.maxBidLabel);
   card.el.appendChild(head);
 
@@ -355,21 +355,26 @@ function updateCard(card, t, dim, finished, showBudget) {
 
   setText(card.captainName, t.captain);
   setText(card.captainPrice, '$' + t.captainPrice);
-  // Full team: headline reads "Full" (max bid is a meaningless $0 by then) and the budget bar
-  // greys out — done, no longer of concern to other captains. Otherwise the live max bid.
+  // Full team: headline reads "Full"; broke team (#7): "Broke" — both settled states, so the budget
+  // bar greys out too. Otherwise the live budget (what the captain can still bid).
+  const broke = !t.full && !!t.broke;
   if (t.full) {
     setText(card.maxBid, 'Full');
     setText(card.maxBidLabel, '');
+  } else if (broke) {
+    setText(card.maxBid, 'Broke');
+    setText(card.maxBidLabel, '');
   } else {
     setText(card.maxBid, '$' + t.maxBid);
-    setText(card.maxBidLabel, '(Max bid)');
+    setText(card.maxBidLabel, '(Budget)');
   }
   setText(card.budgetVal, 'Budget $' + t.leftOver + '/' + t.teamBudget);
   const budgetFrac = t.teamBudget > 0 ? Math.max(0, Math.min(1, t.leftOver / t.teamBudget)) : 0;
   card.budgetFill.style.width = (budgetFrac * 100) + '%';
   card.maxBid.classList.toggle('dim', !!dim);
-  card.maxBid.classList.toggle('is-full', !!t.full);   // render "Full" as a word, not a mono figure
-  card.budget.classList.toggle('full', !!t.full);      // grey the bar when settled
+  card.maxBid.classList.toggle('is-full', !!t.full || broke);   // render "Full"/"Broke" as a word, not a mono figure
+  card.maxBid.classList.toggle('is-broke', broke);
+  card.budget.classList.toggle('full', !!t.full || broke);      // grey the bar when settled
   card.captainName.classList.toggle('leading', !!t.leading);   // current high bidder -> green name
   card.capRow.classList.toggle('leading', !!t.leading);        // ...and its crown
 
@@ -578,6 +583,10 @@ function buildTurnRail(names) {
     const chip = el('div', 'turn-chip');
     chip.appendChild(el('span', 'turn-seat', (i + 1) + '.'));
     chip.appendChild(el('span', 'turn-name', names[i]));
+    const coin = el('span', 'turn-coin');
+    coin.title = 'Broke';
+    coin.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9M14.6 9.3c-.5-.8-1.5-1.3-2.6-1.3-1.5 0-2.6.8-2.6 2s1.2 1.6 2.6 1.9 2.6.8 2.6 2-1.1 2-2.6 2c-1.2 0-2.2-.5-2.7-1.4"/><path d="M4 20 20 4"/></svg>';
+    chip.appendChild(coin);
     rail.appendChild(chip);
     turnChips.push(chip);
   }
@@ -596,6 +605,7 @@ function renderTurn(turn) {
     chip.querySelector('.turn-name').textContent = names[i];
     chip.classList.toggle('current', active && i === turn.currentIndex);
     chip.classList.toggle('full', turn.full && turn.full[names[i]] === true);
+    chip.classList.toggle('broke', turn.broke && turn.broke[names[i]] === true);   // dimmed + no-money coin
   }
 
   const badge = document.getElementById('turn-badge');

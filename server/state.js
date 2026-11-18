@@ -42,7 +42,7 @@ function load() {
     }
   }
 
-  state.captains = db.prepare('SELECT id, name, code, price, role, seat, discord, team_group AS teamGroup, team_name AS teamName, logo FROM captains ORDER BY seat, id').all();
+  state.captains = db.prepare('SELECT id, name, code, price, role, seat, discord, team_group AS teamGroup, team_name AS teamName, logo, broke_seq AS brokeSeq, broke_tie AS brokeTie FROM captains ORDER BY seat, id').all();
 
   state.players = db.prepare('SELECT id, name, role, status, captain_id AS captainId, price, discord, sold_seq AS soldSeq, image, tier_id AS tierId, co_captain AS coCaptain FROM players ORDER BY id').all()
     .map((p) => ({ ...p, coCaptain: !!p.coCaptain }));
@@ -67,8 +67,8 @@ function persistSettings() {
 function persistCaptains() {
   transaction(() => {
     db.prepare('DELETE FROM captains').run();
-    const stmt = db.prepare('INSERT INTO captains (id, name, code, price, role, seat, discord, team_group, team_name, logo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-    for (const c of state.captains) stmt.run(c.id, c.name, c.code, c.price, c.role || '', c.seat, c.discord || '', c.teamGroup || '', c.teamName || '', c.logo || '');
+    const stmt = db.prepare('INSERT INTO captains (id, name, code, price, role, seat, discord, team_group, team_name, logo, broke_seq, broke_tie) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const c of state.captains) stmt.run(c.id, c.name, c.code, c.price, c.role || '', c.seat, c.discord || '', c.teamGroup || '', c.teamName || '', c.logo || '', c.brokeSeq || 0, c.brokeTie || 0);
   });
 }
 
