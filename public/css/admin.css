@@ -106,6 +106,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .tag.sold { color: var(--accent); background: var(--accent-soft); }
 .tag.full { color: var(--danger); background: var(--danger-soft); }
 .tag.tier { color: var(--ink); background: var(--surface-2); border: 1px solid var(--line-strong); }
+.tag.co { color: var(--accent-ink); background: var(--accent); }
 
 /* ----- tiers card (inline-editable rows) ----- */
 .tier-tbl input { padding: 6px 8px; font-size: 13px; }

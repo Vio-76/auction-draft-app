@@ -90,7 +90,7 @@ function registerAdminRoutes(app) {
   post('pool/clear',    () => A.clearPool());
 
   // manual roster editing
-  post('roster/assign', (b) => A.assignPlayerToTeam(b.playerId, b.captainId, b.price));
+  post('roster/assign', (b) => A.assignPlayerToTeam(b.playerId, b.captainId, b.price, b.coCaptain));
   post('roster/remove', (b) => A.removePlayerFromTeam(b.playerId));
   post('roster/price',  (b) => A.setPlayerPrice(b.playerId, b.price));
 }

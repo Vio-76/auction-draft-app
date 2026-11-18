@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS players (
   discord    TEXT NOT NULL DEFAULT '',
   sold_seq   INTEGER NOT NULL DEFAULT 0,     -- acquisition order within a team (0 = unsold)
   image      TEXT NOT NULL DEFAULT '',       -- uploaded image filename (bare basename) or ''
-  tier_id    INTEGER                         -- id into settings.tiers, NULL = no tier
+  tier_id    INTEGER,                        -- id into settings.tiers, NULL = no tier
+  co_captain INTEGER NOT NULL DEFAULT 0      -- 1 = this drafted player is their team's co-captain
 );
 
 CREATE TABLE IF NOT EXISTS auction (
@@ -73,6 +74,7 @@ function migrate() {
   ensureColumn('players',  'sold_seq', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('players',  'image', "TEXT NOT NULL DEFAULT ''");
   ensureColumn('players',  'tier_id', 'INTEGER');
+  ensureColumn('players',  'co_captain', 'INTEGER NOT NULL DEFAULT 0');
   // Ensure the single auction row exists.
   db.prepare('INSERT OR IGNORE INTO auction (id, current_player_id, highest_bid, by_captain_id) VALUES (1, NULL, 0, NULL)').run();
 }

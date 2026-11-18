@@ -396,9 +396,10 @@ async function assignPlayer(id) {
   const v = await openModal({ title: 'Assign ' + p.name + ' to a team', submitLabel: 'Assign', fields: [
     { name: 'captainId', label: 'Team', type: 'select', value: '', options: teamOptions() },
     { name: 'price', label: 'Price', type: 'number', value: 0 },
+    { name: 'coCaptain', label: 'Role on the team', type: 'select', value: 'false', options: rosterRoleOptions() },
   ] });
   if (!v || !v.captainId) return;
-  adminAction('roster/assign', { playerId: id, captainId: Number(v.captainId), price: Number(v.price) || 0 });
+  adminAction('roster/assign', { playerId: id, captainId: Number(v.captainId), price: Number(v.price) || 0, coCaptain: v.coCaptain === 'true' });
 }
 async function reassign(id) {
   const p = (STATE.players || []).find((x) => x.id === id);
@@ -406,9 +407,15 @@ async function reassign(id) {
   const v = await openModal({ title: 'Edit ' + p.name + ' — team & price', fields: [
     { name: 'captainId', label: 'Team', type: 'select', value: String(p.captainId), options: teamOptions() },
     { name: 'price', label: 'Price', type: 'number', value: p.price },
+    { name: 'coCaptain', label: 'Role on the team', type: 'select', value: String(!!p.coCaptain), options: rosterRoleOptions() },
   ] });
   if (!v || !v.captainId) return;
-  adminAction('roster/assign', { playerId: id, captainId: Number(v.captainId), price: Number(v.price) || 0 });
+  adminAction('roster/assign', { playerId: id, captainId: Number(v.captainId), price: Number(v.price) || 0, coCaptain: v.coCaptain === 'true' });
+}
+// Player vs co-captain on a team. A co-captain is pre-assigned before the auction, keeps their own
+// price, stays on the team through "Empty teams", and shows under the captain on the board.
+function rosterRoleOptions() {
+  return [{ value: 'false', label: 'Player' }, { value: 'true', label: 'Co-captain' }];
 }
 function removeFromTeam(id) { adminAction('roster/remove', { playerId: id }); }
 
@@ -525,7 +532,7 @@ function renderPlayers() {
   players.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
   const sig = filter + '|' + JSON.stringify(tierList()) + '|' +
-    JSON.stringify((s.players || []).map((p) => [p.id, p.name, p.role, p.status, p.captainName, p.price, p.discord, p.image, p.tierId]));
+    JSON.stringify((s.players || []).map((p) => [p.id, p.name, p.role, p.status, p.captainName, p.price, p.discord, p.image, p.tierId, p.coCaptain]));
   if (sig === playersSig) return;
   playersSig = sig;
 
@@ -544,7 +551,7 @@ function renderPlayers() {
       '<td>' + esc(p.role || '—') + '</td>' +
       '<td>' + (p.tierId != null ? '<span class="tag tier">' + esc(tierName(p.tierId)) + '</span>' : '—') + '</td>' +
       '<td>' + esc(p.discord || '—') + '</td>' +
-      '<td><span class="tag ' + p.status + '">' + p.status + '</span></td>' +
+      '<td><span class="tag ' + p.status + '">' + p.status + '</span>' + (p.coCaptain ? ' <span class="tag co">co-captain</span>' : '') + '</td>' +
       '<td>' + esc(p.captainName || '—') + '</td>' +
       '<td class="num">' + (isSold ? '$' + p.price : '—') + '</td>' +
       '<td class="actions">' +

@@ -15,7 +15,7 @@ const { DEFAULT_SETTINGS } = require('./config');
 const state = {
   settings: { ...DEFAULT_SETTINGS },
   captains: [],   // { id, name, code, price, seat } — kept sorted by seat
-  players: [],    // { id, name, role, status, captainId, price, discord, soldSeq, image, tierId }
+  players: [],    // { id, name, role, status, captainId, price, discord, soldSeq, image, tierId, coCaptain }
   auction: { currentPlayerId: null, highestBid: 0, byCaptainId: null },
   // Ephemeral clocks (were Apps Script script properties) — never persisted.
   // pausedRemaining: snapshot of the countdown when the admin pauses (display only).
@@ -44,7 +44,8 @@ function load() {
 
   state.captains = db.prepare('SELECT id, name, code, price, role, seat, discord, team_group AS teamGroup, team_name AS teamName, logo FROM captains ORDER BY seat, id').all();
 
-  state.players = db.prepare('SELECT id, name, role, status, captain_id AS captainId, price, discord, sold_seq AS soldSeq, image, tier_id AS tierId FROM players ORDER BY id').all();
+  state.players = db.prepare('SELECT id, name, role, status, captain_id AS captainId, price, discord, sold_seq AS soldSeq, image, tier_id AS tierId, co_captain AS coCaptain FROM players ORDER BY id').all()
+    .map((p) => ({ ...p, coCaptain: !!p.coCaptain }));
 
   const a = db.prepare('SELECT current_player_id AS currentPlayerId, highest_bid AS highestBid, by_captain_id AS byCaptainId FROM auction WHERE id = 1').get();
   state.auction = a || { currentPlayerId: null, highestBid: 0, byCaptainId: null };
@@ -74,8 +75,8 @@ function persistCaptains() {
 function persistPlayers() {
   transaction(() => {
     db.prepare('DELETE FROM players').run();
-    const stmt = db.prepare('INSERT INTO players (id, name, role, status, captain_id, price, discord, sold_seq, image, tier_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-    for (const p of state.players) stmt.run(p.id, p.name, p.role, p.status, p.captainId ?? null, p.price, p.discord || '', p.soldSeq || 0, p.image || '', p.tierId ?? null);
+    const stmt = db.prepare('INSERT INTO players (id, name, role, status, captain_id, price, discord, sold_seq, image, tier_id, co_captain) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const p of state.players) stmt.run(p.id, p.name, p.role, p.status, p.captainId ?? null, p.price, p.discord || '', p.soldSeq || 0, p.image || '', p.tierId ?? null, p.coCaptain ? 1 : 0);
   });
 }
 
@@ -121,7 +122,8 @@ const captainsBySeat = () => [...state.captains].sort((a, b) => a.seat - b.seat 
 const openPlayers = () => state.players.filter((p) => p.status === 'open');
 const draftedPlayers = (captainId) => state.players
   .filter((p) => p.captainId === captainId && p.status === 'sold')
-  .sort((a, b) => (a.soldSeq || 0) - (b.soldSeq || 0) || a.id - b.id);   // acquisition order, so new buys append
+  // Co-captain first (right under the captain), then acquisition order, so new buys append.
+  .sort((a, b) => (b.coCaptain ? 1 : 0) - (a.coCaptain ? 1 : 0) || (a.soldSeq || 0) - (b.soldSeq || 0) || a.id - b.id);
 
 module.exports = {
   state,

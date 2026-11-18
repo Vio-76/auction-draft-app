@@ -218,6 +218,19 @@ function el(tag, cls, text) {
 }
 function setText(node, v) { if (node.textContent !== v) node.textContent = v; }
 
+// Captain / co-captain crowns (filled / outline), drawn in currentColor so they follow the name.
+const CROWN_PATH = 'M2.5 17 L4 7 L8.5 11 L12 4 L15.5 11 L20 7 L21.5 17 Z';
+const CROWN_FILLED = '<path d="' + CROWN_PATH + '" fill="currentColor"/>' +
+  '<rect x="2.5" y="18.5" width="19" height="2.5" rx="1" fill="currentColor"/>';
+const CROWN_OUTLINE = '<path d="' + CROWN_PATH + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>' +
+  '<rect x="2.5" y="18.5" width="19" height="2.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/>';
+function crownIcon(inner, label) {
+  const span = el('span', 'crown');
+  span.title = label;
+  span.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + inner + '</svg>';
+  return span;
+}
+
 function buildCard(t) {
   const card = { el: el('div', 'team-card') };
 
@@ -249,8 +262,9 @@ function buildCard(t) {
 
   const roster = el('div', 'roster');
 
-  const capRow = el('div', 'roster-row captain');
+  const capRow = card.capRow = el('div', 'roster-row captain');
   const capName = el('span', 'slot-name');
+  capName.appendChild(crownIcon(CROWN_FILLED, 'Captain'));
   card.captainName = el('span', 'cap-name');
   capName.appendChild(card.captainName);
   capRow.appendChild(capName);
@@ -258,16 +272,23 @@ function buildCard(t) {
   capRow.appendChild(card.captainPrice);
   roster.appendChild(capRow);
 
+  // Player slots. A slot holding the team's co-captain (always the first, see draftedPlayers) gets
+  // the outline crown and the captain's name style; the crown span is hidden on ordinary slots.
   card.slots = [];
   const slotCount = (t.players || []).length;
   for (let i = 0; i < slotCount; i++) {
     const row = el('div', 'roster-row');
-    const name = el('span', 'slot-name');
+    const slotName = el('span', 'slot-name');
+    const coIcon = crownIcon(CROWN_OUTLINE, 'Co-captain');
+    coIcon.style.display = 'none';
+    const name = el('span', 'slot-text');
+    slotName.appendChild(coIcon);
+    slotName.appendChild(name);
     const price = el('span', 'slot-price');
-    row.appendChild(name);
+    row.appendChild(slotName);
     row.appendChild(price);
     roster.appendChild(row);
-    card.slots.push({ row: row, name: name, price: price });
+    card.slots.push({ row: row, name: name, price: price, coIcon: coIcon });
   }
   card.el.appendChild(roster);
 
@@ -350,11 +371,18 @@ function updateCard(card, t, dim, finished, showBudget) {
   card.maxBid.classList.toggle('is-full', !!t.full);   // render "Full" as a word, not a mono figure
   card.budget.classList.toggle('full', !!t.full);      // grey the bar when settled
   card.captainName.classList.toggle('leading', !!t.leading);   // current high bidder -> green name
+  card.capRow.classList.toggle('leading', !!t.leading);        // ...and its crown
 
   const players = t.players || [];
+  let hasCo = false;
   for (let i = 0; i < card.slots.length; i++) {
     const s = card.slots[i];
     const p = players[i];
+    const co = !!(p && p.name && p.coCaptain);
+    if (co) hasCo = true;
+    s.row.classList.toggle('co-captain', co);
+    s.row.classList.toggle('leading', co && !!t.leading);       // co-captain shares the team's green
+    s.coIcon.style.display = co ? '' : 'none';
     if (p && p.name) {
       s.row.classList.remove('empty');
       setText(s.name, p.name);
@@ -365,6 +393,7 @@ function updateCard(card, t, dim, finished, showBudget) {
       setText(s.price, '');
     }
   }
+  card.capRow.classList.toggle('has-co', hasCo);   // lighter divider between captain + co-captain
 
   const flags = t.roles || [];
   for (let i = 0; i < card.roles.length; i++) {

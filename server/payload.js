@@ -131,7 +131,8 @@ function buildBoardState() {
     const players = [];
     for (let i = 0; i < s.teamSlots; i++) {
       const p = drafted[i];
-      players.push({ name: p ? p.name : '', price: p ? p.price : 0 });
+      // coCaptain: drawn under the captain with the co-captain crown (draftedPlayers puts it first).
+      players.push({ name: p ? p.name : '', price: p ? p.price : 0, coCaptain: !!(p && p.coCaptain) });
     }
     const maxBid = team.captainMaxBid(c);
     const spent = team.spentByCaptain(c);
@@ -257,7 +258,7 @@ function buildAdminState() {
   const players = state.players.map((p) => ({
     id: p.id, name: p.name, role: p.role, status: p.status,
     captainId: p.captainId, captainName: p.captainId ? (captainById(p.captainId)?.name || '') : '',
-    price: p.price, discord: p.discord || '', image: p.image || '',
+    price: p.price, discord: p.discord || '', image: p.image || '', coCaptain: !!p.coCaptain,
     tierId: team.tierById(p.tierId) ? p.tierId : null,   // null if untiered (or its tier was removed)
   }));
 

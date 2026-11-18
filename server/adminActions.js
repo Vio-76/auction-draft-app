@@ -110,7 +110,8 @@ function setStatus(status) {
  */
 function emptyTeams() {
   for (const p of state.players) {
-    if (p.status === PLAYER_STATUS.SOLD) { p.status = PLAYER_STATUS.OPEN; p.captainId = null; p.price = 0; }
+    // Co-captains are pre-assigned by the admin and belong to their team, so they stay.
+    if (p.status === PLAYER_STATUS.SOLD && !p.coCaptain) { p.status = PLAYER_STATUS.OPEN; p.captainId = null; p.price = 0; }
   }
   return ok();
 }
@@ -355,7 +356,7 @@ function importCaptains(text, mode = 'replace') {
 
   if (mode === 'replace') {
     for (const p of state.players) {
-      if (p.captainId != null) { p.status = PLAYER_STATUS.OPEN; p.captainId = null; p.price = 0; }
+      if (p.captainId != null) { p.status = PLAYER_STATUS.OPEN; p.captainId = null; p.price = 0; p.coCaptain = false; }
     }
     for (const c of state.captains) if (c.logo) deleteImage(c.logo);
     state.captains = [];
@@ -382,7 +383,7 @@ function deleteCaptain(id) {
   if (cap.logo) deleteImage(cap.logo);
   // Return their drafted players to the pool.
   for (const p of state.players) {
-    if (p.captainId === cid) { p.status = PLAYER_STATUS.OPEN; p.captainId = null; p.price = 0; }
+    if (p.captainId === cid) { p.status = PLAYER_STATUS.OPEN; p.captainId = null; p.price = 0; p.coCaptain = false; }
   }
   state.captains = state.captains.filter((c) => c.id !== cid);
   if (state.auction.byCaptainId === cid) { state.auction.byCaptainId = null; }
@@ -501,11 +502,16 @@ function clearPool() {
 
 // ----- manual roster editing -----
 
-function assignPlayerToTeam(playerId, captainId, price) {
+function assignPlayerToTeam(playerId, captainId, price, coCaptain = false) {
   const p = playerById(Number(playerId));
   if (!p) return err('Unknown player.');
   const c = captainById(Number(captainId));
   if (!c) return err('Unknown captain.');
+  const co = coCaptain === true || coCaptain === 'true' || coCaptain === 1 || coCaptain === '1';
+  if (co && state.players.some((x) => x.id !== p.id && x.coCaptain && x.captainId === c.id)) {
+    return err(`${c.name}'s team already has a co-captain.`);
+  }
+  p.coCaptain = co;
   const wasSold = p.status === PLAYER_STATUS.SOLD;
   p.status = PLAYER_STATUS.SOLD;
   p.captainId = c.id;
@@ -523,6 +529,7 @@ function removePlayerFromTeam(playerId) {
   p.captainId = null;
   p.price = 0;
   p.soldSeq = 0;
+  p.coCaptain = false;
   return ok();
 }
 

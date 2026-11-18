@@ -370,6 +370,38 @@ test('player names must be unique (add, rename, import)', () => {
   assert.equal(admin.importPlayers('Faker\nChovy', 'replace').ok, true);  // open pool is replaced → no clash
 });
 
+// ---------- co-captains ----------
+
+test('co-captain: own price counts, listed first, one per team, survives Empty teams, cleared on unassign', () => {
+  setup({
+    settings: { teamBudget: 100, teamSlots: 4, smallBlind: 1 },
+    captains: [{ name: 'A', price: 6 }, { name: 'B' }],
+    players: [{ name: 'Bought', status: PLAYER_STATUS.SOLD, captainId: 1, price: 20 }, { name: 'Tomi' }, { name: 'Other' }],
+  });
+  state.players[0].soldSeq = 1;
+  const A = state.captains[0];
+
+  assert.equal(admin.assignPlayerToTeam(2, 1, 4, true).ok, true);         // Tomi = A's co-captain at $4
+  const tomi = state.players[1];
+  assert.equal(tomi.coCaptain, true);
+  // drafted 2 → 2 empty, reserve 1 → 100 − (6 + 20 + 4) − 1 = 69
+  assert.equal(team.captainMaxBid(A), 69);
+  assert.deepEqual(require('../server/state').draftedPlayers(1).map((p) => p.name), ['Tomi', 'Bought']);   // co-captain first
+  const t0 = require('../server/payload').buildBoardState().teams[0];
+  assert.deepEqual(t0.players.slice(0, 2).map((p) => [p.name, p.price, p.coCaptain]), [['Tomi', 4, true], ['Bought', 20, false]]);
+
+  const second = admin.assignPlayerToTeam(3, 1, 1, true);                 // A already has one
+  assert.equal(second.ok, false);
+  assert.match(second.error, /already has a co-captain/);
+
+  assert.equal(admin.emptyTeams().ok, true);                               // bought player returns, co-captain stays
+  assert.equal(state.players[0].status, PLAYER_STATUS.OPEN);
+  assert.deepEqual([tomi.status, tomi.captainId, tomi.price, tomi.coCaptain], [PLAYER_STATUS.SOLD, 1, 4, true]);
+
+  assert.equal(admin.removePlayerFromTeam(2).ok, true);                    // unassign clears the flag
+  assert.deepEqual([tomi.status, tomi.coCaptain], [PLAYER_STATUS.OPEN, false]);
+});
+
 // ---------- team identity on the board ----------
 
 const payload = require('../server/payload');

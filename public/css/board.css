@@ -171,6 +171,18 @@
     .cap-name { color:var(--accent); font-weight:700; font-size:18px; }
     .cap-name.leading { color:var(--leader); }   /* current high bidder's team */
 
+    /* Crowns: filled before every captain, outline before a co-captain. currentColor, so they take
+       the captain colour and turn green with the names when the team is leading. */
+    .crown { display:inline-block; width:17px; height:17px; margin-right:6px; vertical-align:-2px; color:var(--accent); }
+    .crown svg { display:block; width:100%; height:100%; }
+    .roster-row.leading .crown { color:var(--leader); }
+    /* Co-captain: a player slot drawn in the captain's name style, directly under the captain.
+       The captain/co-captain divider is lighter; the strong divider moves below the pair. */
+    .roster-row.co-captain .slot-text { color:var(--accent); font-weight:700; font-size:18px; }
+    .roster-row.co-captain.leading .slot-text { color:var(--leader); }
+    .roster-row.captain.has-co { border-bottom:1px solid var(--line); }
+    .roster-row.co-captain { border-bottom:1px solid var(--line-strong); }
+
     /* Pinned to the card bottom so role rows line up across all cards in a grid row,
        even when a wrapped captain name makes one card taller. */
     .roles { display:flex; gap:7px; flex-wrap:wrap; margin-top:auto; }
