@@ -221,17 +221,21 @@ function setText(node, v) { if (node.textContent !== v) node.textContent = v; }
 function buildCard(t) {
   const card = { el: el('div', 'team-card') };
 
-  // Team identity (chosen name + group badge) — shown at the very top, but only once the auction
-  // is FINISHED and at least one of the two is set (see updateCard). Hidden by default so a card
-  // with neither looks exactly as before.
+  // Team identity "crest" (logo above the team name, group badge pinned top-right) — shown at the
+  // very top whenever the server sends any of them (see updateCard; the server decides when they're
+  // visible). Hidden by default so a card with none looks exactly as before.
   card.identity = el('div', 'team-identity');
   card.identity.style.display = 'none';
+  card.teamLogo = el('img', 'team-logo');
+  card.teamLogo.alt = '';
+  card.teamLogo.decoding = 'async';
   card.teamName = el('span', 'team-name');
   // Group badge: a big "A"/"B" (as large as the team name) with a small "group" caption below.
   card.teamGroup = el('div', 'team-group');
   card.teamGroupLetter = el('span', 'team-group-letter');
   card.teamGroup.appendChild(card.teamGroupLetter);
   card.teamGroup.appendChild(el('span', 'team-group-label', 'group'));
+  card.identity.appendChild(card.teamLogo);
   card.identity.appendChild(card.teamName);
   card.identity.appendChild(card.teamGroup);
   card.el.appendChild(card.identity);
@@ -308,11 +312,21 @@ function updateCard(card, t, dim, finished, showBudget) {
   card.head.style.display = finished ? 'none' : '';
   card.budget.style.display = (finished || !showBudget) ? 'none' : '';
 
-  // Team identity (name + group) — only once FINISHED, and only if at least one is set. With both
-  // empty the block stays hidden, so the card is unchanged from the live-auction look.
+  // Team identity (logo + name + group). The server only sends what may be shown right now (name/
+  // logo once FINISHED or always, per the admin setting; group once FINISHED), so just show what
+  // arrived. With none of them the block stays hidden and the card looks as it always did.
   const name = t.teamName || '';
   const group = t.teamGroup || '';
-  card.identity.style.display = (finished && (name || group)) ? '' : 'none';
+  const logo = t.teamLogo || '';
+  card.identity.style.display = (name || group || logo) ? '' : 'none';
+  card.identity.classList.toggle('has-group', !!group);
+  if (logo) {
+    if (card.teamLogo.getAttribute('src') !== logo) card.teamLogo.src = logo;   // no re-fetch per push
+    card.teamLogo.style.display = '';
+  } else {
+    card.teamLogo.removeAttribute('src');
+    card.teamLogo.style.display = 'none';
+  }
   setText(card.teamName, name);
   card.teamName.style.display = name ? '' : 'none';
   setText(card.teamGroupLetter, group);

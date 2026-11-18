@@ -33,10 +33,11 @@ function sniffMime(buf) {
 }
 
 /**
- * Decode + validate a base64 data URL and write it to a fresh file for `playerId`.
+ * Decode + validate a base64 data URL and write it to a fresh file named `<prefix>-<random>.<ext>`
+ * (player images use 'p<id>', team logos 'c<captainId>').
  * Returns { ok, filename } or { ok:false, error }. Does not touch state.
  */
-function saveImage(playerId, dataUrl) {
+function saveImage(prefix, dataUrl) {   // prefix names the owner: 'p<playerId>' or 'c<captainId>'
   const m = /^data:([^;,]+);base64,(.+)$/s.exec(String(dataUrl || '').trim());
   if (!m) return { ok: false, error: 'Invalid image data.' };
 
@@ -48,7 +49,7 @@ function saveImage(playerId, dataUrl) {
   const mime = sniffMime(buf);
   if (!mime || !EXT_BY_MIME[mime]) return { ok: false, error: 'Only JPG, PNG or WebP images are allowed.' };
 
-  const filename = `p${playerId}-${crypto.randomBytes(4).toString('hex')}.${EXT_BY_MIME[mime]}`;
+  const filename = `${prefix}-${crypto.randomBytes(4).toString('hex')}.${EXT_BY_MIME[mime]}`;
   try {
     fs.writeFileSync(path.join(UPLOADS_DIR, filename), buf);
   } catch {

@@ -123,6 +123,8 @@ function buildBoardState() {
 
   const hb = state.auction.highestBid;
   const byId = state.auction.byCaptainId;
+  const finished = s.status === STATUS.FINISHED;
+  const identity = finished || !!s.teamIdentityAlways;   // team name + logo visible on the board?
 
   const teams = caps.map((c) => {
     const drafted = draftedPlayers(c.id);
@@ -153,10 +155,13 @@ function buildBoardState() {
       pricedOut,
       leading,
       roles:        team.captainRoleFlags(c),
-      // Team identity (group + chosen name) — only revealed on the board once FINISHED, same gate
-      // as the op.gg link. Kept off the wire during the live auction so assignments stay hidden.
-      teamGroup:    s.status === STATUS.FINISHED ? (c.teamGroup || '') : '',
-      teamName:     s.status === STATUS.FINISHED ? (c.teamName || '') : '',
+      // Team identity. The group stays FINISHED-only (it's decided from the finished teams). Name +
+      // logo show once FINISHED, or for the whole auction when teamIdentityAlways is on; the name
+      // can be hidden entirely (logo only) via showTeamNameOnBoard. Anything not shown is kept off
+      // the wire, so it can't be read from the payload either.
+      teamGroup:    finished ? (c.teamGroup || '') : '',
+      teamName:     (identity && s.showTeamNameOnBoard) ? (c.teamName || '') : '',
+      teamLogo:     (identity && c.logo) ? '/uploads/' + c.logo : '',
       // Once the auction is over, expose a multi-op.gg link for the whole roster
       // (captain first, then drafted players). Works for partial teams too.
       oppgUrl:      s.status === STATUS.FINISHED
@@ -244,7 +249,7 @@ function buildAdminState() {
   const captains = captainsBySeat().map((c) => ({
     id: c.id, name: c.name, code: c.code, price: c.price, role: c.role || '', seat: c.seat,
     discord: c.discord || '',
-    teamGroup: c.teamGroup || '', teamName: c.teamName || '',
+    teamGroup: c.teamGroup || '', teamName: c.teamName || '', logo: c.logo || '',
     maxBid: team.captainMaxBid(c), full: team.isCaptainFull(c),
     draftedCount: team.draftedCount(c), spent: team.spentByCaptain(c),
   }));

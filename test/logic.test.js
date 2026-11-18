@@ -370,6 +370,31 @@ test('player names must be unique (add, rename, import)', () => {
   assert.equal(admin.importPlayers('Faker\nChovy', 'replace').ok, true);  // open pool is replaced → no clash
 });
 
+// ---------- team identity on the board ----------
+
+const payload = require('../server/payload');
+
+test('board team name/logo: hidden during the auction unless enabled; name can be hidden; group stays FINISHED-only', () => {
+  setup({ captains: [{ name: 'A' }] });
+  Object.assign(state.captains[0], { teamName: 'Royal Guard', logo: 'c1-abcd.png', teamGroup: 'A' });
+  const team0 = () => payload.buildBoardState().teams[0];
+
+  state.settings.status = STATUS.BIDDING;                       // default: only once FINISHED
+  assert.deepEqual([team0().teamName, team0().teamLogo, team0().teamGroup], ['', '', '']);
+
+  assert.equal(admin.updateSettings({ teamIdentityAlways: true }).ok, true);
+  state.settings.status = STATUS.BIDDING;
+  assert.deepEqual([team0().teamName, team0().teamLogo, team0().teamGroup], ['Royal Guard', '/uploads/c1-abcd.png', '']);
+
+  assert.equal(admin.updateSettings({ showTeamNameOnBoard: false }).ok, true);   // logo only
+  state.settings.status = STATUS.BIDDING;
+  assert.deepEqual([team0().teamName, team0().teamLogo], ['', '/uploads/c1-abcd.png']);
+
+  admin.updateSettings({ teamIdentityAlways: false, showTeamNameOnBoard: true });
+  state.settings.status = STATUS.FINISHED;                      // finished: everything shows
+  assert.deepEqual([team0().teamName, team0().teamLogo, team0().teamGroup], ['Royal Guard', '/uploads/c1-abcd.png', 'A']);
+});
+
 test('auto-skip fires once the opening deadline passes', () => {
   setup({
     settings: { teamSlots: 2, openingTimeout: 30 },

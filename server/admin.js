@@ -77,6 +77,8 @@ function registerAdminRoutes(app) {
   post('captain/delete', (b) => A.deleteCaptain(b.id));
   post('captain/import', (b) => A.importCaptains(b.text, b.mode));
   post('captain/move',   (b) => A.moveCaptain(b.id, b.dir));
+  post('captain/logo',       (b) => A.setCaptainLogo(b.id, b.dataUrl));
+  post('captain/logo/clear', (b) => A.clearCaptainLogo(b.id));
 
   // players
   post('player/add',    (b) => A.addPlayer(b));

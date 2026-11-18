@@ -129,6 +129,8 @@ function saveSettings() {
     theme: val('set-theme'),
     showBidOnBoard: val('set-showBidOnBoard') === 'true',
     showBudgetOnBoard: val('set-showBudgetOnBoard') === 'true',
+    teamIdentityAlways: val('set-teamIdentityAlways') === 'true',
+    showTeamNameOnBoard: val('set-showTeamNameOnBoard') === 'true',
     smallBlind: numVal('set-smallBlind'), teamBudget: numVal('set-teamBudget'),
     teamSlots: numVal('set-teamSlots'), openingTimeout: numVal('set-openingTimeout'),
     autoWindow: numVal('set-autoWindow'), soldCooldown: numVal('set-soldCooldown'),
@@ -154,9 +156,11 @@ async function addCaptain() {
     { name: 'discord', label: 'Discord name', type: 'text', value: '' },
     { name: 'teamGroup', label: 'Group', type: 'select', value: '', options: groupOptions() },
     { name: 'teamName', label: 'Team name', type: 'text', value: '' },
+    { name: 'logo', label: 'Team logo (optional) — ' + LOGO_HINT, type: 'file', accept: IMG_ACCEPT },
   ] });
   if (!v || !v.name.trim()) return;
-  adminAction('captain/add', { name: v.name, code: v.code, price: Number(v.price) || 0, role: v.role, discord: v.discord, teamGroup: v.teamGroup, teamName: v.teamName });
+  const res = await adminAction('captain/add', { name: v.name, code: v.code, price: Number(v.price) || 0, role: v.role, discord: v.discord, teamGroup: v.teamGroup, teamName: v.teamName });
+  if (res && res.ok && res.id && v.logo) await adminAction('captain/logo', { id: res.id, dataUrl: v.logo });
 }
 async function editCaptain(id) {
   const c = (STATE.captains || []).find((x) => x.id === id);
@@ -169,9 +173,17 @@ async function editCaptain(id) {
     { name: 'discord', label: 'Discord name', type: 'text', value: c.discord || '' },
     { name: 'teamGroup', label: 'Group', type: 'select', value: c.teamGroup || '', options: groupOptions() },
     { name: 'teamName', label: 'Team name', type: 'text', value: c.teamName || '' },
+    { name: 'logo', label: (c.logo ? 'Replace team logo' : 'Team logo') + ' (optional) — ' + LOGO_HINT, type: 'file',
+      accept: IMG_ACCEPT, value: c.logo ? '/uploads/' + c.logo : '' },
   ] });
   if (!v || !v.name.trim()) return;
-  adminAction('captain/update', { id, patch: { name: v.name, code: v.code, price: Number(v.price) || 0, role: v.role, discord: v.discord, teamGroup: v.teamGroup, teamName: v.teamName } });
+  const res = await adminAction('captain/update', { id, patch: { name: v.name, code: v.code, price: Number(v.price) || 0, role: v.role, discord: v.discord, teamGroup: v.teamGroup, teamName: v.teamName } });
+  if (res && res.ok && v.logo) await adminAction('captain/logo', { id, dataUrl: v.logo });
+}
+async function removeCaptainLogo(id) {
+  const c = (STATE.captains || []).find((x) => x.id === id);
+  if (await confirmModal('Remove the team logo for "' + (c ? c.name : id) + '"?', 'Remove'))
+    adminAction('captain/logo/clear', { id });
 }
 async function importCaptains() {
   const text = val('captain-import-text');
@@ -313,6 +325,7 @@ async function saveTiers() {
 // players
 const IMG_ACCEPT = 'image/png,image/jpeg,image/webp';
 const IMG_HINT = 'JPG/PNG/WebP, under ~500 KB, square-ish, ~800px. Shown when the player gets their opening bid.';
+const LOGO_HINT = 'PNG/WebP with a transparent background works best, square, ~300px. Shown on the board team card.';
 
 async function addPlayer() {
   const v = await openModal({ title: 'Add player', submitLabel: 'Add', fields: [
@@ -456,6 +469,8 @@ function fillSettingsOnce(s) {
   setVal('set-theme', s.settings.theme);
   setVal('set-showBidOnBoard', String(s.settings.showBidOnBoard));
   setVal('set-showBudgetOnBoard', String(s.settings.showBudgetOnBoard));
+  setVal('set-teamIdentityAlways', String(s.settings.teamIdentityAlways));
+  setVal('set-showTeamNameOnBoard', String(s.settings.showTeamNameOnBoard));
   setVal('set-smallBlind', s.settings.smallBlind);
   setVal('set-teamBudget', s.settings.teamBudget);
   setVal('set-teamSlots', s.settings.teamSlots);
@@ -467,7 +482,7 @@ function fillSettingsOnce(s) {
 }
 
 function renderCaptains(s) {
-  const sig = JSON.stringify((s.captains || []).map((c) => [c.id, c.name, c.code, c.price, c.role, c.seat, c.discord, c.teamGroup, c.teamName, c.maxBid, c.full, c.draftedCount]));
+  const sig = JSON.stringify((s.captains || []).map((c) => [c.id, c.name, c.code, c.price, c.role, c.seat, c.discord, c.teamGroup, c.teamName, c.logo, c.maxBid, c.full, c.draftedCount]));
   if (sig === captainsSig) return;
   captainsSig = sig;
 
@@ -493,6 +508,7 @@ function renderCaptains(s) {
       '</div></td>' +
       '<td class="actions">' +
         '<button class="btn btn-sm" onclick="editCaptain(' + c.id + ')">Edit</button>' +
+        (c.logo ? '<button class="btn btn-sm" onclick="removeCaptainLogo(' + c.id + ')">Rmv logo</button>' : '') +
         '<button class="btn btn-sm btn-danger" onclick="deleteCaptain(' + c.id + ')">Del</button>' +
       '</td></tr>';
   });

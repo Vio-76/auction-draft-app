@@ -145,6 +145,10 @@ function updateSettings(patch) {
       state.settings.showBidOnBoard = (raw === true || raw === 'true' || raw === 1 || raw === '1' || raw === 'on');
     } else if (key === 'showBudgetOnBoard') {
       state.settings.showBudgetOnBoard = (raw === true || raw === 'true' || raw === 1 || raw === '1' || raw === 'on');
+    } else if (key === 'teamIdentityAlways') {
+      state.settings.teamIdentityAlways = (raw === true || raw === 'true' || raw === 1 || raw === '1' || raw === 'on');
+    } else if (key === 'showTeamNameOnBoard') {
+      state.settings.showTeamNameOnBoard = (raw === true || raw === 'true' || raw === 1 || raw === '1' || raw === 'on');
     }
     // unknown keys ignored
   }
@@ -256,8 +260,9 @@ function addCaptain({ name, code, price, role, seat, discord, teamGroup, teamNam
   if (!nm) return err('Captain name is required.');
   if (nameTaken(state.captains, nm)) return err(`A captain named "${nm}" already exists.`);
   const maxSeat = state.captains.reduce((m, c) => Math.max(m, c.seat), -1);
+  const id = nextCaptainId();
   state.captains.push({
-    id: nextCaptainId(),
+    id,
     name: nm,
     code: String(code || '').trim(),
     price: Math.max(0, Math.floor(Number(price) || 0)),
@@ -266,8 +271,32 @@ function addCaptain({ name, code, price, role, seat, discord, teamGroup, teamNam
     discord: String(discord || '').trim(),
     teamGroup: normalizeGroup(teamGroup),
     teamName: String(teamName || '').trim(),
+    logo: '',
   });
   normalizeSeats();
+  commit();
+  return { ok: true, id };   // id returned so the admin UI can attach a team logo to the new captain
+}
+
+/** Attach an uploaded team logo (base64 data URL) to a captain. Same storage rule as player
+ *  images: the file goes to UPLOADS_DIR, only the bare filename is kept in state. */
+function setCaptainLogo(id, dataUrl) {
+  const c = captainById(Number(id));
+  if (!c) return err('Unknown captain.');
+  const res = saveImage('c' + c.id, dataUrl);
+  if (!res.ok) return err(res.error);
+  const previous = c.logo;
+  c.logo = res.filename;
+  if (previous && previous !== res.filename) deleteImage(previous);
+  return ok();
+}
+
+function clearCaptainLogo(id) {
+  const c = captainById(Number(id));
+  if (!c) return err('Unknown captain.');
+  const previous = c.logo;
+  c.logo = '';
+  if (previous) deleteImage(previous);
   return ok();
 }
 
@@ -328,6 +357,7 @@ function importCaptains(text, mode = 'replace') {
     for (const p of state.players) {
       if (p.captainId != null) { p.status = PLAYER_STATUS.OPEN; p.captainId = null; p.price = 0; }
     }
+    for (const c of state.captains) if (c.logo) deleteImage(c.logo);
     state.captains = [];
     state.settings.marker = -1;
     team.clearAuctionBlock();
@@ -337,7 +367,7 @@ function importCaptains(text, mode = 'replace') {
   for (const c of parsed) {
     state.captains.push({
       id: id++, name: c.name, code: c.code,
-      price: Math.max(0, Math.floor(c.price)), role: c.role, seat: seat++, discord: c.discord || '',
+      price: Math.max(0, Math.floor(c.price)), role: c.role, seat: seat++, discord: c.discord || '', logo: '',
     });
   }
   normalizeSeats();
@@ -347,7 +377,9 @@ function importCaptains(text, mode = 'replace') {
 
 function deleteCaptain(id) {
   const cid = Number(id);
-  if (!captainById(cid)) return err('Unknown captain.');
+  const cap = captainById(cid);
+  if (!cap) return err('Unknown captain.');
+  if (cap.logo) deleteImage(cap.logo);
   // Return their drafted players to the pool.
   for (const p of state.players) {
     if (p.captainId === cid) { p.status = PLAYER_STATUS.OPEN; p.captainId = null; p.price = 0; }
@@ -395,7 +427,7 @@ function updatePlayer(id, patch = {}) {
 function setPlayerImage(id, dataUrl) {
   const p = playerById(Number(id));
   if (!p) return err('Unknown player.');
-  const res = saveImage(p.id, dataUrl);
+  const res = saveImage('p' + p.id, dataUrl);
   if (!res.ok) return err(res.error);
   const previous = p.image;
   p.image = res.filename;
@@ -506,6 +538,7 @@ module.exports = {
   sold, setStatus, emptyTeams,
   updateSettings, setTiers,
   addCaptain, updateCaptain, deleteCaptain, importCaptains, moveCaptain,
+  setCaptainLogo, clearCaptainLogo,
   addPlayer, updatePlayer, deletePlayer, importPlayers, clearPool,
   setPlayerImage, clearPlayerImage,
   assignPlayerToTeam, removePlayerFromTeam, setPlayerPrice,

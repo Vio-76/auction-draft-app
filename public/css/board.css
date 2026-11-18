@@ -91,21 +91,26 @@
       content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--topbar);
     }
 
-    /* Team identity — shown at the top only once the auction is FINISHED (the max-bid header is
-       hidden by then, so this becomes the card's headline). Team name is the headline, the group
-       a small muted pill beside it. Token-driven so every theme inherits. */
+    /* Team identity "crest" at the top of the card: a large centered logo with the team name
+       below it, the group badge pinned top-right. Shown once FINISHED, or for the whole auction
+       when the admin enables it (the server decides; see payload.js). Token-driven so every theme
+       inherits. */
     .team-identity {
-      display:flex; align-items:flex-start; justify-content:space-between;
-      gap:10px; margin-bottom:14px;
+      position:relative;
+      display:flex; flex-direction:column; align-items:center; text-align:center;
+      gap:6px; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid var(--line);
     }
+    /* Keep the centered name clear of the group badge, and give a group-only block some height. */
+    .team-identity.has-group { padding-inline:34px; min-height:42px; }
+    .team-logo { width:78px; height:78px; object-fit:contain; }
     .team-name {
-      font-family:var(--font-display); font-weight:700; font-size:22px; line-height:1.15;
-      color:var(--accent); letter-spacing:.01em;
+      font-family:var(--font-display); font-weight:700; font-size:21px; line-height:1.1;
+      color:var(--accent); letter-spacing:.01em; overflow-wrap:anywhere;
     }
     /* Group badge: a big "A"/"B" (matching the team-name size) with a small "group" caption
-       stacked below it, pinned to the right corner. */
+       stacked below it, pinned to the top-right corner. */
     .team-group {
-      margin-left:auto;   /* stay pinned to the right edge even when the name is absent */
+      position:absolute; top:0; right:0;
       display:flex; flex-direction:column; align-items:center; line-height:1;
     }
     .team-group-letter {
@@ -421,5 +426,12 @@
       .turn-rail { display:flex; width:fit-content; margin-inline:auto; justify-content:center; }
     }
     .turn-chip.full .turn-name { text-decoration:line-through; }
+
+    /* Fan-project disclaimer at the very bottom of the board. Extra bottom padding keeps it clear
+       of the fixed Auction Rules button in the bottom-right corner. */
+    .board-disclaimer {
+      margin-top:40px; padding:14px 0 48px; border-top:1px solid var(--line);
+      text-align:center; font-size:12px; line-height:1.5; color:var(--muted);
+    }
 
     @keyframes cardIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
