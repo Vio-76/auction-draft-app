@@ -436,6 +436,100 @@ test('broke captains are skipped in the turn order and cannot open or bid', () =
   assert.match(r.error, /You're broke/);
 });
 
+// ---------- fill-up round (#7) ----------
+
+const fillup = require('../server/logic/fillup');
+const sellMod = require('../server/logic/sell');
+
+/** Tiers Gold ($1, base) < Silver ($5) < Master ($20); returns their ids. */
+function threeTiers() {
+  admin.setTiers([{ name: 'Master', minBid: 20 }, { name: 'Gold', minBid: 1 }, { name: 'Silver', minBid: 5 }]);
+  const by = (n) => state.settings.tiers.find((t) => t.name === n).id;
+  return { gold: by('Gold'), silver: by('Silver'), master: by('Master') };
+}
+
+test('fill-up order: later broke first; same moment → more budget, fewer slots, cheaper captain, random', () => {
+  setup({ settings: { teamBudget: 20, teamSlots: 3 }, captains: [
+    { name: 'Early', price: 20 }, { name: 'RichTie', price: 10 }, { name: 'PoorTie', price: 15 },
+    { name: 'Late', price: 20 }, { name: 'SlotsTie', price: 10 } ] });
+  const [early, richTie, poorTie, late, slotsTie] = state.captains;
+  early.brokeSeq = 1; late.brokeSeq = 3;
+  for (const c of [richTie, poorTie, slotsTie]) c.brokeSeq = 2;           // went broke together
+  // SlotsTie has the same $10 left as RichTie but one more player drafted → fewer open slots
+  state.players.push({ id: 50, name: 'x', role: '', status: PLAYER_STATUS.SOLD, captainId: slotsTie.id, price: 0 });
+  const order = [early, richTie, poorTie, late, slotsTie].sort(fillup.compareFillOrder).map((c) => c.name);
+  assert.deepEqual(order, ['Late', 'SlotsTie', 'RichTie', 'PoorTie', 'Early']);
+});
+
+test('fill-up quotas: base tier first, the shortfall comes from the next tier up, then the next', () => {
+  setup({ settings: { teamBudget: 10, teamSlots: 4 }, captains: [{ name: 'A', price: 10 }, { name: 'B', price: 10 }],
+    players: [{ name: 'g1' }, { name: 's1' }, { name: 's2' }, { name: 'm1' }, { name: 'm2' }, { name: 'm3' }, { name: 'free' }] });
+  const t = threeTiers();
+  const tier = (n, id) => { state.players.find((p) => p.name === n).tierId = id; };
+  tier('g1', t.gold); tier('s1', t.silver); tier('s2', t.silver); tier('m1', t.master); tier('m2', t.master); tier('m3', t.master);
+  // 8 open slots; base = g1 + 'free' (untiered) = 2 → 6 extra: Silver 2 (all it has), Master 3 (all), 1 uncovered
+  assert.deepEqual(fillup.computeQuotas(8), { [t.silver]: 2, [t.master]: 3 });
+  // 2 open slots ≤ 2 base players → nothing from higher tiers
+  assert.deepEqual(fillup.computeQuotas(2), { [t.silver]: 0, [t.master]: 0 });
+});
+
+test('fill-up round: starts when only broke captains are left, picks in stack order, uses quotas, finishes', () => {
+  setup({ settings: { teamBudget: 10, teamSlots: 2, turnOrder: TURN_ORDER.WATERFALL, soldMessageSeconds: 5 },
+    captains: [{ name: 'A', price: 10 }, { name: 'B', price: 10 }],
+    players: [{ name: 'Gold1' }, { name: 'Silver1' }, { name: 'Silver2' }, { name: 'Silver3' }, { name: 'Master1' }] });
+  const t = threeTiers();
+  const tier = (n, id) => { state.players.find((p) => p.name === n).tierId = id; };
+  tier('Gold1', t.gold); tier('Silver1', t.silver); tier('Silver2', t.silver); tier('Silver3', t.silver); tier('Master1', t.master);
+  const [A, B] = state.captains;
+  A.brokeSeq = 1; B.brokeSeq = 2;                                    // B went broke later → picks first
+
+  turn.advanceTurn();                                               // nobody can open → fill-up
+  assert.equal(state.settings.status, STATUS.FILLUP);
+  assert.deepEqual(state.settings.fillOrder, [B.id, A.id]);
+  assert.deepEqual(state.settings.fillQuota, { [t.silver]: 3, [t.master]: 0 });   // 4 slots − 1 base
+
+  assert.equal(bids.fillPick(A, 'Gold1').ok, false);                // not A's pick
+  assert.match(bids.fillPick(B, 'Master1').error, /No picks left from Master/);
+  assert.equal(bids.fillPick(B, 'Silver1').ok, true);
+  assert.equal(state.players.find((p) => p.name === 'Silver1').price, 0);
+  assert.equal(state.settings.fillQuota[t.silver], 2);
+  assert.equal(sellMod.recentSoldMessage().kind, 'pick');
+  assert.equal(bids.fillPick(B, 'Silver2').ok, true);               // B full → off the stack
+  assert.deepEqual(state.settings.fillOrder, [A.id]);
+  assert.deepEqual(state.settings.fillDone, [B.id]);
+
+  assert.equal(bids.fillPick(A, 'Gold1').ok, true);
+  assert.equal(bids.fillPick(A, 'Silver3').ok, true);               // last quota pick
+  assert.equal(state.settings.status, STATUS.FINISHED);              // stack empty → done
+});
+
+test('fill-up round: admin assign counts against the quota; admin can reorder the stack; ends if nothing pickable', () => {
+  setup({ settings: { teamBudget: 10, teamSlots: 2 },
+    captains: [{ name: 'A', price: 10 }, { name: 'B', price: 10 }, { name: 'C', price: 10 }],
+    players: [{ name: 'Gold1' }, { name: 'Silver1' }, { name: 'Master1' }] });
+  const t = threeTiers();
+  const tier = (n, id) => { state.players.find((p) => p.name === n).tierId = id; };
+  tier('Gold1', t.gold); tier('Silver1', t.silver); tier('Master1', t.master);
+  const [A, B, C] = state.captains;
+  A.brokeSeq = 1; B.brokeSeq = 2; C.brokeSeq = 3;
+  fillup.start();
+  assert.deepEqual(state.settings.fillOrder, [C.id, B.id, A.id]);
+  // 6 slots, 1 base → 5 extra: Silver 1, Master 1
+  assert.deepEqual(state.settings.fillQuota, { [t.silver]: 1, [t.master]: 1 });
+
+  assert.equal(admin.moveFillUp(A.id, 'up').ok, true);
+  assert.deepEqual(state.settings.fillOrder, [C.id, A.id, B.id]);
+
+  assert.equal(admin.assignPlayerToTeam(3, C.id, 0).ok, true);       // admin picks Master1 for C
+  assert.equal(state.settings.fillQuota[t.master], 0);
+  assert.equal(admin.assignPlayerToTeam(2, C.id, 0).ok, true);       // and Silver1 → C full
+  assert.deepEqual(state.settings.fillOrder, [A.id, B.id]);
+  assert.equal(state.settings.status, STATUS.FILLUP);
+
+  assert.equal(bids.fillPick(A, 'Gold1').ok, true);                 // last pickable player taken
+  assert.equal(state.settings.status, STATUS.FINISHED);              // nothing left → finished with empty slots
+});
+
 // ---------- co-captains ----------
 
 test('co-captain: own price counts, listed first, one per team, survives Empty teams, cleared on unassign', () => {

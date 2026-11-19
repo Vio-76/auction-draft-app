@@ -78,6 +78,7 @@ function registerRoutes(app) {
   app.post('/api/bid', (req, res) => withCaptain(req, res, (cap) => bids.placeBid(cap, req.body.amount)));
   app.post('/api/opening-bid', (req, res) => withCaptain(req, res, (cap) => bids.placeOpeningBid(cap, req.body.player, req.body.amount)));
   app.post('/api/skip', (req, res) => withCaptain(req, res, (cap) => bids.skipTurn(cap)));
+  app.post('/api/fill-pick', (req, res) => withCaptain(req, res, (cap) => bids.fillPick(cap, req.body.player)));
 }
 
 module.exports = { registerRoutes };

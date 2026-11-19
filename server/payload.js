@@ -14,6 +14,7 @@ const {
 const team = require('./logic/team');
 const turn = require('./logic/turn');
 const sell = require('./logic/sell');
+const fillup = require('./logic/fillup');
 
 // ----- info / rules panel -----
 
@@ -96,6 +97,19 @@ function buildCaptainState(captain) {
   if (phase === STATUS.BIDDING && s.sellMode === SELL_MODE.AUTO) {
     result.sellWindowSeconds = s.autoWindow;
     result.sellSecondsRemaining = sell.autoSellSecondsRemaining();
+  }
+
+  // Fill-up round (#7): whose pick it is, this captain's place in the stack, and (on their pick)
+  // the pickable players grouped by tier with the quotas left.
+  if (phase === STATUS.FILLUP) {
+    const order = fillup.currentOrder();
+    const picker = order[0] || null;
+    result.teamSlots = s.teamSlots;
+    result.fillPicker = picker ? picker.name : '';
+    result.isYourFillPick = !!picker && picker.id === captain.id;
+    const pos = order.findIndex((c) => c.id === captain.id);
+    result.fillPosition = pos >= 0 ? pos + 1 : 0;       // 0 = not in the stack (full / done)
+    if (result.isYourFillPick) result.fillPickGroups = fillup.pickGroups();
   }
 
   const soldMessage = sell.recentSoldMessage();
@@ -225,10 +239,32 @@ function buildBoardState() {
     // amount + bidder, so on the public board it's gated by showBidOnBoard exactly like liveBid
     // (captains always get it in buildCaptainState — they're participants).
     openingMessage: s.showBidOnBoard ? sell.recentOpeningMessage() : null,
+    fill: buildFillState(),
     // Timed "sold" banner (same as the captain page). Ungated: the sale result (player/winner/price)
     // is already public on the board — sold players show with their price in the team rosters.
     soldMessage: sell.recentSoldMessage(),
   };
+}
+
+// ----- fill-up round (#7) -----
+
+/** The fill-up stack for the board (+ admin): during the auction the projected order of the broke
+ *  captains (it grows as they go broke); during FILLUP the frozen order, who's done, and which
+ *  pool players are still pickable (base tier = any number; tiers above base = quota left). */
+function buildFillState() {
+  const s = state.settings;
+  const active = s.status === STATUS.FILLUP;
+  // brokeSeq lets the board bracket captains who went broke at the same moment.
+  const order = fillup.currentOrder().map((c) => ({ id: c.id, name: c.name, slots: fillup.openSlots(c), brokeSeq: c.brokeSeq || 0 }));
+  const out = { active, order };
+  if (active) {
+    out.done = (s.fillDone || []).map((id) => captainById(id)).filter(Boolean).map((c) => c.name);
+    const low = team.lowestTier();
+    out.baseTierId = low ? low.id : null;               // untiered players are base too
+    out.quota = {};
+    for (const t of fillup.tiersAboveBase()) out.quota[t.id] = fillup.quotaLeft(t.id);
+  }
+  return out;
 }
 
 // ----- discord team string (admin-only; consumed by an external role-assign bot) -----
@@ -274,7 +310,8 @@ function buildAdminState() {
   return {
     settings: { ...s, turnDirection: s.turnDirection === TURN_DIR.UP ? 'UP' : 'DOWN' },
     phase: s.status,
-    currentTurnCaptain: cur ? cur.name : '',
+    currentTurnCaptain: s.status === STATUS.FILLUP ? ((fillup.currentPicker() || {}).name || '') : (cur ? cur.name : ''),
+    fill: buildFillState(),
     soldArmed: s.status === STATUS.BIDDING && sell.soldButtonUsable(),
     openingSecondsRemaining,
     autoSellSecondsRemaining,

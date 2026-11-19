@@ -7,7 +7,8 @@
  */
 
 // ----- Status / mode enums (stored as these exact strings) -----
-const STATUS = { OPENING: 'OPENING', BIDDING: 'BIDDING', CLOSED: 'CLOSED', FINISHED: 'FINISHED' };
+// FILLUP (#7): after the auction phase, broke captains fill their remaining slots with $0 picks.
+const STATUS = { OPENING: 'OPENING', BIDDING: 'BIDDING', CLOSED: 'CLOSED', FILLUP: 'FILLUP', FINISHED: 'FINISHED' };
 const SELL_MODE = { AUTO: 'AUTO', MANUAL: 'MANUAL' };
 const TURN_ORDER = { WATERFALL: 'WATERFALL', SNAKE: 'SNAKE' };
 const TURN_DIR = { DOWN: 1, UP: -1 };          // numeric for the walker; serialized as DOWN/UP
@@ -40,6 +41,11 @@ const DEFAULT_SETTINGS = {
   // at least its tier's minBid; untiered players (player.tierId null) are priced like the lowest tier
   // (smallest minBid), or smallBlind when there are no tiers. Edited as a whole list from the admin Tiers card.
   tiers:              [],
+  // Fill-up round (#7), see logic/fillup.js: remaining pick order (top first), finished captains,
+  // and picks left per tier above the base tier. Set when the round starts.
+  fillOrder:          [],
+  fillDone:           [],
+  fillQuota:          {},
 };
 
 // ----- Roles (board grouping + per-team role flags) -----
@@ -95,6 +101,14 @@ const AUCTION_INFO_SECTIONS = [
       'Alternatively they can *Skip* to pass their turn.',
       '{OPENING_MIN}',
       'The opening turn order is at the bottom of the teams page. Full teams are skipped.',
+    ],
+  },
+  {
+    heading: 'Fill-up round',
+    items: [
+      'After the auction, *broke* captains fill their remaining slots for $0, one captain at a time.',
+      'The captain who went broke *last* picks *first*. Captains who went broke at the same moment: more budget left picks first, then fewer open slots, then the cheaper captain.',
+      'Picks come from the lowest tier. If it has fewer players than there are slots to fill, the difference may be picked from the next tier up, first come, first served.',
     ],
   },
   {

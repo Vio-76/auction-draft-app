@@ -8,7 +8,7 @@
 const captain = window.CAPTAIN;
 const OPENING_TIMEOUT = window.OPENING_TIMEOUT;
 
-const STATUSES = { OPENING: 'OPENING', BIDDING: 'BIDDING', CLOSED: 'CLOSED', FINISHED: 'FINISHED' };
+const STATUSES = { OPENING: 'OPENING', BIDDING: 'BIDDING', CLOSED: 'CLOSED', FILLUP: 'FILLUP', FINISHED: 'FINISHED' };
 const SELL_MODE_AUTO = 'AUTO';
 
 let lastKey = '';
@@ -65,6 +65,7 @@ function render(state) {
     state.player, state.highestBid, state.byCaptain,
     state.yourMaxBid, state.smallBlind, state.openPlayers,
     state.youAreFull, state.sellMode, state.youAreBroke, state.yourOpenSlots,
+    state.fillPicker, state.isYourFillPick, state.fillPosition, state.fillPickGroups,
   ]);
   if (key === lastKey) return;
   lastKey = key;
@@ -83,7 +84,9 @@ function render(state) {
     return;
   }
 
-  if (state.phase === STATUSES.OPENING) {
+  if (state.phase === STATUSES.FILLUP) {
+    renderFillUp(root, state);
+  } else if (state.phase === STATUSES.OPENING) {
     if (state.isYourTurnToOpen) {
       renderOpeningBid(root, state);
     } else {
@@ -108,6 +111,55 @@ function render(state) {
     const el = document.getElementById(focusedId);
     if (el) el.focus();
   }
+}
+
+// ----- fill-up round (#7) -----
+
+const ORDINALS = ['1st', '2nd', '3rd'];
+function ordinal(n) { return ORDINALS[n - 1] || (n + 'th'); }
+
+function renderFillUp(root, state) {
+  const tag = '<span class="fu-tag">FILL-UP ROUND</span>';
+  if (state.youAreFull || !state.fillPosition) {
+    root.innerHTML = '<div class="waiting">' + tag + '<br>Your team is complete. Waiting for the others to finish their picks…</div>';
+    return;
+  }
+  if (!state.isYourFillPick) {
+    const n = state.yourOpenSlots || 0;
+    root.innerHTML = '<div class="waiting">' + tag + '<br>Waiting for <b>' + esc(state.fillPicker || 'someone') + '</b> to pick…<br>' +
+      '<span class="pos-badge">you pick ' + ordinal(state.fillPosition) + ' · ' + n + ' slot' + (n === 1 ? '' : 's') + '</span></div>';
+    return;
+  }
+  // Your pick: slot pips + the pickable players grouped by tier (base first, then tiers with quota left).
+  const slots = state.teamSlots || 0;
+  const filled = Math.max(0, slots - (state.yourOpenSlots || 0));
+  let pips = '';
+  for (let i = 0; i < slots; i++) pips += '<span' + (i < filled ? ' class="filled"' : '') + '></span>';
+  let options = '<option value="">— Choose a player —</option>';
+  let quotaHint = '';
+  for (const g of state.fillPickGroups || []) {
+    const label = g.base ? g.label + ' (base)' : g.label + ' · ' + g.quotaLeft + ' pick' + (g.quotaLeft === 1 ? '' : 's') + ' left';
+    options += '<optgroup label="' + esc(label) + '">' + g.players.map((n) => '<option value="' + esc(n) + '">' + esc(n) + '</option>').join('') + '</optgroup>';
+    if (!g.base && !quotaHint) quotaHint = '<div class="pickhint">Players above the base tier are first come, first served: only the shown number can still be picked by anyone in the fill-up round.</div>';
+  }
+  root.innerHTML = '<div class="panel">' + tag +
+    '<div class="opening-prompt">Your pick — choose a player for $0</div>' +
+    '<div class="slot-pips">' + pips + '</div>' +
+    '<select id="player-select">' + options + '</select>' + quotaHint +
+    '<div class="bid-row pick-row"><button id="submit">Pick player</button></div>' +
+    '<div class="error" id="error"></div></div>';
+  document.getElementById('submit').onclick = submitFillPick;
+}
+
+async function submitFillPick() {
+  if (submitting) return;
+  const player = document.getElementById('player-select').value;
+  if (!player) { showError('Pick a player first.'); return; }
+  setSubmitting(true);
+  showError('');
+  const res = await postJson('/api/fill-pick', { captain: captain, player: player });
+  setSubmitting(false);
+  if (res && res.ok) { lastKey = ''; } else { showError(res ? res.error : 'Something went wrong.'); }
 }
 
 // Broke (#7): a neutral box (a state, not an error) with the no-money coin, how much is left and
@@ -353,12 +405,13 @@ function updateSoldBanner(state) {
   const banner = document.getElementById('sold-banner');
   if (!banner) return;
   const m = state && state.soldMessage;
-  const sig = m ? (m.player + '|' + m.winner + '|' + m.bid) : '';
+  const sig = m ? (m.player + '|' + m.winner + '|' + m.bid + '|' + (m.kind || '')) : '';
   if (sig === lastSoldSig) return;
   lastSoldSig = sig;
+  const pick = !!(m && m.kind === 'pick');
   banner.innerHTML = m
-    ? '<div class="sold-banner"><span class="sold-tag">Sold</span>'
-        + '<span>' + esc(m.player) + ' → ' + esc(m.winner) + ' &nbsp;·&nbsp; $' + esc(m.bid) + '</span></div>'
+    ? '<div class="sold-banner"><span class="sold-tag">' + (pick ? 'Pick' : 'Sold') + '</span>'
+        + '<span>' + esc(m.player) + ' → ' + esc(m.winner) + ' &nbsp;·&nbsp; $' + esc(m.bid) + (pick ? ' fill-up pick' : '') + '</span></div>'
     : '';
 }
 
@@ -387,7 +440,7 @@ function updateOpeningBanner(state) {
 function updateContentVisibility(state) {
   const content = document.getElementById('content');
   if (!content) return;
-  const takeover = !!(state.openingMessage || state.soldMessage);
+  const takeover = !!(state.openingMessage || (state.soldMessage && state.soldMessage.kind !== 'pick'));
   content.style.display = takeover ? 'none' : '';
 }
 

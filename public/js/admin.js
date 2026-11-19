@@ -484,10 +484,33 @@ function renderStatus(s) {
       '<span class="countdown' + (urgent ? ' urgent' : '') + '">' + cdVal + '</span></div>';
   }
   document.getElementById('status-bar').innerHTML = html;
+  renderFillAdmin(s);
 
   const soldBtn = document.getElementById('sold-btn');
   if (soldBtn) soldBtn.disabled = !s.soldArmed;
 }
+
+/** Fill-up order (#7): who picks next in the fill-up round, top first. Shown once anyone is broke;
+ *  the ↑/↓ buttons reorder it during the round (before it starts the order follows the rules). */
+function renderFillAdmin(s) {
+  const box = document.getElementById('fill-admin');
+  if (!box) return;
+  const fill = s.fill || {};
+  const order = fill.order || [];
+  if (!order.length && !fill.active) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  let html = '<div class="fill-admin-head"><b>Fill-up order</b> <span class="hint">' +
+    (fill.active ? 'top picks next · reorder with ↑/↓ · pick for a captain with Assign' : 'projected — the order is fixed when the fill-up round starts') + '</span></div><ol class="fill-admin-list">';
+  order.forEach(function (c, i) {
+    html += '<li><span class="fa-name">' + esc(c.name) + '</span><span class="tag">' + c.slots + ' slot' + (c.slots === 1 ? '' : 's') + '</span>' +
+      (fill.active ? '<span class="ord-btns"><button class="btn btn-sm" onclick="moveFill(' + c.id + ',\'up\')"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+        '<button class="btn btn-sm" onclick="moveFill(' + c.id + ',\'down\')"' + (i === order.length - 1 ? ' disabled' : '') + '>↓</button></span>' : '') + '</li>';
+  });
+  html += '</ol>';
+  if (fill.active && fill.done && fill.done.length) html += '<div class="hint">Done: ' + fill.done.map(esc).join(', ') + '</div>';
+  box.innerHTML = html;
+}
+function moveFill(id, dir) { adminAction('fillup/move', { id: id, dir: dir }); }
 
 function fillSettingsOnce(s) {
   if (settingsInitialized) return;

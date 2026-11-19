@@ -10,6 +10,7 @@
 const { state, captainsBySeat } = require('../state');
 const { STATUS, TURN_ORDER, TURN_DIR } = require('../config');
 const team = require('./team');
+const fillup = require('./fillup');
 
 // ----- pure index walkers (ported verbatim, predicate instead of a name map) -----
 
@@ -100,17 +101,19 @@ function advanceMarker() {
   return nextIdx;
 }
 
-/** Advance the marker AND move the phase into OPENING (or FINISHED if all full). Used by the
- *  normal flow (after a sale, on start, on opening-deadline auto-skip). */
+/** Advance the marker AND move the phase into OPENING. When no captain can open any more (all
+ *  full or broke) the auction phase is over: the fill-up round starts if anyone is broke (#7),
+ *  otherwise FINISHED. Used by the normal flow (after a sale, on start, on opening-deadline auto-skip). */
 function advanceTurn() {
   const nextIdx = advanceMarker();
   if (nextIdx !== -1) {
     state.settings.status = STATUS.OPENING;
     setOpeningDeadline();
-  } else {
-    state.settings.status = STATUS.FINISHED;
-    clearOpeningDeadline();
+    return;
   }
+  clearOpeningDeadline();
+  if (state.captains.some((c) => team.isCaptainBroke(c))) fillup.start();
+  else state.settings.status = STATUS.FINISHED;
 }
 
 /**

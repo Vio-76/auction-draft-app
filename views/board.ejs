@@ -54,12 +54,23 @@
       <div class="pool-grid" id="pool"></div>
     </div>
 
-    <div class="turn-section" id="turn-section" style="display:none">
-      <div class="turn-head">
-        <h2 class="turn-title">Opening Bid Order</h2>
-        <span class="turn-badge" id="turn-badge"></span>
+    <div class="order-row">
+      <div class="turn-section" id="turn-section" style="display:none">
+        <div class="turn-head">
+          <h2 class="turn-title">Opening Bid Order</h2>
+          <span class="turn-badge" id="turn-badge"></span>
+        </div>
+        <div class="turn-rail" id="turn-rail"></div>
       </div>
-      <div class="turn-rail" id="turn-rail"></div>
+
+      <!-- Fill-up order (#7): a stack of broke captains, last to go broke on top (picks first). -->
+      <div class="fill-section" id="fill-section" style="display:none">
+        <div class="turn-head">
+          <h2 class="turn-title">Fill-up Order</h2>
+          <span class="turn-badge" id="fill-badge"></span>
+        </div>
+        <div class="fill-scene" id="fill-scene"></div>
+      </div>
     </div>
 
     <footer class="board-disclaimer">

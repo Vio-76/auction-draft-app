@@ -31,6 +31,8 @@
         <div class="status-grid" id="status-bar"></div>
         <button class="btn btn-accent sell-btn" id="sold-btn" onclick="adminAction('sold')">Sell player</button>
       </div>
+      <!-- Fill-up order (#7): projected while captains go broke; reorderable during the fill-up round. -->
+      <div class="fill-admin" id="fill-admin" hidden></div>
       <div class="btn-row">
         <button class="btn" onclick="adminAction('start', {}, 'Start the auction? This clears in-flight bidding and starts from the first captain.')">Start auction</button>
         <button class="btn" onclick="adminAction('skip')">Skip Turn</button>

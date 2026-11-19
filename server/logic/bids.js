@@ -16,6 +16,7 @@ const { markChanged } = require('../bus');
 const team = require('./team');
 const turn = require('./turn');
 const sell = require('./sell');
+const fillup = require('./fillup');
 
 const BROKE_ERROR = "You're broke — you can't afford any player left. You'll fill your remaining slots in the fill-up round.";
 
@@ -106,4 +107,13 @@ function skipTurn(captain) {
   return { ok: true };
 }
 
-module.exports = { placeBid, placeOpeningBid, skipTurn };
+/** Fill-up round (#7): the captain on top of the stack picks a player for $0. */
+function fillPick(captain, playerName) {
+  const r = fillup.pick(captain, playerName, { playerByName, setLastPick: sell.setLastPick });
+  if (!r.ok) return r;
+  persistAll();
+  markChanged();
+  return { ok: true };
+}
+
+module.exports = { placeBid, placeOpeningBid, skipTurn, fillPick };

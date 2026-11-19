@@ -52,9 +52,11 @@ function render(state) {
   updateSub(teams.length);
   renderOpeningBanner(state.openingMessage);
   renderSoldBanner(state.soldMessage);
-  renderWaitingBanner(state.turn, !!state.openingMessage || !!state.soldMessage);
+  const pickBanner = !!(state.soldMessage && state.soldMessage.kind === 'pick');   // fill-up picks keep flowing
+  renderWaitingBanner(state.turn, !!state.openingMessage || (!!state.soldMessage && !pickBanner), state.fill);
   renderLiveBid(state.liveBid, !!state.openingMessage);
-  renderPool(state.openPlayers || [], state.tiers || [], state.defaultMinBid);
+  renderPool(state.openPlayers || [], state.tiers || [], state.defaultMinBid, state.fill);
+  renderFill(state.fill);
   renderTurn(state.turn);
 }
 
@@ -64,12 +66,13 @@ let lastSoldSig = '';
 function renderSoldBanner(m) {
   const banner = document.getElementById('sold-banner');
   if (!banner) return;
-  const sig = m ? (m.player + '|' + m.winner + '|' + m.bid) : '';
+  const sig = m ? (m.player + '|' + m.winner + '|' + m.bid + '|' + (m.kind || '')) : '';
   if (sig === lastSoldSig) return;
   lastSoldSig = sig;
   if (!m) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
-  banner.innerHTML = '<div class="sold-banner"><span class="sold-tag">Sold</span>'
-    + '<span>' + esc(m.player) + ' → ' + esc(m.winner) + ' &nbsp;·&nbsp; $' + esc(m.bid) + '</span></div>';
+  const pick = m.kind === 'pick';
+  banner.innerHTML = '<div class="sold-banner"><span class="sold-tag">' + (pick ? 'Pick' : 'Sold') + '</span>'
+    + '<span>' + esc(m.player) + ' → ' + esc(m.winner) + ' &nbsp;·&nbsp; $' + esc(m.bid) + (pick ? ' fill-up pick' : '') + '</span></div>';
   banner.style.display = '';
 }
 
@@ -77,18 +80,22 @@ function renderSoldBanner(m) {
 // non-turn view so spectators see whose opening bid we're waiting on (the turn rail also
 // highlights them). Hidden outside OPENING; during BIDDING the reveal + live band show instead.
 let lastWaitingSig = '';
-function renderWaitingBanner(turn, suppress) {
+function renderWaitingBanner(turn, suppress, fill) {
   const banner = document.getElementById('waiting-banner');
   if (!banner) return;
   const order = (turn && turn.order) || [];
   const i = turn ? turn.currentIndex : -1;
   // Suppressed while the opening reveal is showing (an uncontestable opening auto-sells straight
   // into the next OPENING, so the two can briefly coincide — the reveal wins).
+  const picker = (!suppress && fill && fill.active && fill.order && fill.order[0]) || null;
   const name = (!suppress && turn && turn.phase === 'OPENING' && i >= 0 && i < order.length) ? order[i] : '';
-  if (name === lastWaitingSig) return;
-  lastWaitingSig = name;
-  if (!name) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
-  banner.innerHTML = '<div class="waiting-band">Waiting for <b>' + esc(name) + '</b> to choose a player…</div>';
+  const sig = picker ? 'fill|' + picker.name + '|' + picker.slots : name;
+  if (sig === lastWaitingSig) return;
+  lastWaitingSig = sig;
+  if (!sig) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
+  banner.innerHTML = picker
+    ? '<div class="waiting-band"><span class="fu-tag">FILL-UP</span><b>' + esc(picker.name) + '</b> is picking · ' + picker.slots + ' slot' + (picker.slots === 1 ? '' : 's') + ' left</div>'
+    : '<div class="waiting-band">Waiting for <b>' + esc(name) + '</b> to choose a player…</div>';
   banner.style.display = '';
 }
 
@@ -199,7 +206,8 @@ function showMessage(root, msg) {
   messageShown = true;
   renderOpeningBanner(null);
   renderSoldBanner(null);
-  renderWaitingBanner(null, false);
+  renderWaitingBanner(null, false, null);
+  renderFill(null);
   renderLiveBid(null);
   hidePool();
   hideTurn();
@@ -457,6 +465,14 @@ function addPoolCol(grid, spec) {
     head.classList.add('has-min');
     head.appendChild(el('span', 'pool-col-min', '(minimum $' + spec.min + ')'));
   }
+  if (spec.fill) {                       // fill-up round: base = any number, higher tiers = quota left
+    head.classList.add('has-min');
+    const line = el('span', 'pool-col-fill');
+    if (spec.fill.kind === 'base') { line.appendChild(el('span', 'base-tag', 'BASE')); line.appendChild(document.createTextNode('any number of picks')); }
+    else if (spec.fill.kind === 'quota') line.textContent = spec.fill.left + ' pick' + (spec.fill.left === 1 ? '' : 's') + ' left';
+    else { line.textContent = 'not pickable in fill-up'; col.classList.add('locked'); }
+    head.appendChild(line);
+  }
   col.appendChild(head);
   const list = el('div', 'pool-list');
   col.appendChild(list);
@@ -477,8 +493,9 @@ function miniRoleIcon(role) {
   return i;
 }
 
-function renderPool(players, tiers, defaultMinBid) {
-  lastPool = { players: players, tiers: tiers || [], defaultMinBid: defaultMinBid };
+function renderPool(players, tiers, defaultMinBid, fill) {
+  lastPool = { players: players, tiers: tiers || [], defaultMinBid: defaultMinBid, fill: fill || null };
+  const fu = fill && fill.active ? fill : null;   // fill-up round: mark what can still be picked
   tiers = lastPool.tiers;
   if (!players.length) { hidePool(); return; }
 
@@ -494,13 +511,13 @@ function renderPool(players, tiers, defaultMinBid) {
     const known = {};
     for (let i = 0; i < tiers.length; i++) {
       known[tiers[i].id] = true;
-      specs.push({ key: 't' + tiers[i].id, label: tiers[i].name, range: tiers[i].range || '', min: tiers[i].minBid });
+      specs.push({ key: 't' + tiers[i].id, label: tiers[i].name, range: tiers[i].range || '', min: tiers[i].minBid, fill: fillSpec(fu, tiers[i].id) });
     }
     for (let i = 0; i < players.length; i++) {
       const p = players[i];
       put(p.tierId != null && known[p.tierId] ? 't' + p.tierId : 'none', p);
     }
-    if (buckets.none) specs.push({ key: 'none', label: 'No tier', min: defaultMinBid });
+    if (buckets.none) specs.push({ key: 'none', label: 'No tier', min: defaultMinBid, fill: fu ? { kind: 'base' } : null });
   } else {
     for (let i = 0; i < ROLES.length; i++) specs.push({ key: ROLES[i].key, label: ROLES[i].label, role: ROLES[i] });
     for (let i = 0; i < players.length; i++) {
@@ -511,7 +528,7 @@ function renderPool(players, tiers, defaultMinBid) {
   }
 
   // Rebuild the columns only when the set (or a tier's name/range/min) changes.
-  const sig = mode + '|' + JSON.stringify(specs.map((s) => [s.key, s.label, s.range, s.min]));
+  const sig = mode + '|' + JSON.stringify(specs.map((s) => [s.key, s.label, s.range, s.min, s.fill]));
   if (sig !== poolColsSig) {
     poolColsSig = sig;
     const grid = document.getElementById('pool');
@@ -530,6 +547,7 @@ function renderPool(players, tiers, defaultMinBid) {
     c.list.textContent = '';
     for (let i = 0; i < list.length; i++) {
       const row = el('div', 'pool-player');
+      if (fu && !fillEligible(fu, list[i])) row.classList.add('locked');
       if (mode === 'tier') {
         row.classList.add('with-icon');
         row.appendChild(miniRoleIcon(roleOf(list[i])));
@@ -564,9 +582,88 @@ function updatePoolSwitch(show, mode) {
     if (!btn) return;
     poolMode = btn.getAttribute('data-mode') === 'tier' ? 'tier' : 'role';
     try { localStorage.setItem('boardPoolMode', poolMode); } catch (err) { /* storage blocked */ }
-    renderPool(lastPool.players, lastPool.tiers, lastPool.defaultMinBid);
+    renderPool(lastPool.players, lastPool.tiers, lastPool.defaultMinBid, lastPool.fill);
   });
 })();
+
+// ----- fill-up round (#7): pool eligibility -----
+
+function isBaseTier(fu, tierId) {
+  return tierId == null || tierId === fu.baseTierId || !(tierId in (fu.quota || {}));
+}
+/** Column header state for a tier during the fill-up round (null outside it). */
+function fillSpec(fu, tierId) {
+  if (!fu) return null;
+  if (isBaseTier(fu, tierId)) return { kind: 'base' };
+  const left = fu.quota[tierId] || 0;
+  return left > 0 ? { kind: 'quota', left: left } : { kind: 'locked' };
+}
+function fillEligible(fu, p) {
+  return isBaseTier(fu, p.tierId) || (fu.quota[p.tierId] || 0) > 0;
+}
+
+// ----- fill-up stack (#7): broke captains, last to go broke on top -----
+
+let fillSig = '';
+let fillTopName = '';
+function renderFill(fill) {
+  const sec = document.getElementById('fill-section');
+  if (!sec) return;
+  const order = (fill && fill.order) || [];
+  const done = (fill && fill.done) || [];
+  const active = !!(fill && fill.active);
+  // Shown once someone is broke (it grows during the auction) and throughout the fill-up round.
+  if (!order.length && !active) { sec.style.display = 'none'; fillSig = ''; fillTopName = ''; return; }
+  sec.style.display = '';
+  const sig = JSON.stringify([active, order, done]);
+  if (sig === fillSig) return;
+  fillSig = sig;
+
+  const badge = document.getElementById('fill-badge');
+  if (badge) badge.textContent = active ? (order.length ? 'Fill-up round' : 'Fill-up done') : order.length + ' waiting';
+
+  const scene = document.getElementById('fill-scene');
+  scene.textContent = '';
+  const stack = el('div', 'fill-stack');
+  for (let i = 0; i < order.length; i++) {
+    const b = el('div', 'fill-block' + (i === 0 ? (active ? ' picking' : ' top') : ''));
+    const nm = el('span', 'fill-name', order[i].name);
+    nm.title = order[i].name;
+    b.appendChild(nm);
+    b.appendChild(el('span', 'fill-slots', order[i].slots + ' slot' + (order[i].slots === 1 ? '' : 's')));
+    stack.appendChild(b);
+  }
+  scene.appendChild(stack);
+  // Brackets for captains who went broke at the same moment (consecutive equal brokeSeq).
+  for (let i = 0; i < order.length;) {
+    let j = i;
+    while (j + 1 < order.length && order[j + 1].brokeSeq && order[j + 1].brokeSeq === order[i].brokeSeq) j++;
+    if (j > i) {
+      const tie = el('div', 'fill-tie');
+      tie.style.top = (20 + i * 42 + 6) + 'px';
+      tie.style.height = ((j - i + 1) * 42 - 12) + 'px';
+      tie.appendChild(el('span', null, 'broke together'));
+      scene.appendChild(tie);
+    }
+    i = j + 1;
+  }
+  scene.appendChild(el('div', 'fill-ground'));
+  if (order.length) {
+    const cap = el('div', 'fill-caption');
+    cap.appendChild(el('span', null, '↑ top picks first'));
+    cap.appendChild(el('span', null, 'bottom picks last'));
+    scene.appendChild(cap);
+  }
+  if (done.length) {
+    const d = el('div', 'fill-done', 'done: ');
+    for (let i = 0; i < done.length; i++) d.appendChild(el('s', null, done[i]));
+    scene.appendChild(d);
+  }
+  // A captain newly pushed on top (just went broke) drops onto the stack.
+  const top = order[0] ? order[0].name : '';
+  if (top && fillTopName && top !== fillTopName && !active && order.length > 1 && order[1].name === fillTopName) stack.firstChild.classList.add('dropping');
+  fillTopName = top;
+}
 
 // ----- turn-order rail -----
 
@@ -599,7 +696,9 @@ function renderTurn(turn) {
 
   const finished = turn.phase === 'FINISHED';
   const paused = turn.phase === 'CLOSED';
-  const active = !finished && !paused;   // only OPENING/BIDDING have a live "current" captain
+  const fillRound = turn.phase === 'FILLUP';
+  const active = !finished && !paused && !fillRound;   // only OPENING/BIDDING have a live "current" captain
+  document.getElementById('turn-rail').classList.toggle('idle', fillRound);
   for (let i = 0; i < turnChips.length; i++) {
     const chip = turnChips[i];
     chip.querySelector('.turn-name').textContent = names[i];
@@ -611,6 +710,7 @@ function renderTurn(turn) {
   const badge = document.getElementById('turn-badge');
   if (badge) {
     if (finished) badge.textContent = 'Complete';
+    else if (fillRound) badge.textContent = 'Fill-up round';
     else if (paused) badge.textContent = 'Paused';
     else if (turn.mode === 'SNAKE') badge.textContent = 'Snake ' + (turn.direction === 'UP' ? '←' : '→');
     else badge.textContent = 'Waterfall →';

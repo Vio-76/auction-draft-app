@@ -124,6 +124,17 @@
       font-family:var(--font-body); padding:14px 16px; border-radius:var(--control-radius); margin-top:8px;
       background:var(--accent-soft); border:1px solid var(--accent-border); color:var(--accent); font-weight:600;
     }
+    /* Fill-up round (#7) */
+    .fu-tag { display:inline-block; font-family:var(--font-mono); font-weight:700; font-size:11px; letter-spacing:.1em;
+      color:var(--accent-ink); background:var(--accent); padding:3px 8px; border-radius:5px; margin-bottom:10px; }
+    .slot-pips { display:flex; gap:6px; margin:6px 0 14px; }
+    .slot-pips span { width:22px; height:8px; border-radius:3px; background:var(--positive-soft); border:1px solid var(--positive-border); }
+    .slot-pips span.filled { background:var(--accent); border-color:var(--accent); }
+    .pickhint { font-size:13px; color:var(--muted); margin:-4px 0 12px; line-height:1.4; }
+    .pick-row { justify-content:flex-end; }
+    .pos-badge { display:inline-block; font-family:var(--font-mono); font-weight:700; font-size:12px; color:var(--accent);
+      background:var(--accent-soft); border:1px solid var(--accent-border); border-radius:999px; padding:2px 9px; margin-top:10px; }
+
     /* Broke (#7): neutral, not red — it's a state, not an error. */
     .broke-box {
       display:flex; gap:12px; align-items:flex-start; padding:14px 16px; border-radius:var(--control-radius); margin-top:8px;

@@ -15,11 +15,15 @@ const turn = require('./turn');
 function setLastSold(playerName, winnerName, bid) {
   state.clocks.lastSold = { player: playerName, winner: winnerName, bid, at: Date.now() };
 }
+/** A fill-up round $0 pick (#7): same banner + timing as a sale, marked kind 'pick'. */
+function setLastPick(playerName, captainName) {
+  state.clocks.lastSold = { player: playerName, winner: captainName, bid: 0, kind: 'pick', at: Date.now() };
+}
 function recentSoldMessage() {
   const d = state.clocks.lastSold;
   if (!d) return null;
   if (Date.now() - d.at > state.settings.soldMessageSeconds * 1000) return null;
-  return { player: d.player, winner: d.winner, bid: d.bid };
+  return { player: d.player, winner: d.winner, bid: d.bid, kind: d.kind || 'sale' };
 }
 
 // ----- opening-bid announcement (ephemeral) -----
@@ -146,6 +150,7 @@ function autoSellIfElapsed() {
 }
 
 module.exports = {
+  setLastPick,
   recentSoldMessage,
   setLastOpening,
   recentOpeningMessage,

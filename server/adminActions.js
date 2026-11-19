@@ -18,12 +18,15 @@ const { saveImage, deleteImage } = require('./uploads');
 const team = require('./logic/team');
 const turn = require('./logic/turn');
 const sell = require('./logic/sell');
+const fillup = require('./logic/fillup');
 
 function commit() {
   // The paused-countdown snapshot is only meaningful while CLOSED; clear it on resume.
   if (state.settings.status !== STATUS.CLOSED) state.clocks.pausedRemaining = null;
   // Admin edits (prices, rosters, pool, budget, tiers) can make captains go broke or stop being broke.
   team.updateBrokeState();
+  // Fill-up round: a hand-assigned player can complete a team (take it off the stack) or end the round.
+  fillup.settle();
   persistAll();
   markChanged();
 }
@@ -40,6 +43,7 @@ function normalizeSeats() {
 // ----- auction control -----
 
 function startAuction() {
+  fillup.reset();
   team.clearAuctionBlock();
   sell.clearLastBidTime();
   turn.clearOpeningDeadline();
@@ -54,6 +58,9 @@ function startAuction() {
  *  without changing the status or clearing the in-flight bid. Resets the opening-bid countdown
  *  to the full timeout so the new turn-holder gets a fresh clock. */
 function skipTurn() {
+  if (state.settings.status === STATUS.FILLUP) {
+    return err('Skip Turn isn\'t used in the fill-up round. Pick for a captain with Assign, or reorder the fill-up order.');
+  }
   turn.skipMarker();
   turn.setOpeningDeadline();
   return ok();
@@ -521,6 +528,8 @@ function assignPlayerToTeam(playerId, captainId, price, coCaptain = false) {
   // Fresh assignment from the pool appends to the end; editing an existing pick's team/price
   // keeps its current slot.
   if (!wasSold) p.soldSeq = nextSoldSeq();
+  // During the fill-up round the admin picks for captains with Assign; it uses up a tier quota too.
+  if (!wasSold && state.settings.status === STATUS.FILLUP) fillup.consumeQuota(p);
   return ok();
 }
 
@@ -542,7 +551,15 @@ function setPlayerPrice(playerId, price) {
   return ok();
 }
 
+/** Admin: reorder the fill-up stack (one place up/down). */
+function moveFillUp(captainId, dir) {
+  const r = fillup.move(captainId, dir);
+  if (!r.ok) return r;
+  return ok();
+}
+
 module.exports = {
+  moveFillUp,
   startAuction, skipTurn, openBidding, closeBidding, openOpeningBid,
   sold, setStatus, emptyTeams,
   updateSettings, setTiers,

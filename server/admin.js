@@ -66,6 +66,7 @@ function registerAdminRoutes(app) {
   post('sold',          () => A.sold());
   post('empty-teams',   () => A.emptyTeams());
   post('status',        (b) => A.setStatus(b.status));
+  post('fillup/move',   (b) => A.moveFillUp(b.id, b.dir));
 
   // settings
   post('settings',      (b) => A.updateSettings(b.patch || b));
