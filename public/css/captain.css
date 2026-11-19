@@ -21,6 +21,7 @@
     [data-theme="broadcast"] .bid-figure { font-variant-numeric:tabular-nums; font-weight:900; }
 
     [data-theme="brutalist"] .player-card::before { height:6px; }
+    [data-theme="wada-202"] .player-card::before { height:5px; }
     [data-theme="brutalist"] .sold-banner { border:3px solid #111; }
     [data-theme="brutalist"] .team-full,
     [data-theme="brutalist"] .priced-out { border:2px solid #111; }

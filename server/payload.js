@@ -5,7 +5,7 @@
  * buildInfoSections).
  */
 
-const { state, captainById, playerById, captainsBySeat, draftedPlayers } = require('./state');
+const { state, captainById, captainByName, playerById, captainsBySeat, draftedPlayers } = require('./state');
 const {
   STATUS, SELL_MODE, TURN_ORDER, TURN_DIR, ROLE_LABELS,
   AUCTION_INFO_SECTIONS, AUCTION_INFO_VARIANTS,
@@ -250,8 +250,17 @@ function buildBoardState() {
     fill: buildFillState(),
     // Timed "sold" banner (same as the captain page). Ungated: the sale result (player/winner/price)
     // is already public on the board — sold players show with their price in the team rosters.
-    soldMessage: sell.recentSoldMessage(),
+    soldMessage: boardSoldMessage(identity && s.showTeamNameOnBoard),
   };
+}
+
+/** The board's sold banner, plus the winner's team name (shown in brackets after the captain) while
+ *  team names are visible on the board — same gating as the team cards. */
+function boardSoldMessage(showTeamName) {
+  const m = sell.recentSoldMessage();
+  if (!m) return null;
+  const c = showTeamName ? captainByName(m.winner) : null;
+  return { ...m, teamName: (c && c.teamName) || '' };
 }
 
 // ----- fill-up round (#7) -----

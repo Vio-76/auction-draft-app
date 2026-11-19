@@ -15,8 +15,8 @@
     }
 
     [data-theme="brutalist"] .team-card::before { height:6px; }
+    [data-theme="wada-202"] .team-card::before { height:5px; }
 
-    [data-theme="casino"] .team-maxbid { text-shadow:0 0 16px rgba(255,208,46,.5); }
     [data-theme="casino"] .card-eyebrow { text-shadow:0 0 12px rgba(255,77,109,.6); }
 
     /* wada-202: the live moments (on the block, sold, opening reveal) are solid slate bands with
@@ -34,6 +34,7 @@
     [data-theme="wada-202"] .liveband-track { background:rgba(255,255,255,.14); }
     [data-theme="wada-202"] .sold-banner { background:#34454c; border-color:#34454c; color:#f2faf6; }
     [data-theme="wada-202"] .sold-tag { background:#96d1aa; color:#1f2b30; }
+    [data-theme="wada-202"] .sold-team { color:#b5decc; }
     [data-theme="wada-202"] .opening-card { background:#34454c; border-color:#34454c; }
     /* above the price ceiling: the slate band / sold banner turn a dark brick red */
     [data-theme="wada-202"] .liveband.over { background:#5e2f2b; border-color:#5e2f2b; }
@@ -98,8 +99,7 @@
       content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--topbar);
     }
 
-    /* Team identity "crest" at the top of the card: a large centered logo with the team name
-       below it, the group badge pinned top-right. Shown once FINISHED, or for the whole auction
+    /* Team identity "crest" at the top of the card: the team name above a large centered logo, the group badge pinned top-right. Shown once FINISHED, or for the whole auction
        when the admin enables it (the server decides; see payload.js). Token-driven so every theme
        inherits. */
     .team-identity {
@@ -129,41 +129,30 @@
       color:var(--muted); margin-top:2px;
     }
 
-    /* Header is the max-bid headline stat: value centered to the card, label to its right.
-       Flex baseline-aligns the two; the label has zero layout width (text overflows to the
-       right) so the value alone determines centering. */
-    .team-head {
-      display:flex; align-items:baseline; justify-content:center;
-      margin-bottom:14px;
-    }
-    /* Small "available budget" meter under the role icons: a gold bar for the captain's remaining
-       budget + a muted right-aligned "Budget $remaining/total". Deliberately quiet so it reads as
-       clearly less important than the max bid. */
+    /* Budget block at the bottom of the card: "Budget" left, "$left / total" right, a bar of what's
+       left below. Broke (#7): the word "Broke" + "$left left", no bar. Full teams hide it. */
     .team-budget { margin-top:14px; }
-    .team-budget-head { display:flex; justify-content:flex-end; margin-bottom:5px; }
-    .team-budget-val { font-family:var(--font-mono); font-size:11px; color:var(--muted); }
+    .team-budget-head { display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:5px; }
+    .team-budget-key { font-family:var(--font-mono); font-size:11px; color:var(--muted); }
+    .team-budget-val { font-family:var(--font-mono); font-weight:700; font-size:15px; color:var(--accent); }
+    .team-budget-val small { font-weight:500; font-size:11px; color:var(--muted); }
     .team-budget-track { height:5px; border-radius:3px; background:var(--line); overflow:hidden; }
     .team-budget-fill { height:100%; background:var(--accent); border-radius:3px; }
-    /* Full team: grey the bar so gold consistently means "still bidding" across the board. */
-    .team-budget.full .team-budget-fill { background:var(--muted); opacity:.5; }
-    .team-maxbid-label {
-      font-family:var(--font-display); font-weight:700; font-size:14px;
-      color:var(--ink); width:0; white-space:nowrap; margin-left:8px;
+    .team-budget.broke .team-budget-head { margin-bottom:0; }
+    .team-budget.broke .team-budget-key {
+      font-family:var(--font-display); font-weight:700; font-size:16px; letter-spacing:.06em;
+      text-transform:uppercase; color:var(--ink);
     }
-    .team-maxbid {
-      font-family:var(--font-mono); font-weight:700; font-size:20px; line-height:1.1; color:var(--accent);
-      letter-spacing:-.02em;
-    }
-    .team-maxbid.dim { color:var(--muted); opacity:.75; }
-    /* Full team: the headline is the word "Full", not a dollar figure — render it in the display
-       font (white) so it reads as a clear settled state rather than a mono number. Overrides the
-       .dim muting that's applied to the headline when the team is full. */
-    .team-maxbid.is-full {
-      font-family:var(--font-display); font-weight:700; font-size:16px;
-      letter-spacing:.04em; text-transform:uppercase; color:var(--ink); opacity:1;
-    }
-    /* Broke (#7): same settled word style as "Full", but muted — the team still has slots to fill. */
-    .team-maxbid.is-broke { color:var(--muted); }
+    .team-budget.broke .team-budget-val { color:var(--muted); }
+
+    /* A team that can't take part right now fades (full/broke/priced out in the auction, not in the
+       stack during fill-up). Faded on the children, because the cardIn animation (fill-mode both)
+       would override an opacity set on the card itself. */
+    /* Exception: the word BROKE stays at full strength, so a broke team still reads clearly. */
+    .team-card > *, .team-budget-head > *, .team-budget-track { transition:opacity .25s ease, filter .25s ease; }
+    .team-card.faded > *:not(.team-budget), .team-card.faded::before,
+    .team-card.faded .team-budget-val, .team-card.faded .team-budget-track,
+    .team-card.faded .team-budget:not(.broke) .team-budget-key { opacity:.55; filter:grayscale(.8); }
 
     .roster { display:flex; flex-direction:column; gap:1px; margin-bottom:14px; }
     .roster-row {
@@ -343,6 +332,7 @@
 
     /* "Sold" banner — same look as the captain page (var(--sold-bg) + accent "Sold" tag). */
     #sold-banner { margin-bottom:16px; }
+    .sold-team { color:var(--muted); }   /* "(Team name)" after the winning captain */
     .sold-banner {
       display:flex; align-items:center; gap:10px; padding:14px 18px;
       background:var(--sold-bg); border:1px solid var(--accent-border); border-radius:var(--radius);

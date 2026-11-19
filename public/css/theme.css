@@ -212,7 +212,7 @@
       --ring-track:rgba(52,69,76,.14);
       --radius:10px; --control-radius:8px;
       --shadow:0 14px 34px -18px rgba(31,43,48,.45);
-      --topbar: linear-gradient(90deg, #34454c, #96d1aa 60%, #b5decc);
+      --topbar: #34454c;
       --sold-bg: linear-gradient(90deg, rgba(150,209,170,.7), rgba(181,222,204,.2));
       --focus-ring:0 0 0 3px rgba(52,69,76,.18);
       --disabled-bg:#d3e2db; --disabled-ink:#8aa098;

@@ -30,9 +30,14 @@ function render(state) {
   if (!teams.length) { showMessage(root, 'No teams yet.'); updateSub(0); return; }
   if (messageShown) { root.innerHTML = ''; cardEls = {}; messageShown = false; }
 
-  // Once the auction is over, the budget headline / bar are no longer meaningful — hide them and let the
+  // Once the auction is over, the budget block is no longer meaningful — hide it and let the
   // card show just the final roster (+ team op.gg link).
   const finished = !!(state.turn && state.turn.phase === 'FINISHED');
+  // Fill-up round: only the captains still in the stack take part.
+  const fu = state.fill && state.fill.active ? state.fill : null;
+  const inFill = {};
+  if (fu) for (const o of fu.order || []) inFill[o.name] = true;
+  for (const n of (fu && fu.done) || []) delete inFill[n];
   // Admin toggle: whether the available-budget bar shows at all (default on if unspecified).
   const showBudget = state.showBudgetOnBoard !== false;
 
@@ -42,7 +47,10 @@ function render(state) {
     seen[t.captain] = true;
     let card = cardEls[t.captain];
     if (!card) card = cardEls[t.captain] = buildCard(t);
-    updateCard(card, t, t.full || t.pricedOut, finished, showBudget);   // dim the budget when full or priced out
+    // Fade a card that can't take part right now: in the auction a full or broke team, or one the
+    // current bid has priced out; in the fill-up round every team that isn't in the stack.
+    const out = finished ? false : fu ? !inFill[t.captain] : (t.full || t.broke || t.pricedOut);
+    updateCard(card, t, out, finished, showBudget);
     if (root.children[i] !== card.el) root.insertBefore(card.el, root.children[i] || null);
   }
   for (const cap in cardEls) {
@@ -66,13 +74,15 @@ let lastSoldSig = '';
 function renderSoldBanner(m) {
   const banner = document.getElementById('sold-banner');
   if (!banner) return;
-  const sig = m ? (m.player + '|' + m.winner + '|' + m.bid + '|' + (m.kind || '') + '|' + !!m.over) : '';
+  const sig = m ? (m.player + '|' + m.winner + '|' + m.bid + '|' + (m.kind || '') + '|' + !!m.over + '|' + (m.teamName || '')) : '';
   if (sig === lastSoldSig) return;
   lastSoldSig = sig;
   if (!m) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
   const pick = m.kind === 'pick';
   banner.innerHTML = '<div class="sold-banner' + (m.over ? ' over' : '') + '"><span class="sold-tag">' + (pick ? 'Pick' : 'Sold') + '</span>'
-    + '<span>' + esc(m.player) + ' → ' + esc(m.winner) + ' &nbsp;·&nbsp; $' + esc(m.bid) + (pick ? ' fill-up pick' : '') + '</span></div>';
+    + '<span>' + esc(m.player) + ' → ' + esc(m.winner)
+    + (m.teamName ? ' <span class="sold-team">(' + esc(m.teamName) + ')</span>' : '')   // team name, when shown on the board
+    + ' &nbsp;·&nbsp; $' + esc(m.bid) + (pick ? ' fill-up pick' : '') + '</span></div>';
   banner.style.display = '';
 }
 
@@ -257,7 +267,7 @@ function crownIcon(inner, label) {
 function buildCard(t) {
   const card = { el: el('div', 'team-card') };
 
-  // Team identity "crest" (logo above the team name, group badge pinned top-right) — shown at the
+  // Team identity "crest" (team name above the logo, group badge pinned top-right) — shown at the
   // very top whenever the server sends any of them (see updateCard; the server decides when they're
   // visible). Hidden by default so a card with none looks exactly as before.
   card.identity = el('div', 'team-identity');
@@ -271,17 +281,10 @@ function buildCard(t) {
   card.teamGroupLetter = el('span', 'team-group-letter');
   card.teamGroup.appendChild(card.teamGroupLetter);
   card.teamGroup.appendChild(el('span', 'team-group-label', 'group'));
-  card.identity.appendChild(card.teamLogo);
   card.identity.appendChild(card.teamName);
+  card.identity.appendChild(card.teamLogo);
   card.identity.appendChild(card.teamGroup);
   card.el.appendChild(card.identity);
-
-  const head = card.head = el('div', 'team-head');
-  card.maxBid = el('span', 'team-maxbid');
-  head.appendChild(card.maxBid);
-  card.maxBidLabel = el('span', 'team-maxbid-label', '(Budget)');
-  head.appendChild(card.maxBidLabel);
-  card.el.appendChild(head);
 
   const roster = el('div', 'roster');
 
@@ -329,15 +332,16 @@ function buildCard(t) {
   }
   card.el.appendChild(rolesWrap);
 
-  // "Available budget" meter, under the role icons: a gold bar (how much budget the captain still
-  // has) with a muted right-aligned "Budget $remaining/total". Styled quiet (see .team-budget*) to
-  // stay clearly secondary to the max-bid headline.
+  // Budget block at the bottom: "Budget" + "$left / total" over a bar of what's left. A broke team
+  // shows "Broke" + "$left left" without the bar; a full team hides the block.
   card.budget = el('div', 'team-budget');
   const budgetHead = el('div', 'team-budget-head');
+  card.budgetKey = el('span', 'team-budget-key');
+  budgetHead.appendChild(card.budgetKey);
   card.budgetVal = el('span', 'team-budget-val');
   budgetHead.appendChild(card.budgetVal);
   card.budget.appendChild(budgetHead);
-  const budgetTrack = el('div', 'team-budget-track');
+  const budgetTrack = card.budgetTrack = el('div', 'team-budget-track');
   card.budgetFill = el('div', 'team-budget-fill');
   budgetTrack.appendChild(card.budgetFill);
   card.budget.appendChild(budgetTrack);
@@ -353,11 +357,8 @@ function buildCard(t) {
   return card;
 }
 
-function updateCard(card, t, dim, finished, showBudget) {
-  // Auction over: drop the max-bid headline and the budget meter (both meaningless now); the card
-  // becomes a clean final roster. The budget bar is also hidden when the admin toggles it off.
-  card.head.style.display = finished ? 'none' : '';
-  card.budget.style.display = (finished || !showBudget) ? 'none' : '';
+function updateCard(card, t, faded, finished, showBudget) {
+  card.el.classList.toggle('faded', !!faded);
 
   // Team identity (logo + name + group). The server only sends what may be shown right now (name/
   // logo once FINISHED or always, per the admin setting; group once FINISHED), so just show what
@@ -381,26 +382,18 @@ function updateCard(card, t, dim, finished, showBudget) {
 
   setText(card.captainName, t.captain);
   setText(card.captainPrice, '$' + t.captainPrice);
-  // Full team: headline reads "Full"; broke team (#7): "Broke" — both settled states, so the budget
-  // bar greys out too. Otherwise the live budget (what the captain can still bid).
+  // Budget block. Hidden once FINISHED and for a full team. A broke team (#7) always shows the word
+  // "Broke" (roster-derived, like the old headline); the money only with the budget setting on.
   const broke = !t.full && !!t.broke;
-  if (t.full) {
-    setText(card.maxBid, 'Full');
-    setText(card.maxBidLabel, '');
-  } else if (broke) {
-    setText(card.maxBid, 'Broke');
-    setText(card.maxBidLabel, '');
-  } else {
-    setText(card.maxBid, '$' + t.maxBid);
-    setText(card.maxBidLabel, '(Budget)');
-  }
-  setText(card.budgetVal, 'Budget $' + t.leftOver + '/' + t.teamBudget);
+  card.budget.style.display = (finished || t.full || (!broke && !showBudget)) ? 'none' : '';
+  card.budget.classList.toggle('broke', broke);
+  setText(card.budgetKey, broke ? 'Broke' : 'Budget');
+  if (!showBudget) card.budgetVal.textContent = '';
+  else if (broke) card.budgetVal.innerHTML = '$' + esc(t.leftOver) + ' <small>left</small>';
+  else card.budgetVal.innerHTML = '$' + esc(t.leftOver) + ' <small>/ ' + esc(t.teamBudget) + '</small>';
+  card.budgetTrack.style.display = broke ? 'none' : '';
   const budgetFrac = t.teamBudget > 0 ? Math.max(0, Math.min(1, t.leftOver / t.teamBudget)) : 0;
   card.budgetFill.style.width = (budgetFrac * 100) + '%';
-  card.maxBid.classList.toggle('dim', !!dim);
-  card.maxBid.classList.toggle('is-full', !!t.full || broke);   // render "Full"/"Broke" as a word, not a mono figure
-  card.maxBid.classList.toggle('is-broke', broke);
-  card.budget.classList.toggle('full', !!t.full || broke);      // grey the bar when settled
   card.captainName.classList.toggle('leading', !!t.leading);   // current high bidder -> green name
   card.capRow.classList.toggle('leading', !!t.leading);        // ...and its crown
 
