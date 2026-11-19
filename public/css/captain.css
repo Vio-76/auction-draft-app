@@ -36,6 +36,9 @@
     [data-theme="wada-202"] .sold-banner { background:#34454c; border-color:#34454c; color:#f2faf6; }
     [data-theme="wada-202"] .sold-tag { background:#96d1aa; color:#1f2b30; }
     [data-theme="wada-202"] .opening-card { background:#34454c; border-color:#34454c; }
+    [data-theme="wada-202"] .sold-banner.over { background:#5e2f2b; border-color:#5e2f2b; }
+    [data-theme="wada-202"] .sold-banner.over .sold-tag,
+    [data-theme="wada-202"] .sold-banner .over-tag { background:#f0a59c; color:#3a1714; }
     [data-theme="wada-202"] .opening-text { color:#f2faf6; }
     [data-theme="wada-202"] .opening-bid,
     [data-theme="wada-202"] .opening-player { color:#b5decc; }
@@ -113,6 +116,25 @@
       object-fit:contain; border-radius:var(--control-radius); background:rgba(0,0,0,.06); box-shadow:var(--shadow);
     }
     .bid-stat { margin:0 0 16px; }
+
+    /* Above the tier's price ceiling (warning only, never blocked). */
+    .player-card.over { border-color:var(--danger-border); box-shadow:var(--shadow), 0 0 0 1px var(--danger-border); }
+    .player-card.over::before { background:var(--danger); }
+    .player-card.over .bid-figure { color:var(--danger); }
+    .over-tag {
+      display:inline-block; margin-left:8px; padding:3px 7px; border-radius:5px; vertical-align:middle;
+      font:700 10px var(--font-mono); letter-spacing:.06em; text-transform:uppercase; color:#fff; background:var(--danger);
+    }
+    .bid-row input.over { border-color:var(--danger); box-shadow:0 0 0 1px var(--danger); color:var(--danger); }
+    .range-warn {
+      margin-top:10px; padding:10px 12px; border-radius:var(--control-radius);
+      background:var(--danger-soft); border:1px solid var(--danger-border); color:var(--danger);
+      font-size:14px; font-weight:600; line-height:1.35;
+    }
+    .range-warn[hidden] { display:none; }
+    .sold-banner.over { background:var(--danger-soft); border-color:var(--danger-border); }
+    .sold-banner.over .sold-tag { background:var(--danger); color:#fff; }
+    .sold-banner .over-tag { margin-left:auto; }
     .bid-label { font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
     .bid-figure {
       font-family:var(--font-mono); font-weight:700; font-size:var(--bid-size); line-height:1.05;

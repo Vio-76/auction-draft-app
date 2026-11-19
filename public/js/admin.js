@@ -210,7 +210,7 @@ async function copyCaptainLink(id) {
 }
 
 // tiers — edited as a local draft (so live WS pushes don't clobber typing), saved as one list.
-let tierDraft = [];        // [{ id|null, name, minBid, range }] in display order
+let tierDraft = [];        // [{ id|null, name, minBid, rangeMin, rangeMax }] in display order ('' = empty)
 let tiersDirty = false;
 let tiersSig = '';
 
@@ -233,7 +233,8 @@ function syncTiersFromState(force) {
   const sig = JSON.stringify([tierList(), STATE.settings.smallBlind]);   // default min shows in the table too
   if (!force && (tiersDirty || sig === tiersSig)) return;
   tiersSig = sig;
-  tierDraft = tierList().map((t) => ({ id: t.id, name: t.name, minBid: t.minBid, range: t.range || '' }));
+  tierDraft = tierList().map((t) => ({ id: t.id, name: t.name, minBid: t.minBid,
+    rangeMin: t.rangeMin == null ? '' : t.rangeMin, rangeMax: t.rangeMax == null ? '' : t.rangeMax }));
   tiersDirty = false;
   const el = document.getElementById('tiers-dirty');
   if (el) el.textContent = '';
@@ -244,14 +245,15 @@ function renderTiers() {
   const tbl = document.getElementById('tiers-tbl');
   if (!tbl || !STATE) return;
   const def = STATE.settings.smallBlind;
-  let html = '<tr><th>Name</th><th>Price range</th><th class="num">Min bid</th><th class="num">Players</th><th>Order</th><th></th></tr>';
+  let html = '<tr><th>Name</th><th title="Recommended price. The floor is only shown; bids above the ceiling turn red for captains and on the board (never blocked).">Price range (floor – ceiling)</th><th class="num">Min bid</th><th class="num">Players</th><th>Order</th><th></th></tr>';
   if (!tierDraft.length) {
     html += '<tr><td colspan="6" class="hint">No tiers — every player uses the min bid without tiers ($' + def + ').</td></tr>';
   }
   tierDraft.forEach(function (t, i) {
     html += '<tr>' +
       '<td><input class="tier-name" type="text" maxlength="40" value="' + esc(t.name) + '" placeholder="e.g. S-Tier" oninput="editTier(' + i + ',\'name\',this.value)"></td>' +
-      '<td><input class="tier-range" type="text" maxlength="40" value="' + esc(t.range || '') + '" placeholder="e.g. 25-30$" title="Recommended price, shown on the board (not enforced)" oninput="editTier(' + i + ',\'range\',this.value)"></td>' +
+      '<td><div class="tier-range">$<input type="number" min="0" step="1" placeholder="floor" value="' + esc(String(t.rangeMin)) + '" title="Floor (shown only)" oninput="editTier(' + i + ',\'rangeMin\',this.value)">' +
+        '<span class="dash">–</span>$<input type="number" min="0" step="1" placeholder="ceiling" value="' + esc(String(t.rangeMax)) + '" title="Ceiling: bids above it turn red" oninput="editTier(' + i + ',\'rangeMax\',this.value)"' + (rangeBad(t) ? ' class="bad"' : '') + ' data-range-max="' + i + '"></div></td>' +
       '<td class="num"><input class="tier-min" type="number" min="0" step="1" value="' + esc(String(t.minBid)) + '" oninput="editTier(' + i + ',\'minBid\',this.value)"></td>' +
       '<td class="num" data-tier-count="' + (t.id == null ? '' : t.id) + '">' + (t.id == null ? '—' : tierPlayerCount(t.id)) + '</td>' +
       '<td><div class="ord-btns">' +
@@ -306,9 +308,17 @@ function editTier(i, field, value) {
   tierDraft[i][field] = value;
   markTiersDirty();
   if (field === 'minBid') updateTierWarning();
+  if (field === 'rangeMin' || field === 'rangeMax') {   // outline the ceiling while it's below the floor
+    const inp = document.querySelector('#tiers-tbl [data-range-max="' + i + '"]');
+    if (inp) inp.classList.toggle('bad', rangeBad(tierDraft[i]));
+  }
+}
+/** Ceiling below the floor (both filled in) — the save would be refused. */
+function rangeBad(t) {
+  return t.rangeMin !== '' && t.rangeMax !== '' && Number(t.rangeMax) < Number(t.rangeMin);
 }
 function addTierRow() {
-  tierDraft.push({ id: null, name: '', minBid: STATE ? STATE.settings.smallBlind : 0, range: '' });
+  tierDraft.push({ id: null, name: '', minBid: STATE ? STATE.settings.smallBlind : 0, rangeMin: '', rangeMax: '' });
   markTiersDirty();
   renderTiers();
   const inputs = document.querySelectorAll('#tiers-tbl .tier-name');
@@ -333,7 +343,8 @@ async function saveTiers() {
     const what = dropped.map((t) => t.name + ' (' + tierPlayerCount(t.id) + ' players)').join(', ');
     if (!(await confirmModal('Remove ' + what + '? Those players become untiered and count as the lowest tier.', 'Remove'))) return;
   }
-  const tiers = tierDraft.map((t) => ({ id: t.id, name: String(t.name).trim(), minBid: Number(t.minBid), range: String(t.range || '').trim() }));
+  const tiers = tierDraft.map((t) => ({ id: t.id, name: String(t.name).trim(), minBid: Number(t.minBid),
+    rangeMin: t.rangeMin === '' ? null : Number(t.rangeMin), rangeMax: t.rangeMax === '' ? null : Number(t.rangeMax) }));
   const res = await adminAction('tiers', { tiers });
   if (res && res.ok) {
     // Re-seed from the server. The WS push carrying the saved list (with new ids) may land just

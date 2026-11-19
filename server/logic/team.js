@@ -75,6 +75,18 @@ function tierById(id) {
   return (state.settings.tiers || []).find((t) => t.id === id) || null;
 }
 
+/** The price ceiling of a player's tier (null: untiered, or the tier has no ceiling). */
+function priceCeiling(player) {
+  const t = player ? tierById(player.tierId) : null;
+  return t && t.rangeMax != null ? t.rangeMax : null;
+}
+
+/** A bid above the player's tier price ceiling (shown red; never blocked). */
+function isAboveCeiling(player, bid) {
+  const c = priceCeiling(player);
+  return c != null && bid > c;
+}
+
 /** The base ("lowest") tier: the smallest minBid, ties going to the earlier tier on the Tiers card.
  *  null when no tiers are configured. */
 function lowestTier() {
@@ -229,6 +241,8 @@ module.exports = {
   roleMatches,
   captainRoleFlags,
   tierById,
+  priceCeiling,
+  isAboveCeiling,
   playerMinBid,
   openPlayersForOpening,
   openPlayersWithRoles,

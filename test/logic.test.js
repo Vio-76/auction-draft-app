@@ -5,7 +5,7 @@ process.env.DB_PATH = ':memory:';
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { state, load, persistAll } = require('../server/state');
+const { state, load, persistAll, migrateTierRanges } = require('../server/state');
 const { STATUS, SELL_MODE, TURN_ORDER, TURN_DIR, PLAYER_STATUS, DEFAULT_SETTINGS } = require('../server/config');
 const team = require('../server/logic/team');
 const turn = require('../server/logic/turn');
@@ -314,12 +314,57 @@ test('setTiers keeps ids across rename/reorder, untiers players of removed tiers
   assert.deepEqual(state.settings.tiers.map((t) => t.name), ['B', 'S-Tier']);   // failed saves change nothing
 });
 
-test('tier price range is stored as trimmed free text (optional, length-capped)', () => {
+test('tier price range: optional floor + ceiling, whole numbers, ceiling not below the floor', () => {
   setup({});
-  assert.equal(admin.setTiers([{ name: 'Master', minBid: 15, range: '  20-30$ ' }, { name: 'Gold', minBid: 5 }]).ok, true);
-  assert.deepEqual(state.settings.tiers.map((t) => t.range), ['20-30$', '']);
-  assert.equal(admin.setTiers([{ name: 'Master', minBid: 15, range: 'x'.repeat(41) }]).ok, false);
-  assert.equal(state.settings.tiers[0].range, '20-30$');        // failed save changed nothing
+  assert.equal(admin.setTiers([
+    { name: 'Master', minBid: 15, rangeMin: 20, rangeMax: 30 },
+    { name: 'Gold', minBid: 5, rangeMin: '', rangeMax: 14 },
+    { name: 'Iron', minBid: 1 },
+  ]).ok, true);
+  assert.deepEqual(state.settings.tiers.map((t) => [t.rangeMin, t.rangeMax]), [[20, 30], [null, 14], [null, null]]);
+  assert.match(admin.setTiers([{ name: 'Master', minBid: 15, rangeMin: 30, rangeMax: 20 }]).error, /can't be below the floor/);
+  assert.equal(admin.setTiers([{ name: 'Master', minBid: 15, rangeMax: 2.5 }]).ok, false);
+  assert.equal(admin.setTiers([{ name: 'Master', minBid: 15, rangeMin: -1 }]).ok, false);
+  assert.equal(state.settings.tiers[0].rangeMax, 30);            // failed saves changed nothing
+  assert.equal(admin.setTiers([{ name: 'Master', minBid: 15, rangeMin: 25, rangeMax: 25 }]).ok, true);   // floor = ceiling is fine
+});
+
+test('old free-text tier ranges are converted to floor / ceiling numbers on load', () => {
+  setup({});
+  state.settings.tiers = [
+    { id: 1, name: 'A', minBid: 1, range: '25-30$' },
+    { id: 2, name: 'B', minBid: 1, range: '$30 - 20' },
+    { id: 3, name: 'C', minBid: 1, range: '15+' },
+    { id: 4, name: 'D', minBid: 1, range: 'max 12$' },
+    { id: 5, name: 'E', minBid: 1, range: 'cheap' },
+    { id: 6, name: 'F', minBid: 1, range: '9-99', rangeMin: 1, rangeMax: 2 },   // already converted: untouched
+  ];
+  migrateTierRanges();
+  assert.deepEqual(state.settings.tiers.map((t) => [t.rangeMin, t.rangeMax]),
+    [[25, 30], [20, 30], [15, null], [null, 12], [null, null], [1, 2]]);
+});
+
+test('bids above the tier price ceiling are flagged (live bid + sold banner), never blocked', () => {
+  setup({ settings: { teamBudget: 100, teamSlots: 2, sellMode: SELL_MODE.MANUAL },
+    captains: [{ name: 'A', price: 0 }, { name: 'B', price: 0 }],
+    players: [{ name: 'Star' }, { name: 'Free' }, { name: 'Other' }] });
+  admin.setTiers([{ name: 'Master', minBid: 5, rangeMin: 20, rangeMax: 30 }]);
+  const tierId = state.settings.tiers[0].id;
+  const star = state.players.find((p) => p.name === 'Star');
+  star.tierId = tierId;
+  assert.equal(team.priceCeiling(star), 30);
+  assert.equal(team.isAboveCeiling(star, 30), false);              // exactly the ceiling is fine
+  assert.equal(team.isAboveCeiling(star, 31), true);
+  const free = state.players.find((p) => p.name === 'Free');
+  assert.equal(team.priceCeiling(free), null);                      // untiered → no ceiling
+  assert.equal(team.isAboveCeiling(free, 999), false);
+
+  const [A, B] = state.captains;
+  turn.advanceTurn();
+  assert.equal(bids.placeOpeningBid(A, 'Star', 25).ok, true);
+  assert.equal(bids.placeBid(B, 40).ok, true);                      // above the ceiling: still allowed
+  assert.equal(sell.sellPlayerInner().ok, true);
+  assert.equal(sell.recentSoldMessage().over, true);
 });
 
 test('import matches the Tier column by name and reports unknown tiers', () => {

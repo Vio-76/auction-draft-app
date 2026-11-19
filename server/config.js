@@ -37,7 +37,7 @@ const DEFAULT_SETTINGS = {
   showBudgetOnBoard:  true,        // show the per-team available-budget bar on the board team cards
   teamIdentityAlways: false,       // board: show team names + logos during the auction (false = only once FINISHED)
   showTeamNameOnBoard: true,       // board: show the team name next to the logo (false = logo only)
-  // Player tiers, in display order: [{ id, name, minBid, range }] (range = free-text recommended price, board only). A tiered player's opening bid must be
+  // Player tiers, in display order: [{ id, name, minBid, rangeMin, rangeMax }] (recommended price range: floor display only, bids above the ceiling flagged red). A tiered player's opening bid must be
   // at least its tier's minBid; untiered players (player.tierId null) are priced like the lowest tier
   // (smallest minBid), or smallBlind when there are no tiers. Edited as a whole list from the admin Tiers card.
   tiers:              [],

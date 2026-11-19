@@ -130,7 +130,10 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .tier-tbl input { padding: 6px 8px; font-size: 13px; }
 .tier-tbl .tier-name { min-width: 120px; }
 .tier-tbl .tier-min { width: 80px; text-align: right; }
-.tier-tbl .tier-range { min-width: 110px; }
+.tier-tbl .tier-range { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tier-tbl .tier-range input { width: 70px; text-align: right; }
+.tier-tbl .tier-range .dash { color: var(--muted); }
+.tier-tbl .tier-range input.bad { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
 .tier-tbl .tier-default td { border-bottom: none; }
 .tier-actions { margin-top: 12px; }
 

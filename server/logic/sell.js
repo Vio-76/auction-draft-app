@@ -12,8 +12,8 @@ const turn = require('./turn');
 
 // ----- last-sale announcement (ephemeral) -----
 
-function setLastSold(playerName, winnerName, bid) {
-  state.clocks.lastSold = { player: playerName, winner: winnerName, bid, at: Date.now() };
+function setLastSold(playerName, winnerName, bid, over) {
+  state.clocks.lastSold = { player: playerName, winner: winnerName, bid, over: !!over, at: Date.now() };
 }
 /** A fill-up round $0 pick (#7): same banner + timing as a sale, marked kind 'pick'. */
 function setLastPick(playerName, captainName) {
@@ -23,7 +23,7 @@ function recentSoldMessage() {
   const d = state.clocks.lastSold;
   if (!d) return null;
   if (Date.now() - d.at > state.settings.soldMessageSeconds * 1000) return null;
-  return { player: d.player, winner: d.winner, bid: d.bid, kind: d.kind || 'sale' };
+  return { player: d.player, winner: d.winner, bid: d.bid, kind: d.kind || 'sale', over: !!d.over };
 }
 
 // ----- opening-bid announcement (ephemeral) -----
@@ -94,7 +94,7 @@ function sellPlayerInner() {
     return { ok: false, error: `Captain '${winner.name}' has no free slots left.` };
   }
   team.clearAuctionBlock();
-  setLastSold(player.name, winner.name, bid);
+  setLastSold(player.name, winner.name, bid, team.isAboveCeiling(player, bid));   // over = sold above the tier's price ceiling
   return { ok: true };
 }
 

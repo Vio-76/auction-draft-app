@@ -62,7 +62,7 @@ function render(state) {
 
   const key = JSON.stringify([
     state.phase, state.isYourTurnToOpen, state.currentTurnCaptain,
-    state.player, state.playerImage, state.highestBid, state.byCaptain,
+    state.player, state.playerImage, state.priceCeiling, state.highestBid, state.byCaptain,
     state.yourMaxBid, state.smallBlind, state.openPlayers,
     state.youAreFull, state.sellMode, state.youAreBroke, state.yourOpenSlots,
     state.fillPicker, state.isYourFillPick, state.fillPosition, state.fillPickGroups,
@@ -105,6 +105,7 @@ function render(state) {
   const newAmount = document.getElementById('amount');
   const newPlayer = document.getElementById('player-select');
   if (newAmount && savedAmount) newAmount.value = savedAmount;
+  updateRangeWarn();   // re-apply the typed-amount warning after a re-render
   if (newPlayer && savedPlayer) newPlayer.value = savedPlayer;
   if (newPlayer) updateMinBid(state);   // re-apply the restored pick's tier minimum
   if (focusedId) {
@@ -319,6 +320,9 @@ function renderRegularBid(root, state) {
     : 'No bids yet';
 
   const pricedOut = !state.youAreFull && !state.youAreBroke && state.yourMaxBid <= state.highestBid;
+  // Tier price ceiling: the highest bid above it turns the card red; typing above it warns too.
+  const ceiling = state.priceCeiling;
+  const highOver = ceiling != null && state.highestBid > ceiling;
 
   const bidControls = state.youAreFull
     ? '<div class="team-full">Your team is full — you can\'t place bids.</div>'
@@ -327,7 +331,8 @@ function renderRegularBid(root, state) {
     : pricedOut
       ? '<div class="priced-out">Budget reached ($' + state.yourMaxBid + ') — you can\'t outbid this.</div>'
       : '<div class="bid-row">' +
-          '<input id="amount" type="number" min="' + (state.highestBid + 1) + '" step="1" placeholder="Your bid">' +
+          '<input id="amount" type="number" min="' + (state.highestBid + 1) + '" step="1" placeholder="Your bid"' +
+            (ceiling != null ? ' data-ceiling="' + ceiling + '"' : '') + '>' +
           '<button id="submit">Bid</button>' +
         '</div>';
 
@@ -339,7 +344,7 @@ function renderRegularBid(root, state) {
     : '';
 
   root.innerHTML =
-    '<div class="player-card">' +
+    '<div class="player-card' + (highOver ? ' over' : '') + '">' +
       timerHtml +
       '<div class="card-eyebrow">On the block</div>' +
       (state.playerImage   // player card (#8), shown for the whole bidding
@@ -347,19 +352,39 @@ function renderRegularBid(root, state) {
         : '') +
       '<div class="player">' + esc(state.player) + '</div>' +
       '<div class="bid-stat">' +
-        '<div class="bid-label">Highest bid</div>' +
+        '<div class="bid-label">Highest bid' + (highOver ? '<span class="over-tag">Rip-off</span>' : '') + '</div>' +
         '<div class="bid-figure' + (leadingYou ? ' leading-you' : '') + '">$' + state.highestBid + '</div>' +
         '<div class="bid-by">' + byText + '</div>' +
       '</div>' +
       '<div class="max-line">Your budget: <b>$' + state.yourMaxBid + '</b></div>' +
       bidControls +
+      (ceiling != null
+        ? '<div class="range-warn" id="range-warn" data-high-over="' + (highOver ? 1 : 0) + '"' + (highOver ? '' : ' hidden') + '>⚠ Tier price range exceeded</div>'
+        : '') +
       '<div class="error" id="error"></div>' +
     '</div>';
 
   if (!state.youAreFull && !state.youAreBroke && !pricedOut) {
     document.getElementById('submit').onclick = submitRegularBid;
     document.getElementById('amount').onkeydown = function (e) { if (e.key === 'Enter') submitRegularBid(); };
+    document.getElementById('amount').oninput = updateRangeWarn;
   }
+}
+
+/** Red input + the "Tier price range exceeded" line while the typed bid is above the ceiling (the
+ *  line also stays while the highest bid itself is above it). Warning only — the bid still goes through. */
+function updateRangeWarn() {
+  const input = document.getElementById('amount');
+  const warn = document.getElementById('range-warn');
+  if (!warn) return;
+  const ceiling = input && input.dataset.ceiling !== undefined ? Number(input.dataset.ceiling) : null;
+  const typedOver = ceiling != null && input.value !== '' && Number(input.value) > ceiling;
+  if (input) input.classList.toggle('over', typedOver);
+  const highOver = warn.dataset.highOver === '1';
+  warn.hidden = !(typedOver || highOver);
+  // Only the typed amount is too high (the current bid isn't yet): say it's their bid that will exceed it.
+  const text = highOver ? '⚠ Tier price range exceeded' : '⚠ Your bid will exceed the tier price range';
+  if (warn.textContent !== text) warn.textContent = text;
 }
 
 async function submitOpeningBid() {
@@ -408,13 +433,14 @@ function updateSoldBanner(state) {
   const banner = document.getElementById('sold-banner');
   if (!banner) return;
   const m = state && state.soldMessage;
-  const sig = m ? (m.player + '|' + m.winner + '|' + m.bid + '|' + (m.kind || '')) : '';
+  const sig = m ? (m.player + '|' + m.winner + '|' + m.bid + '|' + (m.kind || '') + '|' + !!m.over) : '';
   if (sig === lastSoldSig) return;
   lastSoldSig = sig;
   const pick = !!(m && m.kind === 'pick');
   banner.innerHTML = m
-    ? '<div class="sold-banner"><span class="sold-tag">' + (pick ? 'Pick' : 'Sold') + '</span>'
-        + '<span>' + esc(m.player) + ' → ' + esc(m.winner) + ' &nbsp;·&nbsp; $' + esc(m.bid) + (pick ? ' fill-up pick' : '') + '</span></div>'
+    ? '<div class="sold-banner' + (m.over ? ' over' : '') + '"><span class="sold-tag">' + (pick ? 'Pick' : 'Sold') + '</span>'
+        + '<span>' + esc(m.player) + ' → ' + esc(m.winner) + ' &nbsp;·&nbsp; $' + esc(m.bid) + (pick ? ' fill-up pick' : '') + '</span>'
+        + (m.over ? '<span class="over-tag">Rip-off</span>' : '') + '</div>'
     : '';
 }
 

@@ -66,12 +66,12 @@ let lastSoldSig = '';
 function renderSoldBanner(m) {
   const banner = document.getElementById('sold-banner');
   if (!banner) return;
-  const sig = m ? (m.player + '|' + m.winner + '|' + m.bid + '|' + (m.kind || '')) : '';
+  const sig = m ? (m.player + '|' + m.winner + '|' + m.bid + '|' + (m.kind || '') + '|' + !!m.over) : '';
   if (sig === lastSoldSig) return;
   lastSoldSig = sig;
   if (!m) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
   const pick = m.kind === 'pick';
-  banner.innerHTML = '<div class="sold-banner"><span class="sold-tag">' + (pick ? 'Pick' : 'Sold') + '</span>'
+  banner.innerHTML = '<div class="sold-banner' + (m.over ? ' over' : '') + '"><span class="sold-tag">' + (pick ? 'Pick' : 'Sold') + '</span>'
     + '<span>' + esc(m.player) + ' → ' + esc(m.winner) + ' &nbsp;·&nbsp; $' + esc(m.bid) + (pick ? ' fill-up pick' : '') + '</span></div>';
   banner.style.display = '';
 }
@@ -137,6 +137,7 @@ function renderLiveBid(lb, announcing) {
 
   setText(document.getElementById('livebid-player'), lb.player);
   renderLiveThumb(lb);
+  sec.classList.toggle('over', !!lb.over);   // bid above the tier's price ceiling → red band
   setText(document.getElementById('livebid-amount'), '$' + lb.highestBid);
   const byEl = document.getElementById('livebid-by');
   byEl.innerHTML = lb.byCaptain ? 'by <span class="liveband-name">' + esc(lb.byCaptain) + '</span>' : 'No bids yet';
@@ -480,7 +481,7 @@ function addPoolCol(grid, spec) {
     head.appendChild(el('div', 'pool-icon', 'Oth'));
   }
   head.appendChild(el('span', 'pool-col-label', spec.label));
-  // Tier view: the recommended price range (admin free text, shown as typed) is the headline next
+  // Tier view: the recommended price range ("$25–$30", "$25+", "up to $30") is the headline next
   // to the name; the enforced minimum sits on its own muted line underneath — a floor, not a price.
   if (spec.range) head.appendChild(el('span', 'pool-col-range', spec.range));
   const count = el('span', 'pool-col-count');
@@ -517,6 +518,14 @@ function miniRoleIcon(role) {
   return i;
 }
 
+/** A tier's price range for display: "$25–$30", "$25+" (floor only), "up to $30" (ceiling only), '' (none). */
+function rangeText(lo, hi) {
+  if (lo != null && hi != null) return lo === hi ? '$' + lo : '$' + lo + '–$' + hi;
+  if (lo != null) return '$' + lo + '+';
+  if (hi != null) return 'up to $' + hi;
+  return '';
+}
+
 function renderPool(players, tiers, defaultMinBid, fill) {
   lastPool = { players: players, tiers: tiers || [], defaultMinBid: defaultMinBid, fill: fill || null };
   const fu = fill && fill.active ? fill : null;   // fill-up round: mark what can still be picked
@@ -535,7 +544,7 @@ function renderPool(players, tiers, defaultMinBid, fill) {
     const known = {};
     for (let i = 0; i < tiers.length; i++) {
       known[tiers[i].id] = true;
-      specs.push({ key: 't' + tiers[i].id, label: tiers[i].name, range: tiers[i].range || '', min: tiers[i].minBid, fill: fillSpec(fu, tiers[i].id) });
+      specs.push({ key: 't' + tiers[i].id, label: tiers[i].name, range: rangeText(tiers[i].rangeMin, tiers[i].rangeMax), min: tiers[i].minBid, fill: fillSpec(fu, tiers[i].id) });
     }
     for (let i = 0; i < players.length; i++) {
       const p = players[i];

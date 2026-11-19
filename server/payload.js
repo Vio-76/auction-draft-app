@@ -82,6 +82,7 @@ function buildCaptainState(captain) {
     isYourTurnToOpen:   !!isYourTurnToOpen,
     player,
     playerImage:        team.playerImageUrl(onBlock),   // card shown while the player is on the block (#8)
+    priceCeiling:       team.priceCeiling(onBlock),     // tier price ceiling (null = none): bids above it are flagged red
     highestBid:         state.auction.highestBid,
     byCaptain:          byCap,
     yourMaxBid:         team.captainMaxBid(captain),
@@ -201,7 +202,8 @@ function buildBoardState() {
     if (p) {
       liveBid = { player: p.name, highestBid: state.auction.highestBid, byCaptain: by ? by.name : '',
         // player card (#8) + what the expanded card's caption needs
-        image: team.playerImageUrl(p), role: p.role || '', tierId: team.tierById(p.tierId) ? p.tierId : null };
+        image: team.playerImageUrl(p), role: p.role || '', tierId: team.tierById(p.tierId) ? p.tierId : null,
+        over: team.isAboveCeiling(p, state.auction.highestBid) };   // above the tier price ceiling → red band
       // AUTO mode: also send the auto-sell countdown so the board can race a clock. When the
       // auction isn't actively bidding (e.g. admin paused) freeze it at the snapshot remaining.
       if (s.sellMode === SELL_MODE.AUTO) {
@@ -235,7 +237,7 @@ function buildBoardState() {
     openPlayers: team.openPlayersWithRoles(),
     // Tier list (admin order) + the default minimum, for the pool's Role/Tier switch. Tier names,
     // minimums and assignments are public on the board (they're auction rules, not bids).
-    tiers:         (s.tiers || []).map((t) => ({ id: t.id, name: t.name, minBid: t.minBid, range: t.range || '' })),
+    tiers:         (s.tiers || []).map((t) => ({ id: t.id, name: t.name, minBid: t.minBid, rangeMin: t.rangeMin ?? null, rangeMax: t.rangeMax ?? null })),
     defaultMinBid: team.defaultMinBid(),
     turn:        turnInfo,
     liveBid,

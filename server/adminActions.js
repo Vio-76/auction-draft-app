@@ -172,11 +172,11 @@ function updateSettings(patch) {
 
 const MAX_TIERS = 20;
 const MAX_TIER_NAME = 40;
-const MAX_TIER_RANGE = 40;
 
 /** Replace the whole tier list (admin Tiers card saves it in one go, in display order).
- *  `list`: [{ id?, name, minBid, range? }]. `range` is a free-text recommended price (e.g. "20-30$"),
- *  shown on the board only — not enforced. Existing ids are kept so player assignments survive a rename
+ *  `list`: [{ id?, name, minBid, rangeMin?, rangeMax? }]. The price range is the recommended price:
+ *  the floor is display only; bids above the ceiling are flagged red (never blocked). Either may be
+ *  empty (null). Existing ids are kept so player assignments survive a rename
  *  or re-price; rows without a known id get a fresh one. Tiers missing from the list are deleted
  *  and their players become untiered. Names must be unique (case-insensitive) since the bulk
  *  import matches tiers by name. */
@@ -201,10 +201,14 @@ function setTiers(list) {
     if (!Number.isInteger(minBid) || minBid < 0) return err(`Min bid for "${name}" must be a whole number ≥ 0.`);
 
     const id = existingIds.has(Number(raw.id)) ? Number(raw.id) : nextId++;
-    const range = String((raw && raw.range) || '').trim();
-    if (range.length > MAX_TIER_RANGE) return err(`Price range for "${name}" is limited to ${MAX_TIER_RANGE} characters.`);
+    const rangeMin = rangeNumber(raw.rangeMin);
+    const rangeMax = rangeNumber(raw.rangeMax);
+    if (rangeMin === undefined || rangeMax === undefined) return err(`Price range for "${name}" must be whole numbers ≥ 0 (or empty).`);
+    if (rangeMin != null && rangeMax != null && rangeMax < rangeMin) {
+      return err(`Price range for "${name}": the ceiling ($${rangeMax}) can't be below the floor ($${rangeMin}).`);
+    }
 
-    next.push({ id, name, minBid, range });
+    next.push({ id, name, minBid, rangeMin, rangeMax });
   }
 
   const keptIds = new Set(next.map((t) => t.id));
@@ -213,6 +217,13 @@ function setTiers(list) {
   }
   state.settings.tiers = next;   // always a fresh array (never mutate the shared DEFAULT_SETTINGS one)
   return ok();
+}
+
+/** A price-range bound from admin input: '' / null → null, a whole number ≥ 0 → it, else undefined (invalid). */
+function rangeNumber(raw) {
+  if (raw === '' || raw == null) return null;
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 0 ? n : undefined;
 }
 
 /** A tier id from admin input ('' / unknown → null). */

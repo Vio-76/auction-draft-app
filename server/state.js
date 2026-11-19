@@ -25,6 +25,24 @@ const state = {
 
 // ----- load -----
 
+/** Tier price ranges used to be free text (`range`, e.g. "25-30$"); they're now two numbers,
+ *  `rangeMin` (floor, display only) and `rangeMax` (ceiling, bids above it are flagged). Convert an
+ *  old text range once: two numbers → floor + ceiling; one number → floor if it reads like "25+",
+ *  otherwise the ceiling; no number → no range. The old `range` text is left in place and ignored
+ *  (the next Tiers save writes tiers without it). */
+function migrateTierRanges() {
+  for (const t of state.settings.tiers || []) {
+    if (t.rangeMin !== undefined || t.rangeMax !== undefined) continue;
+    const text = String(t.range || '');
+    const nums = (text.match(/\d+/g) || []).map(Number);
+    let lo = null, hi = null;
+    if (nums.length >= 2) { lo = Math.min(nums[0], nums[1]); hi = Math.max(nums[0], nums[1]); }
+    else if (nums.length === 1) { if (/[+>]/.test(text)) lo = nums[0]; else hi = nums[0]; }
+    t.rangeMin = lo;
+    t.rangeMax = hi;
+  }
+}
+
 function load() {
   migrate();
 
@@ -40,6 +58,7 @@ function load() {
     for (const key of Object.keys(DEFAULT_SETTINGS)) {
       if (!(key in state.settings)) state.settings[key] = DEFAULT_SETTINGS[key];
     }
+    migrateTierRanges();
   }
 
   state.captains = db.prepare('SELECT id, name, code, price, role, seat, discord, team_group AS teamGroup, team_name AS teamName, logo, broke_seq AS brokeSeq, broke_tie AS brokeTie FROM captains ORDER BY seat, id').all();
@@ -128,6 +147,7 @@ const draftedPlayers = (captainId) => state.players
 module.exports = {
   state,
   load,
+  migrateTierRanges,
   persistSettings,
   persistCaptains,
   persistPlayers,
