@@ -107,6 +107,11 @@
       margin:4px 0 18px; word-break:break-word;
     }
 
+    /* Player card (#8) above the name while the player is on the block. */
+    .bid-card-img {
+      display:block; width:100%; max-width:240px; aspect-ratio:3/4; margin:10px auto 14px;
+      object-fit:contain; border-radius:var(--control-radius); background:rgba(0,0,0,.06); box-shadow:var(--shadow);
+    }
     .bid-stat { margin:0 0 16px; }
     .bid-label { font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
     .bid-figure {

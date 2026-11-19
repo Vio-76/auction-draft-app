@@ -70,7 +70,8 @@ function buildCaptainState(captain) {
   const currentTurnCaptain = cur ? cur.name : '';
   const isYourTurnToOpen = phase === STATUS.OPENING && cur && cur.id === captain.id;
 
-  const player = state.auction.currentPlayerId ? (playerById(state.auction.currentPlayerId)?.name || '') : '';
+  const onBlock = state.auction.currentPlayerId ? playerById(state.auction.currentPlayerId) : null;
+  const player = onBlock ? onBlock.name : '';
   const byCap = state.auction.byCaptainId ? (captainById(state.auction.byCaptainId)?.name || '') : '';
 
   const result = {
@@ -80,6 +81,7 @@ function buildCaptainState(captain) {
     currentTurnCaptain,
     isYourTurnToOpen:   !!isYourTurnToOpen,
     player,
+    playerImage:        team.playerImageUrl(onBlock),   // card shown while the player is on the block (#8)
     highestBid:         state.auction.highestBid,
     byCaptain:          byCap,
     yourMaxBid:         team.captainMaxBid(captain),
@@ -148,7 +150,9 @@ function buildBoardState() {
     for (let i = 0; i < s.teamSlots; i++) {
       const p = drafted[i];
       // coCaptain: drawn under the captain with the co-captain crown (draftedPlayers puts it first).
-      players.push({ name: p ? p.name : '', price: p ? p.price : 0, coCaptain: !!(p && p.coCaptain) });
+      players.push({ name: p ? p.name : '', price: p ? p.price : 0, coCaptain: !!(p && p.coCaptain),
+        // player card (#8) + the card caption's role/tier
+        image: team.playerImageUrl(p), role: p ? (p.role || '') : '', tierId: p && team.tierById(p.tierId) ? p.tierId : null });
     }
     const maxBid = team.captainMaxBid(c);
     const spent = team.spentByCaptain(c);
@@ -195,7 +199,9 @@ function buildBoardState() {
     const p = playerById(state.auction.currentPlayerId);
     const by = state.auction.byCaptainId ? captainById(state.auction.byCaptainId) : null;
     if (p) {
-      liveBid = { player: p.name, highestBid: state.auction.highestBid, byCaptain: by ? by.name : '' };
+      liveBid = { player: p.name, highestBid: state.auction.highestBid, byCaptain: by ? by.name : '',
+        // player card (#8) + what the expanded card's caption needs
+        image: team.playerImageUrl(p), role: p.role || '', tierId: team.tierById(p.tierId) ? p.tierId : null };
       // AUTO mode: also send the auto-sell countdown so the board can race a clock. When the
       // auction isn't actively bidding (e.g. admin paused) freeze it at the snapshot remaining.
       if (s.sellMode === SELL_MODE.AUTO) {

@@ -161,11 +161,17 @@ function openPlayersForOpening() {
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 
-/** Open players as [{name, role, tierId}] for the spectator board (tierId null if untiered).
+/** URL of a player's uploaded card image ('' if none). */
+function playerImageUrl(p) {
+  return p && p.image ? '/uploads/' + p.image : '';
+}
+
+/** Open players as [{name, role, tierId, image}] for the spectator board (tierId null if untiered,
+ *  image = card URL or '').
  *  Ordered per settings.poolOrder: ALPHABETICAL (by name) or, by default, a deterministic seeded
  *  shuffle (stable, random-looking). */
 function openPlayersWithRoles() {
-  const out = openPlayers().map((p) => ({ name: p.name, role: p.role, tierId: tierById(p.tierId) ? p.tierId : null }));
+  const out = openPlayers().map((p) => ({ name: p.name, role: p.role, tierId: tierById(p.tierId) ? p.tierId : null, image: playerImageUrl(p) }));
   if (state.settings.poolOrder === POOL_ORDER.ALPHABETICAL) {
     out.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   } else {
@@ -226,6 +232,7 @@ module.exports = {
   playerMinBid,
   openPlayersForOpening,
   openPlayersWithRoles,
+  playerImageUrl,
   shuffleKey,
   placePlayerInTeam,
   clearAuctionBlock,

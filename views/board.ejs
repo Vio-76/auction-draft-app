@@ -32,10 +32,13 @@
 
     <div class="liveband" id="livebid-section" style="display:none">
       <div class="liveband-row">
-        <span class="liveband-tag">On the block</span>
-        <span class="liveband-player" id="livebid-player"></span>
-        <span class="liveband-bid"><b id="livebid-amount"></b> <span class="liveband-by" id="livebid-by"></span></span>
-        <span class="liveband-secs" id="livebid-secs"></span>
+        <button type="button" class="liveband-thumb" id="livebid-thumb" style="display:none" aria-label="Show player card"><img alt="" decoding="async"></button>
+        <div class="liveband-text">
+          <span class="liveband-tag">On the block</span>
+          <span class="liveband-player" id="livebid-player"></span>
+          <span class="liveband-bid"><b id="livebid-amount"></b> <span class="liveband-by" id="livebid-by"></span></span>
+          <span class="liveband-secs" id="livebid-secs"></span>
+        </div>
       </div>
       <div class="liveband-track" id="livebid-track"><div class="liveband-fill" id="livebid-fill"></div></div>
     </div>
@@ -72,6 +75,14 @@
         <div class="fill-scene" id="fill-scene"></div>
       </div>
     </div>
+
+    <!-- Player card (#8): opened from the on-the-block thumbnail or a pool name. -->
+    <dialog class="card-dlg" id="card-dlg" aria-label="Player card">
+      <button type="button" class="card-dlg-x" id="card-dlg-x" aria-label="Close">×</button>
+      <img id="card-dlg-img" alt="" decoding="async">
+      <div class="card-dlg-name" id="card-dlg-name"></div>
+      <div class="card-dlg-meta" id="card-dlg-meta"></div>
+    </dialog>
 
     <footer class="board-disclaimer">
       Unofficial, non-commercial fan project. Not affiliated with or endorsed by Riot Games or any esports organisation.<br>

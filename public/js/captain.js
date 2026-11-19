@@ -62,7 +62,7 @@ function render(state) {
 
   const key = JSON.stringify([
     state.phase, state.isYourTurnToOpen, state.currentTurnCaptain,
-    state.player, state.highestBid, state.byCaptain,
+    state.player, state.playerImage, state.highestBid, state.byCaptain,
     state.yourMaxBid, state.smallBlind, state.openPlayers,
     state.youAreFull, state.sellMode, state.youAreBroke, state.yourOpenSlots,
     state.fillPicker, state.isYourFillPick, state.fillPosition, state.fillPickGroups,
@@ -342,6 +342,9 @@ function renderRegularBid(root, state) {
     '<div class="player-card">' +
       timerHtml +
       '<div class="card-eyebrow">On the block</div>' +
+      (state.playerImage   // player card (#8), shown for the whole bidding
+        ? '<img class="bid-card-img" src="' + esc(state.playerImage) + '" alt="' + esc(state.player) + '">'
+        : '') +
       '<div class="player">' + esc(state.player) + '</div>' +
       '<div class="bid-stat">' +
         '<div class="bid-label">Highest bid</div>' +

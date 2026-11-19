@@ -136,6 +136,7 @@ function renderLiveBid(lb, announcing) {
   }
 
   setText(document.getElementById('livebid-player'), lb.player);
+  renderLiveThumb(lb);
   setText(document.getElementById('livebid-amount'), '$' + lb.highestBid);
   const byEl = document.getElementById('livebid-by');
   byEl.innerHTML = lb.byCaptain ? 'by <span class="liveband-name">' + esc(lb.byCaptain) + '</span>' : 'No bids yet';
@@ -175,6 +176,19 @@ function renderLiveBid(lb, announcing) {
     liveEndsAt = Date.now() + lb.secondsRemaining * 1000;
   }
   startLiveLoop();
+}
+
+/** On-the-block card thumbnail (#8); hidden when the player has no card. Click → card dialog. */
+let liveCard = null;
+function renderLiveThumb(lb) {
+  const btn = document.getElementById('livebid-thumb');
+  if (!btn) return;
+  liveCard = lb.image ? lb : null;
+  if (!liveCard) { btn.style.display = 'none'; return; }
+  const img = btn.firstElementChild;
+  if (img.getAttribute('src') !== lb.image) img.setAttribute('src', lb.image);
+  img.alt = lb.player;
+  btn.style.display = '';
 }
 
 /** Paint the bar + seconds for a given remaining time (shared by the live loop and pause). */
@@ -292,11 +306,14 @@ function buildCard(t) {
     const name = el('span', 'slot-text');
     slotName.appendChild(coIcon);
     slotName.appendChild(name);
+    const dot = el('span', 'card-dot');     // player card (#8)
+    dot.style.display = 'none';
+    slotName.appendChild(dot);
     const price = el('span', 'slot-price');
     row.appendChild(slotName);
     row.appendChild(price);
     roster.appendChild(row);
-    card.slots.push({ row: row, name: name, price: price, coIcon: coIcon });
+    card.slots.push({ row: row, slotName: slotName, name: name, price: price, coIcon: coIcon, dot: dot });
   }
   card.el.appendChild(roster);
 
@@ -396,6 +413,13 @@ function updateCard(card, t, dim, finished, showBudget) {
     s.row.classList.toggle('co-captain', co);
     s.row.classList.toggle('leading', co && !!t.leading);       // co-captain shares the team's green
     s.coIcon.style.display = co ? '' : 'none';
+    const hasCard = !!(p && p.name && p.image);   // player card (#8): dot + click opens it
+    s.row.classList.toggle('has-card', hasCard);
+    s.slotName.classList.toggle('with-dot', hasCard);
+    s.dot.style.display = hasCard ? '' : 'none';
+    s.row._card = hasCard ? p : null;
+    if (hasCard) { s.row.tabIndex = 0; s.row.setAttribute('role', 'button'); s.row.title = 'Show player card'; }
+    else { s.row.removeAttribute('tabindex'); s.row.removeAttribute('role'); s.row.removeAttribute('title'); }
     if (p && p.name) {
       s.row.classList.remove('empty');
       setText(s.name, p.name);
@@ -546,14 +570,21 @@ function renderPool(players, tiers, defaultMinBid, fill) {
     c.count.textContent = list.length || '';
     c.list.textContent = '';
     for (let i = 0; i < list.length; i++) {
+      const p = list[i];
       const row = el('div', 'pool-player');
-      if (fu && !fillEligible(fu, list[i])) row.classList.add('locked');
+      if (fu && !fillEligible(fu, p)) row.classList.add('locked');
       if (mode === 'tier') {
         row.classList.add('with-icon');
-        row.appendChild(miniRoleIcon(roleOf(list[i])));
-        row.appendChild(el('span', 'pool-player-name', list[i].name));
-      } else {
-        row.textContent = list[i].name;
+        row.appendChild(miniRoleIcon(roleOf(p)));
+      }
+      row.appendChild(el('span', 'pool-player-name', p.name));
+      if (p.image) {                       // has a player card (#8): dot + click to open it
+        row.classList.add('has-card');
+        row.tabIndex = 0;
+        row.setAttribute('role', 'button');
+        row.title = 'Show player card';
+        row.appendChild(el('span', 'card-dot'));
+        row._card = p;
       }
       c.list.appendChild(row);
     }
@@ -584,6 +615,55 @@ function updatePoolSwitch(show, mode) {
     try { localStorage.setItem('boardPoolMode', poolMode); } catch (err) { /* storage blocked */ }
     renderPool(lastPool.players, lastPool.tiers, lastPool.defaultMinBid, lastPool.fill);
   });
+})();
+
+// ----- player card dialog (#8) -----
+
+/** "Mid · Gold": the player's role label and tier name (either may be missing). */
+/** Card caption: the tier name, then the role icon (either may be missing). */
+function renderCardMeta(host, p) {
+  host.textContent = '';
+  const tiers = (lastPool && lastPool.tiers) || [];
+  for (let i = 0; i < tiers.length; i++) if (tiers[i].id === p.tierId) host.appendChild(el('span', '', tiers[i].name));
+  const r = roleOf(p);
+  if (r) host.appendChild(miniRoleIcon(r));
+}
+
+function openCard(p) {
+  const dlg = document.getElementById('card-dlg');
+  if (!dlg || !p || !p.image) return;
+  const img = document.getElementById('card-dlg-img');
+  // Hide until loaded so the previous card never flashes at the old size (the box follows the image).
+  if (img.getAttribute('src') !== p.image) {
+    img.style.visibility = 'hidden';
+    img.onload = img.onerror = () => { img.style.visibility = ''; };
+    img.src = p.image;
+  }
+  img.alt = p.name || p.player || '';
+  setText(document.getElementById('card-dlg-name'), p.name || p.player || '');
+  renderCardMeta(document.getElementById('card-dlg-meta'), p);
+  if (!dlg.open) dlg.showModal();
+}
+
+(function wireCards() {
+  const dlg = document.getElementById('card-dlg');
+  if (!dlg) return;
+  document.getElementById('card-dlg-x').addEventListener('click', () => dlg.close());
+  // A click on the backdrop lands on the <dialog> element itself (its content is inside).
+  dlg.addEventListener('click', (e) => {
+    const r = dlg.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dlg.close();
+  });
+  const thumb = document.getElementById('livebid-thumb');
+  if (thumb) thumb.addEventListener('click', () => openCard(liveCard));
+  // Pool names and drafted players on the team cards.
+  const pick = (e) => { const row = e.target.closest('.pool-player.has-card, .roster-row.has-card'); if (row && row._card) openCard(row._card); return !!row; };
+  for (const id of ['pool', 'board']) {
+    const host = document.getElementById(id);
+    if (!host) continue;
+    host.addEventListener('click', pick);
+    host.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.has-card')) { e.preventDefault(); pick(e); } });
+  }
 })();
 
 // ----- fill-up round (#7): pool eligibility -----
