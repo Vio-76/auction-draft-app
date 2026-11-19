@@ -271,11 +271,12 @@ function boardSoldMessage(showTeamName) {
 function buildFillState() {
   const s = state.settings;
   const active = s.status === STATUS.FILLUP;
+  const paused = !active && !!s.fillPaused;            // paused round: frozen order shown, no picking
   // brokeSeq lets the board bracket captains who went broke at the same moment.
   const order = fillup.currentOrder().map((c) => ({ id: c.id, name: c.name, slots: fillup.openSlots(c), brokeSeq: c.brokeSeq || 0 }));
-  const out = { active, order };
+  const out = { active, paused, order };
+  if (active || paused) out.done = (s.fillDone || []).map((id) => captainById(id)).filter(Boolean).map((c) => c.name);
   if (active) {
-    out.done = (s.fillDone || []).map((id) => captainById(id)).filter(Boolean).map((c) => c.name);
     const low = team.lowestTier();
     out.baseTierId = low ? low.id : null;               // untiered players are base too
     out.quota = {};

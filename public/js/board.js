@@ -694,15 +694,16 @@ function renderFill(fill) {
   const order = (fill && fill.order) || [];
   const done = (fill && fill.done) || [];
   const active = !!(fill && fill.active);
+  const paused = !!(fill && fill.paused);
   // Shown once someone is broke (it grows during the auction) and throughout the fill-up round.
-  if (!order.length && !active) { sec.style.display = 'none'; fillSig = ''; fillTopName = ''; return; }
+  if (!order.length && !active && !paused) { sec.style.display = 'none'; fillSig = ''; fillTopName = ''; return; }
   sec.style.display = '';
-  const sig = JSON.stringify([active, order, done]);
+  const sig = JSON.stringify([active, paused, order, done]);
   if (sig === fillSig) return;
   fillSig = sig;
 
   const badge = document.getElementById('fill-badge');
-  if (badge) badge.textContent = active ? (order.length ? 'Fill-up round' : 'Fill-up done') : order.length + ' waiting';
+  if (badge) badge.textContent = active ? (order.length ? 'Fill-up round' : 'Fill-up done') : paused ? 'Fill-up paused' : order.length + ' waiting';
 
   const scene = document.getElementById('fill-scene');
   scene.textContent = '';

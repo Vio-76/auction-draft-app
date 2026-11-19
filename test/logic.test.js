@@ -575,6 +575,70 @@ test('fill-up round: admin assign counts against the quota; admin can reorder th
   assert.equal(state.settings.status, STATUS.FINISHED);              // nothing left → finished with empty slots
 });
 
+test('fill-up round: quotas are live — a higher-tier pick lowers its quota, unassigning it gives the pick back', () => {
+  setup({ settings: { teamBudget: 10, teamSlots: 3 },
+    captains: [{ name: 'A', price: 10 }, { name: 'B', price: 10 }],
+    players: [{ name: 'Gold1' }, { name: 'Silver1' }, { name: 'Silver2' }, { name: 'Master1' }, { name: 'Master2' }] });
+  const t = threeTiers();
+  const tier = (n, id) => { state.players.find((p) => p.name === n).tierId = id; };
+  tier('Gold1', t.gold); tier('Silver1', t.silver); tier('Silver2', t.silver); tier('Master1', t.master); tier('Master2', t.master);
+  const [A, B] = state.captains;
+  A.brokeSeq = 1; B.brokeSeq = 2;
+  fillup.start();
+  const before = { ...state.settings.fillQuota };
+  const top = state.captains.find((c) => c.id === state.settings.fillOrder[0]);
+  const id = (n) => state.players.find((p) => p.name === n).id;
+
+  assert.equal(bids.fillPick(top, 'Silver1').ok, true);              // uses a Silver pick
+  assert.equal(state.settings.fillQuota[t.silver], before[t.silver] - 1);
+  assert.equal(bids.fillPick(top, 'Gold1').ok, true);                // base pick, no quota
+  assert.equal(admin.removePlayerFromTeam(id('Silver1')).ok, true);  // admin unassigns the Silver pick
+  assert.equal(state.settings.fillQuota[t.silver], before[t.silver]); // ...and the pick is back
+  assert.equal(admin.removePlayerFromTeam(id('Silver1')).ok, true);  // unassigning again changes nothing
+  assert.equal(state.settings.fillQuota[t.silver], before[t.silver]);
+  assert.equal(admin.removePlayerFromTeam(id('Gold1')).ok, true);    // base pick: quotas unchanged
+  assert.deepEqual(state.settings.fillQuota, before);
+});
+
+test('fill-up round: pause keeps the round; phase buttons / Empty teams refused; resume picks up where it was', () => {
+  setup({ settings: { teamBudget: 10, teamSlots: 2 },
+    captains: [{ name: 'A', price: 10 }, { name: 'B', price: 10 }],
+    players: [{ name: 'Gold1' }, { name: 'Gold2' }, { name: 'Silver1' }, { name: 'Master1' }] });
+  const t = threeTiers();
+  const tier = (n, id) => { state.players.find((p) => p.name === n).tierId = id; };
+  tier('Gold1', t.gold); tier('Gold2', t.gold); tier('Silver1', t.silver); tier('Master1', t.master);
+  const [A, B] = state.captains;
+  A.brokeSeq = 1; B.brokeSeq = 2;
+  fillup.start();
+  assert.equal(admin.moveFillUp(A.id, 'up').ok, true);               // admin reorder: A on top
+  assert.equal(bids.fillPick(A, 'Gold1').ok, true);
+  const quota = { ...state.settings.fillQuota };
+
+  assert.equal(admin.closeBidding().ok, true);                       // Pause
+  assert.equal(state.settings.status, STATUS.CLOSED);
+  assert.equal(state.settings.fillPaused, true);
+  assert.deepEqual(state.settings.fillOrder, [A.id, B.id]);           // order (incl. the reorder) kept
+  assert.deepEqual(state.settings.fillQuota, quota);
+  assert.equal(bids.fillPick(A, 'Gold2').ok, false);                 // no picking while paused
+  for (const r of [admin.openOpeningBid(), admin.openBidding(), admin.emptyTeams(), admin.skipTurn(),
+    admin.setStatus(STATUS.OPENING), admin.setStatus(STATUS.BIDDING)]) assert.equal(r.ok, false);
+  assert.equal(state.settings.status, STATUS.CLOSED);
+  assert.equal(admin.moveFillUp(B.id, 'up').ok, true);               // reorder still allowed while paused
+  assert.deepEqual(state.settings.fillOrder, [B.id, A.id]);
+
+  assert.equal(admin.resumeFillup().ok, true);                       // Resume fill-up
+  assert.equal(state.settings.status, STATUS.FILLUP);
+  assert.equal(state.settings.fillPaused, false);
+  assert.deepEqual(state.settings.fillOrder, [B.id, A.id]);
+  assert.equal(bids.fillPick(B, 'Gold2').ok, true);
+  assert.equal(admin.resumeFillup().ok, false);                      // nothing paused any more
+
+  admin.closeBidding();                                              // Set Finished ends a paused round
+  assert.equal(admin.setStatus(STATUS.FINISHED).ok, true);
+  assert.equal(state.settings.fillPaused, false);
+  assert.equal(admin.openOpeningBid().ok, true);                     // phase buttons work again afterwards
+});
+
 // ---------- co-captains ----------
 
 test('co-captain: own price counts, listed first, one per team, survives Empty teams, cleared on unassign', () => {

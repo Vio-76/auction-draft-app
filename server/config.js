@@ -42,10 +42,11 @@ const DEFAULT_SETTINGS = {
   // (smallest minBid), or smallBlind when there are no tiers. Edited as a whole list from the admin Tiers card.
   tiers:              [],
   // Fill-up round (#7), see logic/fillup.js: remaining pick order (top first), finished captains,
-  // and picks left per tier above the base tier. Set when the round starts.
+  // and picks left per tier above the base tier (recomputed live after every change).
   fillOrder:          [],
   fillDone:           [],
   fillQuota:          {},
+  fillPaused:         false,       // the admin paused the fill-up round (status CLOSED); Resume fill-up returns to it
 };
 
 // ----- Roles (board grouping + per-team role flags) -----

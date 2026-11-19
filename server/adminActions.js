@@ -58,7 +58,7 @@ function startAuction() {
  *  without changing the status or clearing the in-flight bid. Resets the opening-bid countdown
  *  to the full timeout so the new turn-holder gets a fresh clock. */
 function skipTurn() {
-  if (state.settings.status === STATUS.FILLUP) {
+  if (fillup.inRound()) {
     return err('Skip Turn isn\'t used in the fill-up round. Pick for a captain with Assign, or reorder the fill-up order.');
   }
   turn.skipMarker();
@@ -66,7 +66,11 @@ function skipTurn() {
   return ok();
 }
 
+/** Phase buttons and Empty teams don't apply to the fill-up round (running or paused). */
+const FILLUP_BLOCKED = 'Not during the fill-up round. Use Resume fill-up, Set Finished, or Start auction.';
+
 function openBidding() {
+  if (fillup.inRound()) return err(FILLUP_BLOCKED);
   state.settings.status = STATUS.BIDDING;
   sell.setLastBidTime();         // treat reopening as a fresh bid (restarts cooldown/window)
   return ok();
@@ -82,6 +86,7 @@ function closeBidding() {        // pause
     pr = { kind: 'autosell', seconds: sell.autoSellSecondsRemaining() };
   }
   state.clocks.pausedRemaining = pr;
+  fillup.pause();                // pausing the fill-up round keeps it resumable
   state.settings.status = STATUS.CLOSED;
   sell.clearLastBidTime();
   turn.clearOpeningDeadline();
@@ -89,8 +94,15 @@ function closeBidding() {        // pause
 }
 
 function openOpeningBid() {
+  if (fillup.inRound()) return err(FILLUP_BLOCKED);
   state.settings.status = STATUS.OPENING;
   turn.setOpeningDeadline();
+  return ok();
+}
+
+function resumeFillup() {
+  const r = fillup.resume();
+  if (!r.ok) return err(r.error);
   return ok();
 }
 
@@ -105,6 +117,9 @@ function sold() {
 function setStatus(status) {
   const allowed = [STATUS.OPENING, STATUS.BIDDING, STATUS.CLOSED, STATUS.FINISHED];
   if (!allowed.includes(status)) return err('Invalid status.');
+  if (status === STATUS.FINISHED) state.settings.fillPaused = false;
+  else if (status === STATUS.CLOSED) fillup.pause();
+  else if (fillup.inRound()) return err(FILLUP_BLOCKED);
   state.clocks.pausedRemaining = null;   // manual override isn't a timed pause
   state.settings.status = status;
   if (status === STATUS.OPENING) turn.setOpeningDeadline();
@@ -118,6 +133,7 @@ function setStatus(status) {
  * startAuction(): use Start alone to (re)begin, or Empty teams + Start for a full reset.
  */
 function emptyTeams() {
+  if (fillup.inRound()) return err(FILLUP_BLOCKED);
   for (const p of state.players) {
     // Co-captains are pre-assigned by the admin and belong to their team, so they stay.
     if (p.status === PLAYER_STATUS.SOLD && !p.coCaptain) { p.status = PLAYER_STATUS.OPEN; p.captainId = null; p.price = 0; }
@@ -539,8 +555,6 @@ function assignPlayerToTeam(playerId, captainId, price, coCaptain = false) {
   // Fresh assignment from the pool appends to the end; editing an existing pick's team/price
   // keeps its current slot.
   if (!wasSold) p.soldSeq = nextSoldSeq();
-  // During the fill-up round the admin picks for captains with Assign; it uses up a tier quota too.
-  if (!wasSold && state.settings.status === STATUS.FILLUP) fillup.consumeQuota(p);
   return ok();
 }
 
@@ -570,6 +584,7 @@ function moveFillUp(captainId, dir) {
 }
 
 module.exports = {
+  resumeFillup,
   moveFillUp,
   startAuction, skipTurn, openBidding, closeBidding, openOpeningBid,
   sold, setStatus, emptyTeams,

@@ -63,6 +63,7 @@ function registerAdminRoutes(app) {
   post('open-bidding',  () => A.openBidding());
   post('close-bidding', () => A.closeBidding());
   post('open-opening',  () => A.openOpeningBid());
+  post('resume-fillup', () => A.resumeFillup());
   post('sold',          () => A.sold());
   post('empty-teams',   () => A.emptyTeams());
   post('status',        (b) => A.setStatus(b.status));

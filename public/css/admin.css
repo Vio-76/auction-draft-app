@@ -83,8 +83,17 @@
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; align-items: end; }
 .form-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
 .self-end { align-self: end; }
-/* Save button placed in the grid's empty bottom-right cell, aligned with the field above it. */
-.form-grid .set-save { align-self: end; }
+/* Settings card: one tab per group of fields, a single Save row under all of them. */
+.set-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+.set-tab {
+  font-family: var(--font-display); font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+  padding: 8px 12px; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.set-tab:hover { color: var(--ink); }
+.set-tab.on { color: var(--ink); border-bottom-color: var(--accent); }
+.set-pane:not(.on) { display: none; }
+.set-save-row { display: flex; justify-content: flex-end; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; text-align: right; }
 input, select, textarea {
   font-family: var(--font-mono); font-size: 14px; padding: 9px 10px;
   background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong);
@@ -106,8 +115,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--accent); box-sha
 .table-wrap { overflow-x: auto; }
 .tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .tbl th, .tbl td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-.tbl th { font-family: var(--font-display); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-.tbl td.num, .tbl th.num { font-family: var(--font-mono); text-align: right; }
+.tbl th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.tbl td.num, .tbl th.num { text-align: right; }
+.tbl td.num { font-family: var(--font-mono); }
 .tbl tr:hover td { background: var(--surface); }
 .tbl .actions { display: flex; gap: 6px; }
 .tbl .ord-btns { display: flex; gap: 4px; }

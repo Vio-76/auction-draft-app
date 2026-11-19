@@ -122,6 +122,11 @@ async function adminAction(path, body, confirmMsg) {
   return res;
 }
 
+/** Settings card tabs: show one group of fields at a time (all of them are still saved). */
+function selectSettingsTab(i) {
+  document.querySelectorAll('.set-tab, .set-pane').forEach((e) => e.classList.toggle('on', e.dataset.tab === String(i)));
+}
+
 function saveSettings() {
   const patch = {
     sellMode: val('set-sellMode'), turnOrder: val('set-turnOrder'),
@@ -132,7 +137,8 @@ function saveSettings() {
     teamIdentityAlways: val('set-teamIdentityAlways') === 'true',
     showTeamNameOnBoard: val('set-showTeamNameOnBoard') === 'true',
     smallBlind: numVal('set-smallBlind'), teamBudget: numVal('set-teamBudget'),
-    teamSlots: numVal('set-teamSlots'), openingTimeout: numVal('set-openingTimeout'),
+    // The field is the team size incl. the captain; stored as player slots (excl. the captain).
+    teamSlots: numVal('set-teamSlots') - 1, openingTimeout: numVal('set-openingTimeout'),
     autoWindow: numVal('set-autoWindow'), soldCooldown: numVal('set-soldCooldown'),
     openingMessageSeconds: numVal('set-openingMessageSeconds'),
     soldMessageSeconds: numVal('set-soldMessageSeconds'),
@@ -245,9 +251,9 @@ function renderTiers() {
   const tbl = document.getElementById('tiers-tbl');
   if (!tbl || !STATE) return;
   const def = STATE.settings.smallBlind;
-  let html = '<tr><th>Name</th><th title="Recommended price. The floor is only shown; bids above the ceiling turn red for captains and on the board (never blocked).">Price range (floor – ceiling)</th><th class="num">Min bid</th><th class="num">Players</th><th>Order</th><th></th></tr>';
+  let html = '<tr><th>Name</th><th title="Recommended price. The floor is only shown; bids above the ceiling turn red for captains and on the board (never blocked).">Price range</th><th class="num">Min bid</th><th class="num">Players</th><th>Order</th><th></th></tr>';
   if (!tierDraft.length) {
-    html += '<tr><td colspan="6" class="hint">No tiers — every player uses the min bid without tiers ($' + def + ').</td></tr>';
+    html += '<tr><td colspan="6" class="hint">No tiers — every player uses the min bid if auction without player tiers ($' + def + ').</td></tr>';
   }
   tierDraft.forEach(function (t, i) {
     html += '<tr>' +
@@ -265,7 +271,7 @@ function renderTiers() {
   });
   if (tierDraft.length) {
     const untiered = ((STATE.players) || []).filter((p) => p.tierId == null).length;
-    html += '<tr class="tier-default"><td class="hint">(no tier)</td><td></td><td class="num hint" id="tier-default-min">= lowest tier</td>' +
+    html += '<tr class="tier-default"><td class="hint">(no tier)</td><td class="num hint" id="tier-default-min" colspan="2">= lowest tier</td>' +
       '<td class="num" id="tier-count-none">' + untiered + '</td><td></td><td></td></tr>';
   }
   tbl.innerHTML = html;
@@ -499,6 +505,19 @@ function renderStatus(s) {
 
   const soldBtn = document.getElementById('sold-btn');
   if (soldBtn) soldBtn.disabled = !s.soldArmed;
+  // Resume fill-up: always shown; usable (and accent-coloured) only while a fill-up round is paused.
+  const resumeBtn = document.getElementById('resume-fill-btn');
+  if (resumeBtn) {
+    const canResume = !!(s.fill && s.fill.paused);
+    resumeBtn.disabled = !canResume;
+    resumeBtn.classList.toggle('btn-accent', canResume);
+  }
+  // Not usable during the fill-up round (running or paused) — the server refuses them too.
+  const inFill = !!(s.fill && (s.fill.active || s.fill.paused));
+  for (const id of ['skip-btn', 'empty-teams-btn', 'open-opening-btn', 'open-bidding-btn']) {
+    const b = document.getElementById(id);
+    if (b) { b.disabled = inFill; b.title = inFill ? 'Not during the fill-up round' : ''; }
+  }
 }
 
 /** Fill-up order (#7): who picks next in the fill-up round, top first. Shown once anyone is broke;
@@ -508,17 +527,20 @@ function renderFillAdmin(s) {
   if (!box) return;
   const fill = s.fill || {};
   const order = fill.order || [];
-  if (!order.length && !fill.active) { box.hidden = true; box.innerHTML = ''; return; }
+  if (!order.length && !fill.active && !fill.paused) { box.hidden = true; box.innerHTML = ''; return; }
   box.hidden = false;
+  const live = fill.active || fill.paused;   // the round's frozen order: reorderable, shows who's done
   let html = '<div class="fill-admin-head"><b>Fill-up order</b> <span class="hint">' +
-    (fill.active ? 'top picks next · reorder with ↑/↓ · pick for a captain with Assign' : 'projected — the order is fixed when the fill-up round starts') + '</span></div><ol class="fill-admin-list">';
+    (fill.active ? 'top picks next · reorder with ↑/↓ · pick for a captain with Assign'
+      : fill.paused ? 'paused · continue with Resume fill-up'
+        : 'projected — the order is fixed when the fill-up round starts') + '</span></div><ol class="fill-admin-list">';
   order.forEach(function (c, i) {
     html += '<li><span class="fa-name">' + esc(c.name) + '</span><span class="tag">' + c.slots + ' slot' + (c.slots === 1 ? '' : 's') + '</span>' +
-      (fill.active ? '<span class="ord-btns"><button class="btn btn-sm" onclick="moveFill(' + c.id + ',\'up\')"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+      (live ? '<span class="ord-btns"><button class="btn btn-sm" onclick="moveFill(' + c.id + ',\'up\')"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
         '<button class="btn btn-sm" onclick="moveFill(' + c.id + ',\'down\')"' + (i === order.length - 1 ? ' disabled' : '') + '>↓</button></span>' : '') + '</li>';
   });
   html += '</ol>';
-  if (fill.active && fill.done && fill.done.length) html += '<div class="hint">Done: ' + fill.done.map(esc).join(', ') + '</div>';
+  if (live && fill.done && fill.done.length) html += '<div class="hint">Done: ' + fill.done.map(esc).join(', ') + '</div>';
   box.innerHTML = html;
 }
 function moveFill(id, dir) { adminAction('fillup/move', { id: id, dir: dir }); }
@@ -537,7 +559,7 @@ function fillSettingsOnce(s) {
   setVal('set-showTeamNameOnBoard', String(s.settings.showTeamNameOnBoard));
   setVal('set-smallBlind', s.settings.smallBlind);
   setVal('set-teamBudget', s.settings.teamBudget);
-  setVal('set-teamSlots', s.settings.teamSlots);
+  setVal('set-teamSlots', s.settings.teamSlots + 1);   // team size = captain + player slots
   setVal('set-openingTimeout', s.settings.openingTimeout);
   setVal('set-autoWindow', s.settings.autoWindow);
   setVal('set-soldCooldown', s.settings.soldCooldown);
@@ -564,17 +586,17 @@ function renderCaptains(s) {
       '<td><span class="code" data-code="' + esc(c.code) + '" data-shown="0" onclick="revealCode(this)" title="Click to reveal / hide">••••</span></td>' +
       '<td><span class="copylink" onclick="copyCaptainLink(' + c.id + ')" title="Click to copy the full invite link (password stays hidden on screen)">?captain=' + esc(c.name) + ' 🔗</span></td>' +
       '<td class="num">$' + c.price + '</td>' +
-      '<td class="num">' + c.draftedCount + '/' + slots + '</td>' +
+      '<td class="num">' + (c.draftedCount + 1) + '/' + (slots + 1) + '</td>' +   // incl. the captain, like Team size
       '<td class="num">$' + c.maxBid + '</td>' +
       '<td><div class="ord-btns">' +
         '<button class="btn btn-sm" onclick="moveCaptain(' + c.id + ',\'up\')"' + (i === 0 ? ' disabled' : '') + ' title="Move up">↑</button>' +
         '<button class="btn btn-sm" onclick="moveCaptain(' + c.id + ',\'down\')"' + (i === caps.length - 1 ? ' disabled' : '') + ' title="Move down">↓</button>' +
       '</div></td>' +
-      '<td class="actions">' +
+      '<td><div class="actions">' +   // flex on an inner div, not the <td>
         '<button class="btn btn-sm" onclick="editCaptain(' + c.id + ')">Edit</button>' +
         (c.logo ? '<button class="btn btn-sm" onclick="removeCaptainLogo(' + c.id + ')">Rmv logo</button>' : '') +
         '<button class="btn btn-sm btn-danger" onclick="deleteCaptain(' + c.id + ')">Del</button>' +
-      '</td></tr>';
+      '</div></td></tr>';
   });
   document.getElementById('captains-tbl').innerHTML = html;
 }
@@ -611,7 +633,7 @@ function renderPlayers() {
       '<td><span class="tag ' + p.status + '">' + p.status + '</span>' + (p.coCaptain ? ' <span class="tag co">co-captain</span>' : '') + '</td>' +
       '<td>' + esc(p.captainName || '—') + '</td>' +
       '<td class="num">' + (isSold ? '$' + p.price : '—') + '</td>' +
-      '<td class="actions">' +
+      '<td><div class="actions">' +   // flex on an inner div, not the <td>
         '<button class="btn btn-sm" onclick="editPlayer(' + p.id + ')">Edit</button>' +
         (p.image ? '<button class="btn btn-sm" onclick="removePlayerImage(' + p.id + ')">Rmv img</button>' : '') +
         (isSold
@@ -619,7 +641,7 @@ function renderPlayers() {
             '<button class="btn btn-sm" onclick="removeFromTeam(' + p.id + ')">Unassign</button>'
           : '<button class="btn btn-sm" onclick="assignPlayer(' + p.id + ')">Assign</button>') +
         '<button class="btn btn-sm btn-danger" onclick="deletePlayer(' + p.id + ')">Del</button>' +
-      '</td></tr>';
+      '</div></td></tr>';
   }
   document.getElementById('players-tbl').innerHTML = html;
 }
