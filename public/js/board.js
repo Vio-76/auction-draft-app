@@ -478,10 +478,15 @@ function addPoolCol(grid, spec) {
   // to the name; the enforced minimum sits on its own muted line underneath — a floor, not a price.
   if (spec.range) head.appendChild(el('span', 'pool-col-range', spec.range));
   const count = el('span', 'pool-col-count');
-  head.appendChild(count);
-  if (spec.min != null) {
+  const wordy = spec.min != null;   // tier view: "12 players" left, the minimum right (under the price range)
+  if (wordy) {
     head.classList.add('has-min');
-    head.appendChild(el('span', 'pool-col-min', '(minimum $' + spec.min + ')'));
+    const row = el('div', 'pool-col-minrow');
+    row.appendChild(count);
+    row.appendChild(el('span', 'pool-col-min', 'minimum $' + spec.min));
+    head.appendChild(row);
+  } else {
+    head.appendChild(count);
   }
   if (spec.fill) {                       // fill-up round: base = any number, higher tiers = quota left
     head.classList.add('has-min');
@@ -495,7 +500,7 @@ function addPoolCol(grid, spec) {
   const list = el('div', 'pool-list');
   col.appendChild(list);
   grid.appendChild(col);
-  return (poolCols[spec.key] = { col: col, list: list, count: count });
+  return (poolCols[spec.key] = { col: col, list: list, count: count, wordy: wordy });
 }
 
 function hidePool() {
@@ -543,6 +548,10 @@ function renderPool(players, tiers, defaultMinBid, fill) {
       const p = players[i];
       put(p.tierId != null && known[p.tierId] ? 't' + p.tierId : 'none', p);
     }
+    // Inside a tier: by role (Top → Support, then Fill, unknown roles last). The sort is stable, so
+    // within a role the server's order stays (the admin's random / alphabetical setting).
+    const roleRank = (p) => { const r = roleOf(p); const i = r ? ROLES.indexOf(r) : -1; return i < 0 ? ROLES.length : i; };
+    for (const key in buckets) buckets[key].sort((a, b) => roleRank(a) - roleRank(b));
     if (buckets.none) specs.push({ key: 'none', label: 'No tier', min: defaultMinBid, fill: fu ? { kind: 'base' } : null });
   } else {
     for (let i = 0; i < players.length; i++) {
@@ -573,7 +582,8 @@ function renderPool(players, tiers, defaultMinBid, fill) {
     const list = buckets[key] || [];
     c.list.classList.toggle('is-empty', list.length === 0);
     c.col.classList.toggle('empty', list.length === 0);
-    c.count.textContent = list.length || '';
+    if (!c.wordy) c.count.textContent = list.length || '';
+    else c.count.innerHTML = list.length ? list.length + ' <small>player' + (list.length === 1 ? '' : 's') + '</small>' : '';
     c.list.textContent = '';
     for (let i = 0; i < list.length; i++) {
       const p = list[i];

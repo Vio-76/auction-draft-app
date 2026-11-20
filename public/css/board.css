@@ -411,8 +411,14 @@
     /* Tier header: "MASTER  20-30$  4" on line 1 (range = recommended price, accent), then
        "(minimum $15)" on its own muted line 2 — the enforced floor, not the expected price. */
     .pool-col-head.has-min { flex-wrap:wrap; row-gap:3px; }
-    .pool-col-range { font-family:var(--font-mono); font-weight:700; font-size:13px; color:var(--accent); min-width:0; overflow-wrap:anywhere; }
+    .pool-col-range { margin-left:auto; text-align:right; font-family:var(--font-mono); font-weight:700; font-size:13px; color:var(--accent); min-width:0; overflow-wrap:anywhere; }
     .pool-col-min { flex-basis:100%; font-family:var(--font-mono); font-size:12px; color:var(--muted); }
+    /* Tier view: "12 players" on the left, the minimum on the right (under the price range). */
+    .pool-col-minrow { flex-basis:100%; display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+    .pool-col-minrow .pool-col-min { flex-basis:auto; }
+    .pool-col-minrow .pool-col-count { margin-left:0; font-weight:700; color:var(--ink); white-space:nowrap; }
+    .pool-col-minrow .pool-col-min { margin-left:auto; text-align:right; }
+    .pool-col-minrow .pool-col-count small { font-weight:500; font-size:11px; color:var(--muted); }
     .pool-player.with-icon { display:flex; align-items:center; gap:7px; }
     .pool-player-name { min-width:0; }
     .pool-mini-icon {
