@@ -218,7 +218,7 @@ test('opening bid snapshots a timed announcement (with the player image) that ex
 
   assert.deepEqual(bids.placeOpeningBid(A, 'Faker', 5), { ok: true });
   assert.deepEqual(sell.recentOpeningMessage(), {
-    player: 'Faker', bidder: 'A', bid: 5, image: '/uploads/pic.png',
+    player: 'Faker', bidder: 'A', bid: 5, image: '/uploads/pic.png', over: false,
   });
 
   state.clocks.lastOpening.at -= 6000;                       // window elapsed
@@ -344,7 +344,7 @@ test('old free-text tier ranges are converted to floor / ceiling numbers on load
     [[25, 30], [20, 30], [15, null], [null, 12], [null, null], [1, 2]]);
 });
 
-test('bids above the tier price ceiling are flagged (live bid + sold banner), never blocked', () => {
+test('bids above the tier price ceiling are flagged (opening + live bid + sold banner), never blocked', () => {
   setup({ settings: { teamBudget: 100, teamSlots: 2, sellMode: SELL_MODE.MANUAL },
     captains: [{ name: 'A', price: 0 }, { name: 'B', price: 0 }],
     players: [{ name: 'Star' }, { name: 'Free' }, { name: 'Other' }] });
@@ -362,9 +362,19 @@ test('bids above the tier price ceiling are flagged (live bid + sold banner), ne
   const [A, B] = state.captains;
   turn.advanceTurn();
   assert.equal(bids.placeOpeningBid(A, 'Star', 25).ok, true);
+  assert.equal(sell.recentOpeningMessage().over, false);            // within the range
+  assert.equal(team.openPlayersForOpening().find((p) => p.name === 'Other').ceiling, null);
   assert.equal(bids.placeBid(B, 40).ok, true);                      // above the ceiling: still allowed
   assert.equal(sell.sellPlayerInner().ok, true);
   assert.equal(sell.recentSoldMessage().over, true);
+
+  // An opening bid above the ceiling flags the opening announcement (also never blocked).
+  turn.advanceTurn();
+  const opener = turn.currentTurnCaptain();
+  state.players.find((p) => p.name === 'Other').tierId = tierId;
+  assert.equal(team.openPlayersForOpening().find((p) => p.name === 'Other').ceiling, 30);
+  assert.equal(bids.placeOpeningBid(opener, 'Other', 35).ok, true);
+  assert.equal(sell.recentOpeningMessage().over, true);
 });
 
 test('import matches the Tier column by name and reports unknown tiers', () => {

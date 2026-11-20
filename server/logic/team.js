@@ -168,7 +168,7 @@ function openPlayersForOpening() {
   return openPlayers()
     .map((p) => {
       const tier = tierById(p.tierId);
-      return { name: p.name, tier: tier ? tier.name : '', minBid: playerMinBid(p) };
+      return { name: p.name, tier: tier ? tier.name : '', minBid: playerMinBid(p), ceiling: priceCeiling(p) };
     })
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }

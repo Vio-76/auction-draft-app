@@ -44,6 +44,10 @@
     [data-theme="wada-202"] .opening-bid,
     [data-theme="wada-202"] .opening-player { color:#b5decc; }
     [data-theme="wada-202"] .opening-by { color:#96d1aa; }
+    [data-theme="wada-202"] .opening-card.over { background:#5e2f2b; border-color:#5e2f2b; }
+    [data-theme="wada-202"] .opening-card.over .opening-bid,
+    [data-theme="wada-202"] .opening-card.over .opening-player { color:#ffd5cf; }
+    [data-theme="wada-202"] .opening-card .over-tag { background:#f0a59c; color:#3a1714; }
 
     /* ===========================================================
        LAYOUT & COMPONENTS (token-driven)
@@ -113,8 +117,9 @@
 
     /* Player card (#8) above the name while the player is on the block. */
     .bid-card-img {
-      display:block; width:100%; max-width:240px; aspect-ratio:3/4; margin:10px auto 14px;
-      object-fit:contain; border-radius:var(--control-radius); background:rgba(0,0,0,.06); box-shadow:var(--shadow);
+      /* Keeps the image's own proportions (like the board's card popup), capped at 240×320. */
+      display:block; width:auto; height:auto; max-width:min(240px, 100%); max-height:320px; margin:10px auto 14px;
+      border-radius:var(--control-radius); box-shadow:var(--shadow);
     }
     .bid-stat { margin:0 0 16px; }
 
@@ -136,6 +141,9 @@
     .sold-banner.over { background:var(--danger-soft); border-color:var(--danger-border); }
     .sold-banner.over .sold-tag { background:var(--danger); color:#fff; }
     .sold-banner .over-tag { margin-left:auto; }
+    /* Opening announcement above the tier price ceiling: same red as the sold banner. */
+    .opening-card.over { background:var(--danger-soft); border-color:var(--danger-border); box-shadow:var(--shadow); }
+    .opening-card.over .opening-bid, .opening-card.over .opening-player { color:var(--danger); }
     .bid-label { font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
     .bid-figure {
       font-family:var(--font-mono); font-weight:700; font-size:var(--bid-size); line-height:1.05;

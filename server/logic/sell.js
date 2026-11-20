@@ -31,14 +31,14 @@ function recentSoldMessage() {
 // on the captain page + board; the image URL is captured here so a later admin edit can't change
 // an in-flight announcement. Same shape/lifecycle as the sold banner above.
 
-function setLastOpening(playerName, bidderName, bid, imageUrl) {
-  state.clocks.lastOpening = { player: playerName, bidder: bidderName, bid, image: imageUrl || null, at: Date.now() };
+function setLastOpening(playerName, bidderName, bid, imageUrl, over) {
+  state.clocks.lastOpening = { player: playerName, bidder: bidderName, bid, image: imageUrl || null, over: !!over, at: Date.now() };
 }
 function recentOpeningMessage() {
   const d = state.clocks.lastOpening;
   if (!d) return null;
   if (Date.now() - d.at > state.settings.openingMessageSeconds * 1000) return null;
-  return { player: d.player, bidder: d.bidder, bid: d.bid, image: d.image };
+  return { player: d.player, bidder: d.bidder, bid: d.bid, image: d.image, over: !!d.over };
 }
 
 // ----- last-bid clock + derived timers (ephemeral) -----

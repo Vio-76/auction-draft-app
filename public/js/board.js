@@ -115,14 +115,14 @@ let lastOpeningSig = '';
 function renderOpeningBanner(m) {
   const banner = document.getElementById('opening-banner');
   if (!banner) return;
-  const sig = m ? (m.player + '|' + m.bidder + '|' + m.bid + '|' + (m.image || '')) : '';
+  const sig = m ? (m.player + '|' + m.bidder + '|' + m.bid + '|' + (m.image || '') + '|' + (m.over ? 1 : 0)) : '';
   if (sig === lastOpeningSig) return;
   lastOpeningSig = sig;
   if (!m) { banner.style.display = 'none'; banner.innerHTML = ''; return; }
   const img = m.image
     ? '<img class="opening-img" src="' + esc(m.image) + '" alt="' + esc(m.player) + '" decoding="async">'
     : '';
-  banner.innerHTML = '<div class="opening-card">' + img +
+  banner.innerHTML = '<div class="opening-card' + (m.over ? ' over' : '') + '">' + img +   // red above the tier price ceiling
     '<div class="opening-text"><span class="opening-by">' + esc(m.bidder) + '</span> placed a ' +
     '<span class="opening-bid">$' + esc(m.bid) + '</span> opening bid on ' +
     '<span class="opening-player">' + esc(m.player) + '</span></div></div>';
@@ -545,10 +545,14 @@ function renderPool(players, tiers, defaultMinBid, fill) {
     }
     if (buckets.none) specs.push({ key: 'none', label: 'No tier', min: defaultMinBid, fill: fu ? { kind: 'base' } : null });
   } else {
-    for (let i = 0; i < ROLES.length; i++) specs.push({ key: ROLES[i].key, label: ROLES[i].label, role: ROLES[i] });
     for (let i = 0; i < players.length; i++) {
       const r = roleOf(players[i]);
       put(r ? r.key : 'other', players[i]);
+    }
+    // One column per role, shown even when empty — except Fill, which only appears when it has players.
+    for (let i = 0; i < ROLES.length; i++) {
+      if (ROLES[i].key === 'fill' && !buckets.fill) continue;
+      specs.push({ key: ROLES[i].key, label: ROLES[i].label, role: ROLES[i] });
     }
     if (buckets.other) specs.push({ key: 'other', label: 'Other', other: true });
   }

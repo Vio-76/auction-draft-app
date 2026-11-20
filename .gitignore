@@ -28,3 +28,6 @@ npm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# local test data (e.g. bulk-import player lists)
+testdata/

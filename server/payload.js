@@ -93,7 +93,7 @@ function buildCaptainState(captain) {
   };
 
   if (isYourTurnToOpen) {
-    result.openPlayers = team.openPlayersForOpening();   // [{name, tier, minBid}]
+    result.openPlayers = team.openPlayersForOpening();   // [{name, tier, minBid, ceiling}]
     result.secondsRemaining = turn.openingSecondsRemaining();
   }
 

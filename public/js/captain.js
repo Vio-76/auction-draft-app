@@ -173,16 +173,20 @@ function brokeBox(state) {
     'You\'ll fill your remaining <b>' + n + ' slot' + (n === 1 ? '' : 's') + '</b> for $0 in the fill-up round after the auction.</span></div></div>';
 }
 
-// Per-player minimum opening bid for the current dropdown (name -> minBid), refreshed each render.
+// Per-player minimum opening bid + tier price ceiling for the current dropdown (name -> value),
+// refreshed each render.
 let openingMins = {};
+let openingCeilings = {};
 
 function renderOpeningBid(root, state) {
   let options = '<option value="">— Choose a player —</option>';
   const players = state.openPlayers || [];   // [{name, tier, minBid}]
   openingMins = {};
+  openingCeilings = {};
   for (let i = 0; i < players.length; i++) {
     const p = players[i];
     openingMins[p.name] = p.minBid;
+    if (p.ceiling != null) openingCeilings[p.name] = p.ceiling;
     const label = p.tier ? p.name + ' (' + p.tier + ' · min $' + p.minBid + ')' : p.name;
     options += '<option value="' + esc(p.name) + '">' + esc(label) + '</option>';
   }
@@ -199,6 +203,7 @@ function renderOpeningBid(root, state) {
         '<input id="amount" type="number" min="' + state.smallBlind + '" step="1" placeholder="Opening bid">' +
         '<button id="submit">Place bid</button>' +
       '</div>' +
+      '<div class="range-warn" id="range-warn" data-high-over="0" hidden></div>' +
       '<div class="error" id="error"></div>' +
       '<div class="skip-row"><button id="skip" class="skip-btn">Skip your turn</button></div>' +
     '</div>';
@@ -206,6 +211,7 @@ function renderOpeningBid(root, state) {
   document.getElementById('submit').onclick = submitOpeningBid;
   document.getElementById('skip').onclick = submitSkip;
   document.getElementById('amount').onkeydown = function (e) { if (e.key === 'Enter') submitOpeningBid(); };
+  document.getElementById('amount').oninput = updateRangeWarn;
   document.getElementById('player-select').onchange = function () { updateMinBid(state); };
 }
 
@@ -218,7 +224,13 @@ function updateMinBid(state) {
   const label = document.getElementById('min-bid');
   if (label) label.textContent = '$' + min;
   const amount = document.getElementById('amount');
-  if (amount) amount.min = String(min);
+  if (amount) {
+    amount.min = String(min);
+    // The picked player's tier price ceiling drives the same red "your bid will exceed" warning as bidding.
+    if (pick && openingCeilings[pick] != null) amount.dataset.ceiling = String(openingCeilings[pick]);
+    else delete amount.dataset.ceiling;
+    updateRangeWarn();
+  }
 }
 
 function syncTimer(state) {
@@ -451,17 +463,18 @@ function updateOpeningBanner(state) {
   const banner = document.getElementById('opening-banner');
   if (!banner) return;
   const m = state && state.openingMessage;
-  const sig = m ? (m.player + '|' + m.bidder + '|' + m.bid + '|' + (m.image || '')) : '';
+  const sig = m ? (m.player + '|' + m.bidder + '|' + m.bid + '|' + (m.image || '') + '|' + (m.over ? 1 : 0)) : '';
   if (sig === lastOpeningSig) return;
   lastOpeningSig = sig;
   if (!m) { banner.innerHTML = ''; return; }
   const img = m.image
     ? '<img class="opening-img" src="' + esc(m.image) + '" alt="' + esc(m.player) + '" decoding="async">'
     : '';
-  banner.innerHTML = '<div class="opening-card">' + img +
+  banner.innerHTML = '<div class="opening-card' + (m.over ? ' over' : '') + '">' + img +
     '<div class="opening-text"><span class="opening-by">' + esc(m.bidder) + '</span> placed a ' +
     '<span class="opening-bid">$' + esc(m.bid) + '</span> opening bid on ' +
-    '<span class="opening-player">' + esc(m.player) + '</span></div></div>';
+    '<span class="opening-player">' + esc(m.player) + '</span>' +
+    (m.over ? '<span class="over-tag">Rip-off</span>' : '') + '</div></div>';   // above the tier price ceiling
 }
 
 // A takeover banner (opening reveal or sold) owns the screen: hide the bidding/opening UI while
