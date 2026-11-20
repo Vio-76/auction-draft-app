@@ -21,6 +21,30 @@ const LIVE_URGENT = _liveVar('--live-urgent') || _liveVar('--danger') || '#ff5b5
 
 // ----- team cards -----
 
+// Balanced team rows (see .team-grid in board.css): the fewest rows the width allows at the
+// minimum card width, then just enough columns to fill them evenly; cards grow up to the max.
+const TEAM_GAP = 16, TEAM_MIN = 215, TEAM_MAX = 250;
+let teamLayoutKey = '';
+function layoutTeams() {
+  const grid = document.getElementById('board');
+  if (!grid) return;
+  const n = Object.keys(cardEls).length;
+  const w = grid.clientWidth;                       // includes the padding set below
+  const key = n + '|' + w;
+  if (key === teamLayoutKey) return;
+  teamLayoutKey = key;
+  if (!n || !w) { grid.style.paddingInline = ''; return; }
+  const maxCols = Math.max(1, Math.floor((w + TEAM_GAP) / (TEAM_MIN + TEAM_GAP)));
+  const rows = Math.ceil(n / maxCols);
+  const cols = Math.ceil(n / rows);
+  // One column (phones): the card fills the width, as before; otherwise grow up to the max.
+  const cardW = cols === 1 ? w : Math.min(TEAM_MAX, Math.floor((w - (cols - 1) * TEAM_GAP) / cols));
+  const rowW = cols * cardW + (cols - 1) * TEAM_GAP;
+  grid.style.setProperty('--card-w', cardW + 'px');
+  grid.style.paddingInline = Math.max(0, Math.floor((w - rowW) / 2)) + 'px';   // a row holds exactly `cols`
+}
+window.addEventListener('resize', layoutTeams);
+
 function render(state) {
   const root = document.getElementById('board');
   if (!state) return;
@@ -33,6 +57,7 @@ function render(state) {
   // Once the auction is over, the budget block is no longer meaningful — hide it and let the
   // card show just the final roster (+ team op.gg link).
   const finished = !!(state.turn && state.turn.phase === 'FINISHED');
+  root.classList.toggle('finished', finished);   // no turn arrow any more: cards drop its top room
   // Fill-up round: only the captains still in the stack take part.
   const fu = state.fill && state.fill.active ? state.fill : null;
   const inFill = {};
@@ -56,8 +81,9 @@ function render(state) {
   for (const cap in cardEls) {
     if (!seen[cap]) { root.removeChild(cardEls[cap].el); delete cardEls[cap]; }
   }
+  layoutTeams();
 
-  updateSub(teams.length);
+  updateSub(teams.length, state.turn && state.turn.phase);
   renderOpeningBanner(state.openingMessage);
   renderSoldBanner(state.soldMessage);
   const pickBanner = !!(state.soldMessage && state.soldMessage.kind === 'pick');   // fill-up picks keep flowing
@@ -65,8 +91,70 @@ function render(state) {
   renderLiveBid(state.liveBid, !!state.openingMessage);
   renderPool(state.openPlayers || [], state.tiers || [], state.defaultMinBid, state.fill);
   renderFill(state.fill);
-  renderTurn(state.turn);
+  renderTurn(state.turn, state.showTurnOrderOnBoard !== false);
+  renderTurnFlag(state.turn, !!state.openingMessage || (!!state.soldMessage && !pickBanner) || !!(state.fill && state.fill.paused));
 }
+
+// Turn flag: one arrow chip (pointing the way the turn moves next: → waterfall / snake going
+// down, ← snake going back up, same as the turn badge) on the top edge of the turn-holder's team card. It sits in
+// #board (not inside a card: cards clip with overflow:hidden), absolutely positioned over the
+// card, and slides to the next card when the turn moves on. Shown in OPENING, BIDDING (stays on the
+// opener) and while paused (CLOSED — also before the auction starts, on the first seat), hidden while an opening/sold announcement shows, in the fill-up round (running or
+// paused) and once finished. After being hidden it reappears on the card it was last on
+// and slides from there, so a sale still shows the move. Cards are in seat order, same as
+// turn.order, so turn.order[currentIndex] names the card.
+let turnFlag = null, turnFlagName = '', turnFlagShown = false;
+function renderTurnFlag(turn, suppress) {
+  const root = document.getElementById('board');
+  if (!root) return;
+  if (!turnFlag) {
+    turnFlag = el('div', 'turn-flag');
+    turnFlag.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg>';
+    turnFlag.setAttribute('aria-hidden', 'true');   // the turn order list already says this
+  }
+  if (turnFlag.parentNode !== root) root.appendChild(turnFlag);   // showMessage() wipes #board
+  const phase = turn && turn.phase;
+  const order = (turn && turn.order) || [];
+  const i = turn ? turn.currentIndex : -1;
+  const name = (phase === 'OPENING' || phase === 'BIDDING' || phase === 'CLOSED') && i >= 0 && i < order.length ? order[i] : '';
+  const card = name ? cardEls[name] : null;
+  turnFlag.classList.toggle('left', !!turn && turn.mode === 'SNAKE' && turn.direction === 'UP');
+  if (!card || suppress || messageShown) {
+    turnFlag.classList.remove('show');
+    turnFlagShown = false;
+    return;
+  }
+  if (!turnFlagShown) {
+    const from = (turnFlagName && turnFlagName !== name && cardEls[turnFlagName]) || card;
+    placeTurnFlag(from, false);
+    turnFlag.classList.add('show');
+    turnFlagShown = true;
+    if (from !== card) requestAnimationFrame(() => placeTurnFlag(card, true));
+  } else {
+    placeTurnFlag(card, true);
+  }
+  turnFlagName = name;
+}
+function placeTurnFlag(card, animate) {
+  if (!turnFlag || !card || !card.el.isConnected) return;
+  const x = card.el.offsetLeft + card.el.offsetWidth / 2;   // offsets are relative to #board
+  // Vertically centred in the gap between the card's top strip (::before, 3–6px by theme) and its
+  // first visible content (the team-name crest, or the captain row when no identity is shown).
+  const strip = parseFloat(getComputedStyle(card.el, '::before').height) || 0;
+  let first = null;
+  for (const c of card.el.children) if (c.offsetHeight) { first = c; break; }
+  const contentTop = first ? first.offsetTop : strip;
+  const y = card.el.offsetTop + card.el.clientTop + Math.round((strip + contentTop - turnFlag.offsetHeight) / 2)
+    + 3;   // optical nudge: the team name's line box has empty space above the letters
+  const t = 'translate(' + x + 'px,' + y + 'px) translate(-50%,0)';
+  if (turnFlag.style.transform === t) return;
+  if (!animate) turnFlag.style.transition = 'none';
+  turnFlag.style.transform = t;
+  if (!animate) { void turnFlag.offsetWidth; turnFlag.style.transition = ''; }
+}
+window.addEventListener('resize', () => {   // after layoutTeams' listener: jump, don't slide
+  if (turnFlagShown && cardEls[turnFlagName]) placeTurnFlag(cardEls[turnFlagName], false);
+});
 
 // "Sold" banner — the same one the captain page shows, on the board too. Server-timed
 // (soldMessageSeconds); re-pushed by timers.js while live so it clears on time.
@@ -227,7 +315,9 @@ function stopLiveLoop() {
 
 function showMessage(root, msg) {
   root.innerHTML = '<div class="board-empty">' + msg + '</div>';
+  turnFlagShown = false; turnFlagName = '';   // the flag went with the cards
   cardEls = {};
+  layoutTeams();
   messageShown = true;
   renderOpeningBanner(null);
   renderSoldBanner(null);
@@ -238,9 +328,13 @@ function showMessage(root, msg) {
   hideTurn();
 }
 
-function updateSub(n) {
+// Header, top right: "<phase> · N teams". The turn order type / direction is admin-only.
+const PHASE_LABELS = { OPENING: 'Opening bid', BIDDING: 'Bidding', CLOSED: 'Paused', FILLUP: 'Fill-up round', FINISHED: 'Finished' };
+function updateSub(n, phase) {
   const sub = document.getElementById('board-sub');
-  if (sub) sub.textContent = n + (n === 1 ? ' team' : ' teams');
+  if (!sub) return;
+  const label = (n && PHASE_LABELS[phase]) || '';
+  sub.textContent = (label ? label + ' · ' : '') + n + (n === 1 ? ' team' : ' teams');
 }
 
 function el(tag, cls, text) {
@@ -446,12 +540,12 @@ function updateCard(card, t, faded, finished, showBudget) {
 //  - role: one column per ROLES entry (always shown, dimmed when empty) + "Other" if needed.
 //  - tier: one column per tier in admin order (always shown, dimmed when empty) + "No tier" if
 //    any untiered player is left; each player gets a small role icon so the role isn't lost.
-// The choice is per viewer (remembered in localStorage). With no tiers configured the switch is
-// hidden and the role view is used. Columns are rebuilt only when the column set changes.
-let poolMode = 'role';
+// Tier is the default; the choice is per viewer (remembered in localStorage). With no tiers configured
+// the switch is hidden and the role view is used. Columns are rebuilt only when the column set changes.
+let poolMode = 'tier';
 let poolColsSig = '';
 let lastPool = { players: [], tiers: [], defaultMinBid: 0 };
-try { if (localStorage.getItem('boardPoolMode') === 'tier') poolMode = 'tier'; } catch (e) { /* storage blocked */ }
+try { if (localStorage.getItem('boardPoolMode') === 'role') poolMode = 'role'; } catch (e) { /* storage blocked */ }
 
 function rolePrefixMap() {
   if (!poolPrefix) {
@@ -786,9 +880,9 @@ function buildTurnRail(names) {
   }
 }
 
-function renderTurn(turn) {
+function renderTurn(turn, show) {
   const names = (turn && turn.order) || [];
-  if (!names.length) { hideTurn(); return; }
+  if (!names.length || !show) { hideTurn(); return; }   // admin setting: Show opening bid order on board
   if (!turnChips || turnChips.length !== names.length) buildTurnRail(names);
 
   const finished = turn.phase === 'FINISHED';
@@ -802,15 +896,6 @@ function renderTurn(turn) {
     chip.classList.toggle('current', active && i === turn.currentIndex);
     chip.classList.toggle('full', turn.full && turn.full[names[i]] === true);
     chip.classList.toggle('broke', turn.broke && turn.broke[names[i]] === true);   // dimmed + no-money coin
-  }
-
-  const badge = document.getElementById('turn-badge');
-  if (badge) {
-    if (finished) badge.textContent = 'Complete';
-    else if (fillRound) badge.textContent = 'Fill-up round';
-    else if (paused) badge.textContent = 'Paused';
-    else if (turn.mode === 'SNAKE') badge.textContent = 'Snake ' + (turn.direction === 'UP' ? '←' : '→');
-    else badge.textContent = 'Waterfall →';
   }
 
   document.getElementById('turn-section').style.display = '';

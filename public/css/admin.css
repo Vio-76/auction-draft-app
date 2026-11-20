@@ -173,3 +173,7 @@ dialog.modal::backdrop { background: rgba(0, 0, 0, .55); }
 .modal-thumb { width: 96px; height: 96px; object-fit: cover; border-radius: var(--control-radius); border: 1px solid var(--line); }
 .tbl-thumb { display: inline-block; width: 34px; height: 34px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); vertical-align: middle; }
 .tbl-thumb-empty { display: inline-flex; align-items: center; justify-content: center; color: var(--muted); border-style: dashed; }
+/* Captains table: team logo before the team name (flex on the inner div, not the <td>).
+   Logos are shown whole (contain), not cropped like player photos. */
+.team-cell { display: flex; align-items: center; gap: 8px; }
+.tbl-logo { flex: none; width: 28px; height: 28px; object-fit: contain; }

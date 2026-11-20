@@ -35,6 +35,7 @@ const DEFAULT_SETTINGS = {
   theme:              'draftroom',
   showBidOnBoard:     true,        // show the live bid (player/amount/bidder) on the public board
   showBudgetOnBoard:  true,        // show the per-team available-budget bar on the board team cards
+  showTurnOrderOnBoard: true,      // board: show the "Opening Bid Order" section (false = hidden)
   teamIdentityAlways: false,       // board: show team names + logos during the auction (false = only once FINISHED)
   showTeamNameOnBoard: true,       // board: show the team name next to the logo (false = logo only)
   // Player tiers, in display order: [{ id, name, minBid, rangeMin, rangeMax }] (recommended price range: floor display only, bids above the ceiling flagged red). A tiered player's opening bid must be

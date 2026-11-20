@@ -71,33 +71,42 @@
     }
     .board-sub { font-size:13px; color:var(--muted); margin-left:auto; font-family:var(--font-mono); }
 
-    .team-grid {
-      display:grid; gap:16px;
-      grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
+    /* Team cards in balanced rows: board.js (layoutTeams) picks the column count from the number
+       of teams — the fewest rows at a 215px minimum card, then just enough columns to fill them
+       evenly (16 teams: 8 + 8 on ~1900–2100px, 6 + 6 + 4 on ~1500px) — and sets the card width
+       (max 250px, --card-w) plus side padding so a row holds exactly that many. A short last row
+       is centered. */
+    .team-grid { display:flex; flex-wrap:wrap; justify-content:center; gap:16px; }
+    .team-grid > .team-card { width:var(--card-w, 250px); }
+    /* Turn flag (board.js renderTurnFlag): a chip centred between the top strip and the team name of the turn-holder's
+       card (flush with it, nothing pokes out), sliding between cards. Positioned by a transform
+       relative to #board. */
+    .team-grid { position:relative; }
+    .turn-flag {
+      position:absolute; left:0; top:0; z-index:3; pointer-events:none; white-space:nowrap;
+      display:flex; line-height:0;
+      color:var(--flag-ink, var(--accent-ink)); background:var(--flag-bg, var(--accent)); padding:3px 8px; border-radius:6px;
+      opacity:0; visibility:hidden;
+      transition:transform .6s cubic-bezier(.45,0,.2,1), opacity .25s ease, visibility .25s;
     }
+    .turn-flag.show { opacity:1; visibility:visible; }
+    .turn-flag svg { width:18px; height:14px; transition:transform .3s ease; }
+    .turn-flag.left svg { transform:scaleX(-1); }   /* snake going back up */
     /* Only the team grid breaks out of the 1440px shell on wide screens: it spans the full
        viewport minus a 22px gutter (same as the shell's side padding), so more teams fit per
-       row. Header, live band, pool and turn order stay at the shell width. Below 1440px the
-       shell is already full-width, so nothing changes.
-       Cards are a fixed 250px here and the group is centered: auto-fit collapses the empty
-       columns, so a short row (e.g. 5 teams on 1920px) sits in the middle instead of hugging
-       the left. A partial last row lines up under the block's left column. 250px keeps the
-       per-row count of the old 240px-min grid (5 @1440, 7 @1920, 9 @2560). */
+       row. Header, live band, pool and turn order stay at the shell width. */
     @media (min-width:1440px) {
-      .team-grid {
-        margin-inline:calc(720px - 50vw);
-        grid-template-columns:repeat(auto-fit, 250px);
-        justify-content:center;
-      }
+      .team-grid { margin-inline:calc(720px - 50vw); }
     }
 
     .team-card {
       position:relative; overflow:hidden;
       display:flex; flex-direction:column;
       background:var(--card); border:var(--card-border); border-radius:var(--radius);
-      padding:18px 17px 16px; box-shadow:var(--shadow);
+      padding:32px 17px 16px; box-shadow:var(--shadow);   /* top: room for the turn flag above the name */
       animation:cardIn .25s ease both;
     }
+    .team-grid.finished .team-card { padding-top:18px; }   /* FINISHED: no turn flag, back to the original height */
     .team-card::before {
       content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--topbar);
     }
@@ -192,9 +201,10 @@
 
     /* Pinned to the card bottom so role rows line up across all cards in a grid row,
        even when a wrapped captain name makes one card taller. */
-    .roles { display:flex; gap:7px; flex-wrap:wrap; margin-top:auto; }
+    /* One line of role icons; they shrink a little on narrow cards instead of wrapping. */
+    .roles { display:flex; gap:7px; flex-wrap:nowrap; margin-top:auto; }
     .role {
-      width:28px; height:28px; border-radius:var(--control-radius);
+      flex:0 1 28px; min-width:0; aspect-ratio:1 / 1; border-radius:var(--control-radius);
       background-size:62% 62%; background-repeat:no-repeat; background-position:center;
       background-color:var(--surface); border:1px solid var(--line);
       display:flex; align-items:center; justify-content:center;
@@ -226,7 +236,7 @@
     .team-oppg:active { transform:translateY(1px); }
 
     .board-empty {
-      grid-column:1 / -1; padding:44px 22px; text-align:center; color:var(--muted);
+      flex-basis:100%; padding:44px 22px; text-align:center; color:var(--muted);
       background:var(--surface); border:1px dashed var(--line-strong); border-radius:var(--radius); font-size:16px;
     }
 

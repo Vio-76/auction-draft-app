@@ -171,6 +171,8 @@ function updateSettings(patch) {
       state.settings.showBidOnBoard = (raw === true || raw === 'true' || raw === 1 || raw === '1' || raw === 'on');
     } else if (key === 'showBudgetOnBoard') {
       state.settings.showBudgetOnBoard = (raw === true || raw === 'true' || raw === 1 || raw === '1' || raw === 'on');
+    } else if (key === 'showTurnOrderOnBoard') {
+      state.settings.showTurnOrderOnBoard = (raw === true || raw === 'true' || raw === 1 || raw === '1' || raw === 'on');
     } else if (key === 'teamIdentityAlways') {
       state.settings.teamIdentityAlways = (raw === true || raw === 'true' || raw === 1 || raw === '1' || raw === 'on');
     } else if (key === 'showTeamNameOnBoard') {

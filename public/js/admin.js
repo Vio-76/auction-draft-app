@@ -134,6 +134,7 @@ function saveSettings() {
     theme: val('set-theme'),
     showBidOnBoard: val('set-showBidOnBoard') === 'true',
     showBudgetOnBoard: val('set-showBudgetOnBoard') === 'true',
+    showTurnOrderOnBoard: val('set-showTurnOrderOnBoard') === 'true',
     teamIdentityAlways: val('set-teamIdentityAlways') === 'true',
     showTeamNameOnBoard: val('set-showTeamNameOnBoard') === 'true',
     smallBlind: numVal('set-smallBlind'), teamBudget: numVal('set-teamBudget'),
@@ -555,6 +556,7 @@ function fillSettingsOnce(s) {
   setVal('set-theme', s.settings.theme);
   setVal('set-showBidOnBoard', String(s.settings.showBidOnBoard));
   setVal('set-showBudgetOnBoard', String(s.settings.showBudgetOnBoard));
+  setVal('set-showTurnOrderOnBoard', String(s.settings.showTurnOrderOnBoard !== false));
   setVal('set-teamIdentityAlways', String(s.settings.teamIdentityAlways));
   setVal('set-showTeamNameOnBoard', String(s.settings.showTeamNameOnBoard));
   setVal('set-smallBlind', s.settings.smallBlind);
@@ -582,7 +584,12 @@ function renderCaptains(s) {
       '<td>' + esc(c.role || '—') + '</td>' +
       '<td>' + esc(c.discord || '—') + '</td>' +
       '<td>' + esc(c.teamGroup || '—') + '</td>' +
-      '<td>' + esc(c.teamName || '—') + '</td>' +
+      '<td><div class="team-cell">' +   // logo thumb (or an empty placeholder) before the team name
+        (c.logo
+          ? '<img class="tbl-thumb tbl-logo" src="/uploads/' + esc(c.logo) + '" alt="" title="Team logo">'
+          : '<span class="tbl-thumb tbl-logo tbl-thumb-empty" title="No team logo">—</span>') +
+        '<span>' + esc(c.teamName || '—') + '</span>' +
+      '</div></td>' +
       '<td><span class="code" data-code="' + esc(c.code) + '" data-shown="0" onclick="revealCode(this)" title="Click to reveal / hide">••••</span></td>' +
       '<td><span class="copylink" onclick="copyCaptainLink(' + c.id + ')" title="Click to copy the full invite link (password stays hidden on screen)">?captain=' + esc(c.name) + ' 🔗</span></td>' +
       '<td class="num">$' + c.price + '</td>' +

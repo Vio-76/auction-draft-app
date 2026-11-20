@@ -243,6 +243,9 @@ function buildBoardState() {
     liveBid,
     // Whether the per-team available-budget bar shows on the board team cards (admin toggle).
     showBudgetOnBoard: s.showBudgetOnBoard,
+    // Whether the "Opening Bid Order" section shows on the board (admin toggle). The order itself
+    // still rides in `turn` — the team cards' turn arrow and the header phase use it.
+    showTurnOrderOnBoard: s.showTurnOrderOnBoard,
     // Timed opening-bid announcement (image + "X placed a $N opening bid on Y"). It names the bid
     // amount + bidder, so on the public board it's gated by showBidOnBoard exactly like liveBid
     // (captains always get it in buildCaptainState — they're participants).
